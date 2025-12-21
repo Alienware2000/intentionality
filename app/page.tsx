@@ -2,7 +2,7 @@ import Link from "next/link"
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black text-white p-8">
+    <div>
       <header className="mb-8">
         <h1 className="text-4xl font-semibold tracking-tight">Intentionality</h1>
         <p className="text-white/70 mt-2">Command Center (v0)</p>
@@ -30,6 +30,6 @@ export default function Home() {
           </p>
         </div>
       </section>
-    </main>
+    </div>
   )
 }

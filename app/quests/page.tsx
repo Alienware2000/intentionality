@@ -1,6 +1,6 @@
 export default function QuestsPage() {
     return (
-        <main className="min-h-screen bg-black text-white p-8">
+        <div>
             <header className="mb-8">
                 <h1 className="text-3xl font-semibold">Quests</h1>
                 <p className="text-white/70 mt-2">
@@ -13,6 +13,6 @@ export default function QuestsPage() {
                     Your quests and related tasks will appear here.
                 </p>
             </section>
-        </main>
+        </div>
     );
 }
