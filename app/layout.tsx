@@ -30,8 +30,13 @@ export default function RootLayout({
       >
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <div className="flex-1 min-h-screen p-8">
-            {children}
+
+          {/* This is the scroll container */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {/* This controls width + padding */}
+            <div className="mx-auto w-full max-w-6xl p-8">
+              {children}
+            </div>
           </div>
         </div>
       </body>
