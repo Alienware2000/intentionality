@@ -166,3 +166,22 @@ export function toggleTaskCompleted(taskId: Id): boolean {
     // For now, we'll just return true to indicate success.
     return true;
 }
+
+// Adds a new task to the store.
+export function addTask(input: {
+    title: string;
+    dueDate: ISODateString;
+    questId: Id;
+}): Task {
+    const newTask: Task = {
+        id: makeId("t"),
+        questId: input.questId,
+        title: input.title,
+        dueDate: input.dueDate,
+        completed: false,
+        createdAt: todayISODate(),
+    };
+
+    tasks.push(newTask);
+    return newTask;
+}
