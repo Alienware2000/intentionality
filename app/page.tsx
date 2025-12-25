@@ -1,6 +1,19 @@
 import Link from "next/link"
+import TodayClient from "./components/TodayClient"
+import type { ISODateString } from "./lib/types"
+
+// Utility to get today's date in ISO format
+function getTodayISO(): ISODateString {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export default function Home() {
+  const today = getTodayISO();
+
   return (
     <div>
       <header className="mb-8">
@@ -28,6 +41,17 @@ export default function Home() {
           <p className="text-white/60 mt-2">
             Progress, XP, and streaks will live here.
           </p>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-2xl font-semibold">Today</h2>
+          <span className="text-sm text-white/60">{today} </span>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <TodayClient date={today} />
         </div>
       </section>
     </div>
