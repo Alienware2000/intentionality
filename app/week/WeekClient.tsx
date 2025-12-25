@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ISODateString, Id } from "../lib/types";
 import { getTasksBetweenDates, toggleTaskCompleted } from "../lib/store";
+import { groupTasksByWeek } from "../lib/selectors";
 
 type Props = {
     start: ISODateString;
@@ -16,9 +17,14 @@ export default function WeekClient({ start, end }: Props) {
 
     // Memoized tasks for the week
     // Recomputes only when start, end, or tick changes (i.e., when tasks are toggled)
-    const tasks = useMemo(() => {
+    const tasksThisWeek = useMemo(() => {
         return getTasksBetweenDates(start, end);
     }, [start, end, tick]);
+
+    // Group tasks by day using the selector utility
+    const groupedTasks = useMemo(() => {
+        return groupTasksByWeek(tasksThisWeek, start);
+    }, [tasksThisWeek, start]);
 
     // Handler to toggle task completion
     function handleToggle(taskId: Id) {
@@ -30,26 +36,58 @@ export default function WeekClient({ start, end }: Props) {
 
     return (
         <div className="space-y-3">
-            {tasks.map((t) => (
-                <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleToggle(t.id)}
-                    className="w-full text-left rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition p-4"
-                    >
-                        <div className="flex items-center justify-between gap-4">
-                            <div>
-                                <div className={t.completed ? "line-through opacity-70" : ""}>
-                                    {t.title}
-                                </div>
-                                <div className="text-sm opacity-70">{t.dueDate}</div>
-                            </div>
+            {groupedTasks.map((day) => (
+                <div
+                    key={day.date}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">{day.date}</h2>
+                        <span className="text-xs text-white/50">{day.date}</span>
+                    </div>
 
-                            <span className="text-sm rounded-full border border-white/15 px-3 py-1 opacity-80">
-                                {t.completed ? "Done" : "Planned"}
-                            </span>
-                        </div>
-                    </button>
+                    <div className="mt-4 space-y-3">
+                        {day.tasks.length === 0 ? (
+                            <p className="text-white/50 text-sm">No tasks for this day.</p>
+                        ) : (
+                            day.tasks.map((t) => (
+                                <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={() => handleToggle(t.id)}
+                                    className="w-full text-left rounded-xl border border-white/10 bg-black/20 p-4 hover:bg-white/10 transition"
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <div
+                                                className={
+                                                    "text-white/90 font-medium " +
+                                                    (t.completed ? "line-through text-white/70" : "")
+                                                }
+                                            >
+                                                {t.title}
+                                            </div>
+                                            <div className="text-xs text-white/50 mt-1">
+                                                Due: {t.dueDate}
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className={
+                                                "text-xs rounded-full px-3 py-1 border " +
+                                                (t.completed
+                                                    ? "border-white/20 text-white/70"
+                                                    : "border-white/10 text-white/50")
+                                            }
+                                        >
+                                            {t.completed ? "Done" : "Planned"}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
             ))}
         </div>
     );
