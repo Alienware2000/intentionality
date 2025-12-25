@@ -145,3 +145,24 @@ function toISODateString(d: Date): ISODateString {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
+
+// Write functions (safe interface to modify data).
+
+/// Toggles the completed status of a task by its ID.
+export function toggleTaskCompleted(taskId: Id): boolean {
+    // Find the task
+    const task = tasks.find((t) => t.id === taskId);
+
+    // If task not found, return false
+    if (!task) {
+        console.warn(` [store] toggleTaskCompleted: Task with id ${taskId} not found.`);
+        return false;
+    }
+
+    // Toggle the completed status
+    task.completed = !task.completed;
+
+    // In a real app, we'd persist this to a database.
+    // For now, we'll just return true to indicate success.
+    return true;
+}
