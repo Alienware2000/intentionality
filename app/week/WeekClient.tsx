@@ -56,15 +56,12 @@ export default function WeekClient({ start, end }: Props) {
                                     key={t.id}
                                     type="button"
                                     onClick={() => handleToggle(t.id)}
-                                    className="w-full text-left rounded-xl border border-white/10 bg-black/20 p-4 hover:bg-white/10 transition"
+                                    className={["w-full text-left rounded-xl border p-4 transition", "cursor pointer", t.completed ? "border-white/10 bg-white/5 opacity-70" : "border-white/15 bg-black/20 hover:bg-white/10"].join(" ")}
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <div
-                                                className={
-                                                    "text-white/90 font-medium " +
-                                                    (t.completed ? "line-through text-white/70" : "")
-                                                }
+                                                className={["font-medium", t.completed ? "line-through text-white/50" : "text-white/90"].join(" ")}
                                             >
                                                 {t.title}
                                             </div>
@@ -74,19 +71,19 @@ export default function WeekClient({ start, end }: Props) {
                                         </div>
 
                                         <div
-                                            className={
-                                                "text-xs rounded-full px-3 py-1 border " +
-                                                (t.completed
-                                                    ? "border-white/20 text-white/70"
-                                                    : "border-white/10 text-white/50")
-                                            }
+                                            className={[
+                                                "text-xs rounded-full px-3 py-1 border",
+                                                t.completed
+                                                ? "border-green-400/30 text-green-300"
+                                                : "border-white/20 text-white/60",
+                                            ].join(" ")}
                                         >
                                             {t.completed ? "Done" : "Planned"}
                                         </div>
                                     </div>
                                 </button>
                             ))
-                        )}
+                        )}                    
                     </div>
                 </div>
             ))}
