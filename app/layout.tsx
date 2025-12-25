@@ -25,21 +25,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
-      >
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
 
-          {/* This is the scroll container */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {/* This controls width + padding */}
-            <div className="mx-auto w-full max-w-6xl p-8">
-              {children}
+          {/* app UI layer */}
+          <div className="relative z-10 flex h-screen overflow-hidden">
+            <Sidebar />
+
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="mx-auto w-full max-w-6xl p-8">
+                {children}
+              </div>
             </div>
           </div>
-        </div>
-      </body>
+        </body> 
     </html>
   );
 }
