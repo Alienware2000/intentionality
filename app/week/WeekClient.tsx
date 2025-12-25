@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { ISODateString, Id } from "../lib/types";
 import { getTasksBetweenDates, toggleTaskCompleted } from "../lib/store";
 import { groupTasksByWeek } from "../lib/selectors";
+import { formatDayLabel } from "../lib/formatters";
 
 type Props = {
     start: ISODateString;
@@ -42,7 +43,7 @@ export default function WeekClient({ start, end }: Props) {
                     className="rounded-2xl border border-white/10 bg-white/5 p-6"
                 >
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold">{day.date}</h2>
+                        <h2 className="text-xl font-semibold">{formatDayLabel(day.date)}</h2>
                         <span className="text-xs text-white/50">{day.date}</span>
                     </div>
 
