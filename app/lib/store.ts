@@ -164,7 +164,8 @@ export function toggleTaskCompleted(taskId: Id): boolean {
     task.completed = !task.completed;
 
     // In a real app, we'd persist this to a database.
-    // For now, we'll just return true to indicate success.
+    // For now, we just save to localStorage.
+    saveTasksToStorage();
     return true;
 }
 
@@ -184,5 +185,52 @@ export function addTask(input: {
     };
 
     tasks.push(newTask);
+    saveTasksToStorage();
     return newTask;
+}
+
+// Persistence: Save/load tasks to/from localStorage for basic persistence across page reloads.
+// Note: In a real app, this would be handled by a backend database.
+// For now, this is just to improve the demo experience.
+// We only persist tasks, not quests, for simplicity.
+// In a real app, both would be persisted.
+// We use a simple key in localStorage.
+// In a real app, you'd want to handle versioning, migrations, etc.
+// For now, this is sufficient for demonstration purposes.
+// What is local storage?
+// - A simple key-value storage available in web browsers.
+// - Data is stored as strings and persists across page reloads.
+// - Limited to about 5-10MB of data depending on the browser.
+const TASKS_STORAGE_KEY = "intentionality:v0:tasks";
+
+// Helper to check if we're in a browser environment
+function isBrowser(): boolean {
+    return typeof window !== "undefined";
+}
+
+// Save tasks to localStorage
+function saveTasksToStorage() {
+    if (!isBrowser()) return;
+    window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+}
+
+// Subscribe to changes in tasks array to save to localStorage
+// In a real app, you'd want a more robust state management solution.
+// For now, we'll just monkey-patch the push method for demonstration purposes.
+export function hydrateTasksFromStorage(): void {
+    if (!isBrowser()) return;
+
+    const raw = window.localStorage.getItem(TASKS_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+        const parsed = JSON.parse(raw) as Task[];
+
+        // Replace the contents of the in-memory tasks array in place
+        // so any existing references stay valid.
+        tasks.length = 0;
+        tasks.push(...parsed);
+    } catch {
+        console.warn(" [store] hydrateTasksFromStorage: Failed to parse tasks from localStorage.");
+    }
 }
