@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { ISODateString, Id } from "../lib/types";
 import { 
     addTask, 
     getTasksBetweenDates, 
     toggleTaskCompleted, 
-    getQuests } from "../lib/store";
+    getQuests,
+    hydrateTasksFromStorage } from "../lib/store";
 
 type Props = {
   date: ISODateString;
@@ -16,7 +17,12 @@ export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
   const [tick, setTick] = useState(0);
   const [questId, setQuestId] = useState<Id>("q_general");
-
+  
+  useEffect(() => {
+    hydrateTasksFromStorage();
+    setTick((t) => t + 1);
+  }, []);
+  
   const tasksToday = useMemo(() => {
     return getTasksBetweenDates(date, date);
   }, [date, tick]);
