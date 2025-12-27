@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { ISODateString, Id } from "../lib/types";
-import { addTask, getTasksBetweenDates, toggleTaskCompleted } from "../lib/store";
+import { 
+    addTask, 
+    getTasksBetweenDates, 
+    toggleTaskCompleted, 
+    getQuests } from "../lib/store";
 
 type Props = {
   date: ISODateString;
@@ -11,6 +15,7 @@ type Props = {
 export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
   const [tick, setTick] = useState(0);
+  const [questId, setQuestId] = useState<Id>("q_general");
 
   const tasksToday = useMemo(() => {
     return getTasksBetweenDates(date, date);
@@ -21,6 +26,10 @@ export default function TodayClient({ date }: Props) {
     if (ok) setTick((t) => t + 1);
   }
 
+  const quests = useMemo(() => {
+    return getQuests();
+  }, []);
+
   function handleAdd() {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -30,7 +39,7 @@ export default function TodayClient({ date }: Props) {
     addTask({
         title: trimmed,
         dueDate: date,
-        questId: "q_intentionality",
+        questId,
     });
 
     setTitle("");
@@ -40,18 +49,34 @@ export default function TodayClient({ date }: Props) {
   return (
     <div className="space-y-3">
      <div className="flex gap-2">
+        <select
+            value={questId}
+            onChange={(e) => setQuestId(e.target.value as Id)}
+            className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none focus:border-white/25"
+        >
+            {quests.map((q) => (
+                <option key={q.id} value={q.id}>
+                    {q.title}
+                </option>
+            ))}
+        </select>
+
         <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdd();
+            }}
             placeholder="Add one small task for today..."
             className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-white/25"
         />
+
         <button
             type="button"
             onClick={handleAdd}
             className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition"
         >
-            Add Task
+            Add
         </button>
       </div>
       {tasksToday.length === 0 ? (

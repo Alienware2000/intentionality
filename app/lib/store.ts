@@ -38,6 +38,7 @@ function todayISODate(): ISODateString {
  * You can change these any time.
  */
 const quests: Quest[] = [
+    { id: "q_general", title: "General Tasks", createdAt: todayISODate()},
     {id: "q_leetcode", title: "Leetcode consistency", createdAt: todayISODate()},
     {id: "q_intentionality", title: "Ship Intentionality v0", createdAt: todayISODate()},
     {id: "q_portfolio", title: "Polish portfolio + LinkedIn", createdAt: todayISODate()},
