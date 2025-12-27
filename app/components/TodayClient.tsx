@@ -21,6 +21,9 @@ export default function TodayClient({ date }: Props) {
     return getTasksBetweenDates(date, date);
   }, [date, tick]);
 
+  const total = tasksToday.length;
+  const done = tasksToday.filter((t) => t.completed).length;
+
   function handleToggle(taskId: Id) {
     const ok = toggleTaskCompleted(taskId);
     if (ok) setTick((t) => t + 1);
@@ -70,6 +73,10 @@ export default function TodayClient({ date }: Props) {
             placeholder="Add one small task for today..."
             className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-white/25"
         />
+
+        <div className="flex items-center justify-between text-sm text-white/60">
+            <span>Progress: {done} / {total} done</span>
+        </div>
 
         <button
             type="button"
