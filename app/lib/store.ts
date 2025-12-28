@@ -49,7 +49,7 @@ const tasks: Task[] = [
         id: "t_arrays",
         questId: "q_leetcode",
         title: "Solve 2 array problems",
-        dueDate: todayISODate(),
+        dueDate: "2025-12-26",
         completed: false,
         createdAt: todayISODate(),
     },
