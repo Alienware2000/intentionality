@@ -4,10 +4,11 @@ import { useMemo, useState, useEffect } from "react";
 import type { ISODateString, Id } from "../lib/types";
 import { 
     addTask, 
-    getTasksBetweenDates, 
     toggleTaskCompleted, 
     getQuests,
+    getTasks,
     hydrateTasksFromStorage } from "../lib/store";
+import { splitTasksForToday } from "../lib/selectors";
 
 type Props = {
   date: ISODateString;
@@ -17,18 +18,25 @@ export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
   const [tick, setTick] = useState(0);
   const [questId, setQuestId] = useState<Id>("q_general");
+
+  const todayISO = date;
   
   useEffect(() => {
     hydrateTasksFromStorage();
     setTick((t) => t + 1);
   }, []);
-  
-  const tasksToday = useMemo(() => {
-    return getTasksBetweenDates(date, date);
-  }, [date, tick]);
 
-  const total = tasksToday.length;
-  const done = tasksToday.filter((t) => t.completed).length;
+//   const tasksToday = useMemo(() => {
+//     return getTasksBetweenDates(date, date);
+//   }, [date, tick]);
+
+    const { overdue, today } = useMemo(() => {
+        const allTasks = getTasks();
+        return splitTasksForToday(allTasks, todayISO);
+    }, [tick, todayISO]);
+
+  const total = today.length;
+  const done = today.filter((t) => t.completed).length;
 
   function handleToggle(taskId: Id) {
     const ok = toggleTaskCompleted(taskId);
@@ -91,13 +99,43 @@ export default function TodayClient({ date }: Props) {
         >
             Add
         </button>
-      </div>
-      {tasksToday.length === 0 ? (
+        </div>
+        {overdue.length > 0 && (
+            <section className="space-y-3">
+            <h3 className="text-red-400 font-semibold">Overdue</h3>
+
+            {overdue.map((t) => (
+            <button
+                key={t.id}
+                type="button"
+                onClick={() => handleToggle(t.id)}
+                className={[
+                "w-full text-left rounded-xl border p-4 transition",
+                "cursor-pointer",
+                "border-red-400/20 bg-red-500/5 hover:bg-red-500/10",
+                ].join(" ")}
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <div className="font-medium text-white/90">{t.title}</div>
+                        <div className="text-xs text-white/50 mt-1">Due: {t.dueDate}</div>
+                    </div>
+
+                    <div className="text-xs rounded-full px-3 py-1 border border-red-400/30 text-red-300">
+                        Overdue
+                    </div>
+                </div>
+            </button>
+            ))}
+            </section>
+        )}
+
+      {today.length === 0 ? (
         <p className="text-white/50 text-sm">
           No tasks for today. Add one small thing and build momentum.
         </p>
       ) : (
-        tasksToday.map((t) => (
+        today.map((t) => (
           <button
             key={t.id}
             type="button"
