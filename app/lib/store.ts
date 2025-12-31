@@ -234,3 +234,15 @@ export function hydrateTasksFromStorage(): void {
         console.warn(" [store] hydrateTasksFromStorage: Failed to parse tasks from localStorage.");
     }
 }
+
+export function moveTaskToDate(taskId: Id, dueDate: ISODateString): boolean {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+        console.warn(`moveTaskToDate: Task with id ${taskId} not found.`);
+        return false;
+    }
+
+    task.dueDate = dueDate;
+    saveTasksToStorage();
+    return true;
+}

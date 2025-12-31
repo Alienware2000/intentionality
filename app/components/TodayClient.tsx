@@ -7,7 +7,8 @@ import {
     toggleTaskCompleted, 
     getQuests,
     getTasks,
-    hydrateTasksFromStorage } from "../lib/store";
+    hydrateTasksFromStorage,
+    moveTaskToDate } from "../lib/store";
 import { splitTasksForToday } from "../lib/selectors";
 
 type Props = {
@@ -40,6 +41,11 @@ export default function TodayClient({ date }: Props) {
 
   function handleToggle(taskId: Id) {
     const ok = toggleTaskCompleted(taskId);
+    if (ok) setTick((t) => t + 1);
+  }
+
+  function handleMoveToday(taskId: Id) {
+    const ok = moveTaskToDate(taskId, date);
     if (ok) setTick((t) => t + 1);
   }
 
@@ -105,15 +111,9 @@ export default function TodayClient({ date }: Props) {
             <h3 className="text-red-400 font-semibold">Overdue</h3>
 
             {overdue.map((t) => (
-            <button
+            <div
                 key={t.id}
-                type="button"
-                onClick={() => handleToggle(t.id)}
-                className={[
-                "w-full text-left rounded-xl border p-4 transition",
-                "cursor-pointer",
-                "border-red-400/20 bg-red-500/5 hover:bg-red-500/10",
-                ].join(" ")}
+                className="w-full rounded-xl border border-red-400/20 bg-red-500/5 p-4"
             >
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -125,16 +125,32 @@ export default function TodayClient({ date }: Props) {
                         Overdue
                     </div>
                 </div>
-            </button>
-            ))}
-            </section>
-        )}
 
-      {today.length === 0 ? (
-        <p className="text-white/50 text-sm">
-          No tasks for today. Add one small thing and build momentum.
-        </p>
-      ) : (
+                {/* Action row */}
+                <div className="mt-3 flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => handleToggle(t.id)}
+                        className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/15 transition"
+                    >
+                        Mark done
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleMoveToday(t.id)}
+                        className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/15 transition"
+                    >
+                        Move to today
+                    </button>
+                </div>
+            </div>
+        ))}
+        {today.length === 0 ? (
+            <p className="text-white/50 text-sm">
+            No tasks for today. Add one small thing and build momentum.
+            </p>
+        ) : (
         today.map((t) => (
           <button
             key={t.id}
@@ -173,8 +189,8 @@ export default function TodayClient({ date }: Props) {
               </div>
             </div>
           </button>
-        ))
-      )}
-    </div>
-  );
-}
+        )))}
+        </section>
+        )}
+        </div>
+    )}
