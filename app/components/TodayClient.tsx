@@ -44,6 +44,20 @@ export default function TodayClient({ date }: Props) {
     if (ok) setTick((t) => t + 1);
   }
 
+//   async function handleToggle(taskId: Id) {
+//     const res = await fetch("/api/tasks/toggle", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ taskId }),
+//     });
+
+//     if (res.ok) {
+//         setTick((t) => t + 1);
+//     } else {
+//         console.warn("Failed to toggle task");
+//     }
+//   }
+
   function handleMoveToday(taskId: Id) {
     const ok = moveTaskToDate(taskId, date);
     if (ok) setTick((t) => t + 1);
