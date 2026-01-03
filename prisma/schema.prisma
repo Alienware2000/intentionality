@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Quest {
+  id        String   @id
+  title     String
+  createdAt DateTime @default(now())
+  tasks     Task[]
+}
+
+model Task {
+  id        String   @id
+  title     String
+  dueDate   String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  questId   String
+  quest     Quest    @relation(fields: [questId], references: [id])
+
+  @@index([questId])
+  @@index([dueDate])
+}
