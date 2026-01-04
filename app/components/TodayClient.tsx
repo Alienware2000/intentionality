@@ -13,6 +13,7 @@ export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
   const [tick, setTick] = useState(0);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [quests, setQuests] = useState<any[]>([]);
   const [questId, setQuestId] = useState<Id>("q_general");
 
   const todayISO = date;
@@ -28,11 +29,26 @@ export default function TodayClient({ date }: Props) {
     }
 
     loadTasks();
+  }, [date]);
+
+  useEffect(() => {
+    async function loadQuests() {
+      const res = await fetch("/api/quests");
+      const data = await res.json();
+      if (data.ok) {
+        setQuests(data.quests);
+        // ensure questId is valid
+        if (!data.quests.some((q: any) => q.id === questId)) {
+          setQuestId(data.quests[0]?.id ?? "q_general");
+        }
+      }
+    }
+    loadQuests();
   }, []);
 
   const { overdue, today } = useMemo(() => {
       return splitTasksForToday(tasks, todayISO);
-  }, [tick, todayISO]);
+  }, [tasks, todayISO]);
 
   const total = today.length;
   const done = today.filter((t) => t.completed).length;
@@ -79,7 +95,7 @@ export default function TodayClient({ date }: Props) {
   return (
     <div className="space-y-3">
      <div className="flex gap-2">
-        {/* <select
+        <select
             value={questId}
             onChange={(e) => setQuestId(e.target.value as Id)}
             className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none focus:border-white/25"
@@ -89,7 +105,7 @@ export default function TodayClient({ date }: Props) {
                     {q.title}
                 </option>
             ))}
-        </select> */}
+        </select>
 
         <input
             value={title}
