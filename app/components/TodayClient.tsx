@@ -20,7 +20,7 @@ export default function TodayClient({ date }: Props) {
 
   useEffect(() => {
     async function loadTasks() {
-      const res = await fetch("/api/tasks/today");
+      const res = await fetch(`/api/tasks?date=${date}`);
       const data = await res.json();
 
       if (data.ok) {
@@ -53,43 +53,68 @@ export default function TodayClient({ date }: Props) {
   const total = today.length;
   const done = today.filter((t) => t.completed).length;
 
-//   async function handleToggle(taskId: Id) {
-//     const res = await fetch("/api/tasks/toggle", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ taskId }),
-//     });
+  async function handleToggle(taskId: Id) {
+    const res = await fetch("/api/tasks/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId }),
+    });
 
-//     if (res.ok) {
-//         setTick((t) => t + 1);
-//     } else {
-//         console.warn("Failed to toggle task");
-//     }
-//   }
+    if (res.ok) {
+      const r = await fetch(`/api/tasks?date=${date}`);
+      const d = await r.json();
+      if (d.ok) setTasks(d.tasks);
+    } else {
+      const data = await res.json().catch(() => null);
+      console.warn("Failed to toggle task", data);
+    }
+  }
 
-  // function handleMoveToday(taskId: Id) {
-  //   const ok = moveTaskToDate(taskId, date);
-  //   if (ok) setTick((t) => t + 1);
-  // }
+  async function handleMoveToday(taskId: Id) {
+    const res = await fetch("/api/tasks/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId, dueDate: date }),
+    });
+
+    if (res.ok) {
+      const r = await fetch(`/api/tasks?date=${date}`);
+      const d = await r.json();
+      if (d.ok) setTasks(d.tasks);
+    } else {
+      const data = await res.json().catch(() => null);
+      console.warn("Failed to move task", data);
+    }
+  }
 
   // const quests = useMemo(() => {
   //   return getQuests();
   // }, []);
 
-  function handleAdd() {
+  async function handleAdd() {
     const trimmed = title.trim();
     if (!trimmed) return;
 
-    // For v0, we attach all quick-added tasks to one default quest.
-    // We'll upgrade this to a quest dropdown next.
-    // addTask({
-    //     title: trimmed,
-    //     dueDate: date,
-    //     questId,
-    // });
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-type": "application/json" },
+      body: JSON.stringify({
+        title: trimmed,
+        dueDate: date,
+        questId,
+      }),
+    });
 
-    setTitle("");
-    setTick((t) => t + 1);
+    const data = await res.json();
+    if (data.ok) {
+      setTitle("");
+      // refresh the list
+      const r = await fetch(`/api/tasks?date=${date}`);
+      const d = await r.json();
+      if (d.ok) setTasks(d.tasks);
+    } else {
+      console.warn(data.error);
+    }
   }
 
   return (

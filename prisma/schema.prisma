@@ -10,14 +10,14 @@ datasource db {
 }
 
 model Quest {
-  id        String   @id
+  id        String   @id @default(cuid())
   title     String
   createdAt DateTime @default(now())
   tasks     Task[]
 }
 
 model Task {
-  id        String   @id
+  id        String   @id @default(cuid())
   title     String
   dueDate   String
   completed Boolean  @default(false)
@@ -29,3 +29,4 @@ model Task {
   @@index([questId])
   @@index([dueDate])
 }
+
