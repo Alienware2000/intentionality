@@ -2,13 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import type { ISODateString, Id } from "../lib/types";
-import { 
-    addTask, 
-    toggleTaskCompleted, 
-    getQuests,
-    getTasks,
-    hydrateTasksFromStorage,
-    moveTaskToDate } from "../lib/store";
+// import { getQuests } from "../lib/store"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          } from "../lib/store";
 import { splitTasksForToday } from "../lib/selectors";
 
 type Props = {
@@ -18,31 +12,30 @@ type Props = {
 export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
   const [tick, setTick] = useState(0);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [questId, setQuestId] = useState<Id>("q_general");
 
   const todayISO = date;
-  
+
   useEffect(() => {
-    hydrateTasksFromStorage();
-    setTick((t) => t + 1);
+    async function loadTasks() {
+      const res = await fetch("/api/tasks/today");
+      const data = await res.json();
+
+      if (data.ok) {
+        setTasks(data.tasks);
+      }
+    }
+
+    loadTasks();
   }, []);
 
-//   const tasksToday = useMemo(() => {
-//     return getTasksBetweenDates(date, date);
-//   }, [date, tick]);
-
-    const { overdue, today } = useMemo(() => {
-        const allTasks = getTasks();
-        return splitTasksForToday(allTasks, todayISO);
-    }, [tick, todayISO]);
+  const { overdue, today } = useMemo(() => {
+      return splitTasksForToday(tasks, todayISO);
+  }, [tick, todayISO]);
 
   const total = today.length;
   const done = today.filter((t) => t.completed).length;
-
-  function handleToggle(taskId: Id) {
-    const ok = toggleTaskCompleted(taskId);
-    if (ok) setTick((t) => t + 1);
-  }
 
 //   async function handleToggle(taskId: Id) {
 //     const res = await fetch("/api/tasks/toggle", {
@@ -58,14 +51,14 @@ export default function TodayClient({ date }: Props) {
 //     }
 //   }
 
-  function handleMoveToday(taskId: Id) {
-    const ok = moveTaskToDate(taskId, date);
-    if (ok) setTick((t) => t + 1);
-  }
+  // function handleMoveToday(taskId: Id) {
+  //   const ok = moveTaskToDate(taskId, date);
+  //   if (ok) setTick((t) => t + 1);
+  // }
 
-  const quests = useMemo(() => {
-    return getQuests();
-  }, []);
+  // const quests = useMemo(() => {
+  //   return getQuests();
+  // }, []);
 
   function handleAdd() {
     const trimmed = title.trim();
@@ -73,11 +66,11 @@ export default function TodayClient({ date }: Props) {
 
     // For v0, we attach all quick-added tasks to one default quest.
     // We'll upgrade this to a quest dropdown next.
-    addTask({
-        title: trimmed,
-        dueDate: date,
-        questId,
-    });
+    // addTask({
+    //     title: trimmed,
+    //     dueDate: date,
+    //     questId,
+    // });
 
     setTitle("");
     setTick((t) => t + 1);
@@ -86,7 +79,7 @@ export default function TodayClient({ date }: Props) {
   return (
     <div className="space-y-3">
      <div className="flex gap-2">
-        <select
+        {/* <select
             value={questId}
             onChange={(e) => setQuestId(e.target.value as Id)}
             className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none focus:border-white/25"
@@ -96,7 +89,7 @@ export default function TodayClient({ date }: Props) {
                     {q.title}
                 </option>
             ))}
-        </select>
+        </select> */}
 
         <input
             value={title}
