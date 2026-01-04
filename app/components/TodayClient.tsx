@@ -82,8 +82,8 @@ export default function TodayClient({ date }: Props) {
       const d = await r.json();
       if (d.ok) setTasks(d.tasks);
     } else {
-      const data = await res.json().catch(() => null);
-      console.warn("Failed to move task", data);
+      console.warn("Request failed", await res.text());
+      return
     }
   }
 
@@ -105,15 +105,23 @@ export default function TodayClient({ date }: Props) {
       }),
     });
 
-    const data = await res.json();
-    if (data.ok) {
+    let data: any = null;
+    try {
+    data = await res.json();
+    } catch {
+    // server didn't return JSON
+    }
+
+    if (!res.ok) {
+      console.warn("Add failed", data);
+      return;
+    }
+
+    if (data?.ok) {
       setTitle("");
-      // refresh the list
       const r = await fetch(`/api/tasks?date=${date}`);
       const d = await r.json();
       if (d.ok) setTasks(d.tasks);
-    } else {
-      console.warn(data.error);
     }
   }
 
@@ -154,15 +162,16 @@ export default function TodayClient({ date }: Props) {
             Add
         </button>
         </div>
-        {overdue.length > 0 && (
-            <section className="space-y-3">
-            <h3 className="text-red-400 font-semibold">Overdue</h3>
+        <section className="space-y-3">
+          {overdue.length > 0 && (
+            <>
+              <h3 className="text-red-400 font-semibold">Overdue</h3>
 
-            {overdue.map((t) => (
-            <div
+              {overdue.map((t) => (
+              <div
                 key={t.id}
                 className="w-full rounded-xl border border-red-400/20 bg-red-500/5 p-4"
-            >
+              >
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="font-medium text-white/90">{t.title}</div>
@@ -193,7 +202,9 @@ export default function TodayClient({ date }: Props) {
                     </button>
                 </div>
             </div>
-        ))}
+          ))}
+        </>
+          )}
         {today.length === 0 ? (
             <p className="text-white/50 text-sm">
             No tasks for today. Add one small thing and build momentum.
@@ -238,7 +249,6 @@ export default function TodayClient({ date }: Props) {
             </div>
           </button>
         )))}
-        </section>
-        )}
-        </div>
-    )}
+    </section>
+      </div>
+  )}

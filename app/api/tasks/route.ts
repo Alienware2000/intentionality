@@ -1,3 +1,4 @@
+// app/api/tasks/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
 
@@ -22,24 +23,31 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { title, dueDate, questId } = body as {
-    title?: string;
-    dueDate?: string;
-    questId?: string;
-  };
+  try {
+    const body = await req.json();
+    const { title, dueDate, questId } = body as {
+      title?: string;
+      dueDate?: string;
+      questId?: string;
+    };
 
-  if (!title || !dueDate || !questId) {
+    if (!title || !dueDate || !questId) {
+      return NextResponse.json(
+        { ok: false, error: "Missing title, dueDate, or questId" },
+        { status: 400 }
+      );
+    }
+
+    const task = await prisma.task.create({
+      data: { title, dueDate, questId, completed: false },
+      include: { quest: true },
+    });
+
+    return NextResponse.json({ ok: true, task });
+  } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: "Missing title, dueDate, or questId" },
-      { status: 400 }
+      { ok: false, error: e?.message ?? "Server error" },
+      { status: 500 }
     );
   }
-
-  const task = await prisma.task.create({
-    data: { title, dueDate, questId, completed: false },
-    include: { quest: true },
-  });
-
-  return NextResponse.json({ ok: true, task });
 }
