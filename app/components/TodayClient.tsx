@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import type { ISODateString, Id } from "../lib/types";
-// import { getQuests } from "../lib/store"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          } from "../lib/store";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import type { ISODateString, Id } from "../lib/types";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } from "../lib/store";
 import { splitTasksForToday } from "../lib/selectors";
+
+type Task = any; // later we'll type these
+type Quest = any;
 
 type Props = {
   date: ISODateString;
@@ -11,40 +13,73 @@ type Props = {
 
 export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
-  const [tick, setTick] = useState(0);
   const [tasks, setTasks] = useState<any[]>([]);
   const [quests, setQuests] = useState<any[]>([]);
   const [questId, setQuestId] = useState<Id>("q_general");
 
-  const todayISO = date;
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [loadingQuests, setLoadingQuests] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadTasks() {
+  const refreshTasks = useCallback(async () => {
+    setLoadingTasks(true);
+    setError(null);
+
+    try {
       const res = await fetch(`/api/tasks?date=${date}`);
-      const data = await res.json();
+      const text = await res.text(); // read raw first
 
-      if (data.ok) {
-        setTasks(data.tasks);
+      // If server returned HTML or empty, this prevents JSON crash.
+      const data = text ? JSON.parse(text) : null;
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error ?? `Failed to load tasks (${res.status})`);
       }
-    }
 
-    loadTasks();
+      setTasks(data.tasks);
+    } catch (e: any) {
+      setError(e.message ?? "Failed to load tasks");
+    } finally {
+      setLoadingTasks(false);
+    }
   }, [date]);
 
-  useEffect(() => {
-    async function loadQuests() {
+  const refreshQuests = useCallback(async () => {
+    setLoadingQuests(true);
+    setError(null);
+
+    try {
       const res = await fetch("/api/quests");
-      const data = await res.json();
-      if (data.ok) {
-        setQuests(data.quests);
-        // ensure questId is valid
-        if (!data.quests.some((q: any) => q.id === questId)) {
-          setQuestId(data.quests[0]?.id ?? "q_general");
-        }
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error ?? `Failed to load quests (${res.status})`);
       }
+
+      setQuests(data.quests);
+
+      // Ensure questId is valid
+      if (!data.quests.some((q: any) => q.id === questId)) {
+        setQuestId(data.quests[0]?.id ?? "q_general");
+      }
+    } catch (e: any) {
+      setError(e.message ?? "Failed to load quests");
+    } finally {
+      setLoadingQuests(false);
     }
-    loadQuests();
-  }, []);
+  }, [questId]);
+
+
+  useEffect(() => {
+    refreshTasks();
+  }, [refreshTasks]);
+
+  useEffect(() => {
+    refreshQuests();
+  }, [refreshQuests]);
+
+  const todayISO = date;
 
   const { overdue, today } = useMemo(() => {
       return splitTasksForToday(tasks, todayISO);
@@ -87,13 +122,11 @@ export default function TodayClient({ date }: Props) {
     }
   }
 
-  // const quests = useMemo(() => {
-  //   return getQuests();
-  // }, []);
-
   async function handleAdd() {
     const trimmed = title.trim();
     if (!trimmed) return;
+
+    setError(null);
 
     const res = await fetch("/api/tasks", {
       method: "POST",
@@ -105,24 +138,17 @@ export default function TodayClient({ date }: Props) {
       }),
     });
 
-    let data: any = null;
-    try {
-    data = await res.json();
-    } catch {
-    // server didn't return JSON
-    }
+    // same safety trick
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
 
-    if (!res.ok) {
-      console.warn("Add failed", data);
+    if (!res.ok || !data?.ok) {
+      setError(data?.error ?? "Failed to add task");
       return;
     }
 
-    if (data?.ok) {
-      setTitle("");
-      const r = await fetch(`/api/tasks?date=${date}`);
-      const d = await r.json();
-      if (d.ok) setTasks(d.tasks);
-    }
+    setTitle("");
+    await refreshTasks();
   }
 
   return (
