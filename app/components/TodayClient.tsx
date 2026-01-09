@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import type { ISODateString, Id } from "../lib/types";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } from "../lib/store";
+import type { ISODateString, Id } from "../lib/types";
 import { splitTasksForToday } from "../lib/selectors";
+
 
 type Task = any; // later we'll type these
 type Quest = any;
@@ -26,7 +27,7 @@ export default function TodayClient({ date }: Props) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/tasks?date=${date}`);
+      const res = await fetch(`/api/tasks/for-today?date=${date}`);
       const text = await res.text(); // read raw first
 
       // If server returned HTML or empty, this prevents JSON crash.
@@ -95,32 +96,30 @@ export default function TodayClient({ date }: Props) {
       body: JSON.stringify({ taskId }),
     });
 
-    if (res.ok) {
-      const r = await fetch(`/api/tasks?date=${date}`);
-      const d = await r.json();
-      if (d.ok) setTasks(d.tasks);
-    } else {
-      const data = await res.json().catch(() => null);
-      console.warn("Failed to toggle task", data);
+    if (!res.ok) {
+      console.warn("Failed to toggle", await res.text());
+      return;
     }
+
+    await refreshTasks(); // <-- MUST use for-today refresh
   }
 
+
   async function handleMoveToday(taskId: Id) {
-    const res = await fetch("/api/tasks/move", {
+      const res = await fetch("/api/tasks/move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ taskId, dueDate: date }),
     });
 
-    if (res.ok) {
-      const r = await fetch(`/api/tasks?date=${date}`);
-      const d = await r.json();
-      if (d.ok) setTasks(d.tasks);
-    } else {
+    if (!res.ok) {
       console.warn("Request failed", await res.text());
-      return
+      return;
     }
+
+    await refreshTasks(); // <-- MUST use for-today refresh
   }
+
 
   async function handleAdd() {
     const trimmed = title.trim();

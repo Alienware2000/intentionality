@@ -5,6 +5,8 @@ import type { ISODateString, Id } from "../lib/types";
 import { groupTasksByWeek } from "../lib/selectors";
 import { formatDayLabel } from "../lib/formatters";
 
+type Task = any; 
+
 type Props = {
     start: ISODateString;
     end: ISODateString;
@@ -12,14 +14,32 @@ type Props = {
 
 export default function WeekClient({ start, end }: Props) {
     const [tasks, setTasks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    async function refresh() {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const res = await fetch(`/api/tasks/range?start=${start}&end=${end}`);
+            const text = await res.text();
+            const data = text ? JSON.parse(text) : null;
+
+            if (!res.ok || !data?.ok) {
+                throw new Error(data?.error ?? `Failed to load tasks (${res.status})`);
+            }
+
+            setTasks(data.tasks);
+        } catch (e: any) {
+            setError(e.message ?? "Failed to load tasks");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     useEffect(() => {
-        async function load() {
-            const res = await fetch(`/api/tasks/range?start=${start}&end=${end}`);
-            const data = await res.json();
-            if (data.ok) setTasks(data.tasks);
-        }
-        load();
+        refresh();
     }, [start, end]);
 
     const groupedTasks = useMemo(() => {
@@ -27,22 +47,22 @@ export default function WeekClient({ start, end }: Props) {
     }, [tasks, start]);
 
     async function handleToggle(taskId: Id) {
-        const res = await fetch(`/api/tasks/toggle`, {
+        const res = await fetch("/api/tasks/toggle", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ taskId }),
         });
 
-        if (res.ok) {
-            const r = await fetch(`/api/tasks/range?start=${start}&end=${end}`);
-            const d = await r.json();
-            if (d.ok) setTasks(d.tasks);
-        } else {
-            const data = await res.json().catch(() => null);
-            console.warn("Failed to toggle task", data);
+        if (!res.ok) {
+            console.warn("Failed to toggle", await res.text());
+            return;
         }
+
+        await refresh();
     }
 
+    if (loading) return <p className="text-white/50">Loading week...</p>;
+    if (error) return <p className="text-red-400">Error: {error}</p>;
     return (
         <div className="space-y-3">
             {groupedTasks.map((day) => (
@@ -59,7 +79,6 @@ export default function WeekClient({ start, end }: Props) {
                         {day.tasks.length === 0 ? (
                             <p className="text-white/50 text-sm">No tasks for this day.</p>
                         ): (
-                            day.tasks.map((t) => (
                                 day.tasks.map((t) => (
                                     <button
                                         key={t.id}
@@ -101,7 +120,6 @@ export default function WeekClient({ start, end }: Props) {
                                         </div>
                                     </button>
                                 ))
-                            ))
                         )}
                     </div>
                 </div>
