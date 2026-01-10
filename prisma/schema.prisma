@@ -10,6 +10,7 @@ datasource db {
 }
 
 model Quest {
+  userId    String
   id        String   @id @default(cuid())
   title     String
   createdAt DateTime @default(now())
