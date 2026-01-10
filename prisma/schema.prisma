@@ -10,11 +10,13 @@ datasource db {
 }
 
 model Quest {
-  userId    String
   id        String   @id @default(cuid())
   title     String
+  userId    String
   createdAt DateTime @default(now())
   tasks     Task[]
+
+  @@index([userId])
 }
 
 model Task {
