@@ -36,3 +36,36 @@ export async function GET() {
 
     return NextResponse.json({ ok: true, quests });
 }
+
+export async function POST(req: Request) {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user) {
+        return NextResponse.json(
+            { ok: false, error: "Not authenticated" },
+            { status: 401 }
+        );
+    }
+
+    const userId = data.user.id;
+
+    const body = await req.json();
+    const { title } = body as { title: string };
+
+    if (!title || !title.trim()) {
+        return NextResponse.json(
+            { ok: false, error: "Missing title" },
+            { status: 400 }
+        );
+    }
+
+    const quest = await prisma.quest.create({
+        data: {
+            title: title.trim(),
+            userId,
+        },
+    });
+
+    return NextResponse.json({ ok: true, quest });
+}
