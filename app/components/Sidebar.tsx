@@ -3,7 +3,8 @@ import Link from "next/link";
 const navItems = [
     { label: "Dashboard", href: "/" },
     { label: "This Week", href: "/week" },
-    { label: "Quests", href: "/quests" }
+    { label: "Quests", href: "/quests" },
+    { label: "Auth", href: "/auth" }
 ];
 
 export default function Sidebar() {
