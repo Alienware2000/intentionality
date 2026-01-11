@@ -1,8 +1,23 @@
 // app/api/tasks/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
+import { createSupabaseServerClient } from "@/app/lib/supabase/server";
 
 export async function GET(req: Request) {
+  // 1) Identify the user
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    return NextResponse.json(
+      { ok: false, error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
+
+  const userId = data.user.id;
+
+  // 2) Parse query
   const url = new URL(req.url);
   const date = url.searchParams.get("date"); // YYYY-MM-DD
 
@@ -13,8 +28,12 @@ export async function GET(req: Request) {
     );
   }
 
+  // 3) Fetch only this user's tasks for that date
   const tasks = await prisma.task.findMany({
-    where: { dueDate: date },
+    where: {
+      dueDate: date,
+      quest: { userId },
+    },
     orderBy: { createdAt: "asc" },
     include: { quest: true },
   });
@@ -23,7 +42,21 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // 1) Identify the user
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    return NextResponse.json(
+      { ok: false, error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
+
+  const userId = data.user.id;
+
   try {
+    // 2) Read body
     const body = await req.json();
     const { title, dueDate, questId } = body as {
       title?: string;
@@ -38,8 +71,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // 3) Ownership check: the quest must belong to this user
+    const quest = await prisma.quest.findFirst({
+      where: { id: questId, userId },
+      select: { id: true },
+    });
+
+    if (!quest) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid questId (not owned by user)" },
+        { status: 403 }
+      );
+    }
+
+    // 4) Create the task inside a quest the user owns
     const task = await prisma.task.create({
-      data: { title, dueDate, questId, completed: false },
+      data: { title: title.trim(), dueDate, questId, completed: false },
       include: { quest: true },
     });
 
