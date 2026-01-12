@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ISODateString, Id } from "../lib/types";
-import { groupTasksByWeek } from "../lib/selectors";
-import { formatDayLabel } from "../lib/formatters";
+import type { ISODateString, Id } from "../../lib/types";
+import { groupTasksByWeek } from "../../lib/selectors";
+import { formatDayLabel } from "../../lib/formatters";
 
 type Task = any; 
 
