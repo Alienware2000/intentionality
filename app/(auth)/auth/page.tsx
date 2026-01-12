@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { createSupabaseBrowserClient } from "../lib/supabase/client";
+import { createSupabaseBrowserClient } from "../../lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
     const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -26,10 +27,12 @@ export default function AuthPage() {
         if (data.user) {
             setUserId(data.user.id);
             setStatus("Logged in");
+            window.location.href = "/";
         } else {
             setUserId(null);
             setStatus("Not logged in");
         }
+
     }
 
     useEffect(() => {

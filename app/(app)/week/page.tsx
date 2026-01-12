@@ -1,4 +1,5 @@
-import { getQuests, getTasksBetweenDates, getWeekRange } from "../lib/store";
+import { requireUser } from "@/app/lib/auth/requireUser";
+import { getQuests, getTasksBetweenDates, getWeekRange } from "../../lib/store";
 import WeekClient from "./WeekClient"
 
 // Grouped tasks by day
@@ -40,7 +41,9 @@ function formatDayLabel(dateISO: string): string {
     return `${weekday} ${month}/${day}`;
 }
 
-export default function WeekPage() {
+export default async function WeekPage() {
+    await requireUser();
+
     const quests = getQuests();
     const questTitleById = new Map(quests.map((q) => [q.id, q.title]));
 
