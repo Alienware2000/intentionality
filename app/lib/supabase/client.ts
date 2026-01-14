@@ -17,17 +17,32 @@ function getAllCookies() {
     });
 }
 
-function setCookie(name: string, value: string, options: any = {}) {
+type CookieOptions = {
+  maxAge?: number;
+  expires?: Date | string;
+  path?: string;
+  sameSite?: boolean | "strict" | "lax" | "none";
+  secure?: boolean;
+};
+
+function setCookie(name: string, value: string, options: CookieOptions = {}) {
   if (typeof document === "undefined") return;
 
   let cookie = `${name}=${encodeURIComponent(value)}`;
 
   if (options.maxAge) cookie += `; Max-Age=${options.maxAge}`;
-  if (options.expires) cookie += `; Expires=${options.expires.toUTCString?.() ?? options.expires}`;
+  if (options.expires) {
+    const expiresStr = options.expires instanceof Date
+      ? options.expires.toUTCString()
+      : options.expires;
+    cookie += `; Expires=${expiresStr}`;
+  }
   if (options.path) cookie += `; Path=${options.path}`;
   else cookie += `; Path=/`;
 
-  if (options.sameSite) cookie += `; SameSite=${options.sameSite}`;
+  if (options.sameSite && typeof options.sameSite === "string") {
+    cookie += `; SameSite=${options.sameSite}`;
+  }
   if (options.secure) cookie += `; Secure`;
 
   document.cookie = cookie;

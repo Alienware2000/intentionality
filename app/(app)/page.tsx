@@ -1,16 +1,7 @@
-import Link from "next/link"
-import TodayClient from "../components/TodayClient"
-import type { ISODateString } from "../lib/types"
+import Link from "next/link";
+import TodayClient from "@/app/components/TodayClient";
+import { getTodayISO } from "@/app/lib/date-utils";
 import { requireUser } from "@/app/lib/auth/requireUser";
-
-// Utility to get today's date in ISO format
-function getTodayISO(): ISODateString {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 export default async function Home() {
   await requireUser();

@@ -1,19 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Id } from "../../lib/types";
+import type { Id, Quest, Task } from "@/app/lib/types";
+import { fetchApi, getErrorMessage } from "@/app/lib/api";
 
-type Quest = {
-  id: Id;
-  title: string;
-  createdAt: string;
-};
-
-type Task = {
-  id: Id;
-  questId: Id;
-  completed: boolean;
-};
+type QuestsResponse = { ok: true; quests: Quest[] };
+type TasksResponse = { ok: true; tasks: Task[] };
 
 export default function QuestsClient() {
   const [quests, setQuests] = useState<Quest[]>([]);
@@ -26,22 +18,18 @@ export default function QuestsClient() {
     const title = newTitle.trim();
     if (!title) return;
 
-    const res = await fetch("/api/quests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
+    try {
+      const data = await fetchApi<{ ok: true; quest: Quest }>("/api/quests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
 
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
-
-    if (!res.ok || !data?.ok) {
-      alert(data?.error ?? "Failed to create quest");
-      return;
+      setNewTitle("");
+      setQuests((q) => [...q, data.quest]);
+    } catch (e) {
+      alert(getErrorMessage(e));
     }
-
-    setNewTitle("");
-    setQuests((q) => [...q, data.quest]);
   }
 
   useEffect(() => {
@@ -49,29 +37,15 @@ export default function QuestsClient() {
       try {
         setLoading(true);
 
-        const [questsRes, tasksRes] = await Promise.all([
-          fetch("/api/quests"),
-          fetch("/api/tasks/range?start=2000-01-01&end=2100-01-01"),
+        const [questsData, tasksData] = await Promise.all([
+          fetchApi<QuestsResponse>("/api/quests"),
+          fetchApi<TasksResponse>("/api/tasks/range?start=2000-01-01&end=2100-01-01"),
         ]);
-
-        const questsText = await questsRes.text();
-        const tasksText = await tasksRes.text();
-
-        const questsData = questsText ? JSON.parse(questsText) : null;
-        const tasksData = tasksText ? JSON.parse(tasksText) : null;
-
-        if (!questsRes.ok || !questsData?.ok) {
-          throw new Error(questsData?.error ?? "Failed to load quests");
-        }
-
-        if (!tasksRes.ok || !tasksData?.ok) {
-          throw new Error(tasksData?.error ?? "Failed to load tasks");
-        }
 
         setQuests(questsData.quests);
         setTasks(tasksData.tasks);
-      } catch (e: any) {
-        setError(e.message ?? "Failed to load quests");
+      } catch (e) {
+        setError(getErrorMessage(e));
       } finally {
         setLoading(false);
       }
@@ -107,6 +81,9 @@ export default function QuestsClient() {
           className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleCreate();
+          }}
         />
         <button
           onClick={handleCreate}
