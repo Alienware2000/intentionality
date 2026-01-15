@@ -1,53 +1,148 @@
+// =============================================================================
+// TASK TOGGLE API ROUTE
+// Toggles the completed status of a task.
+// Awards XP when completing a task.
+// RLS ensures users can only toggle their own tasks.
+// =============================================================================
+
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/db";
 import { createSupabaseServerClient } from "@/app/lib/supabase/server";
 
+/**
+ * POST /api/tasks/toggle
+ *
+ * Toggles the completed status of a task.
+ * When completing a task, awards XP and updates streak.
+ *
+ * Request body:
+ * - taskId: string (required) - UUID of the task to toggle
+ *
+ * Returns:
+ * - ok: boolean
+ * - xpGained?: number (when completing task)
+ * - newLevel?: number (if leveled up)
+ *
+ * RLS ensures the task belongs to a quest owned by the user.
+ */
 export async function POST(req: Request) {
-    // 1) Identify user
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
+  const supabase = await createSupabaseServerClient();
 
-    if (error || !data.user) {
-        return NextResponse.json(
-            { ok: false, error: "Not authenticated" },
-            { status: 401 }
-        );
+  // Verify authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { ok: false, error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
+
+  // Parse request body
+  const { taskId } = (await req.json()) as { taskId?: string };
+
+  if (!taskId) {
+    return NextResponse.json(
+      { ok: false, error: "Missing taskId" },
+      { status: 400 }
+    );
+  }
+
+  // Fetch the current task state (RLS will return null if not owned by user)
+  const { data: existing, error: fetchError } = await supabase
+    .from("tasks")
+    .select("id, completed, xp_value, priority")
+    .eq("id", taskId)
+    .single();
+
+  if (fetchError || !existing) {
+    // Don't reveal whether task exists but belongs to someone else
+    return NextResponse.json(
+      { ok: false, error: "Task not found" },
+      { status: 404 }
+    );
+  }
+
+  const isCompleting = !existing.completed;
+  const now = new Date().toISOString();
+  const today = now.split("T")[0];
+
+  // Toggle the completed status
+  const { error: updateError } = await supabase
+    .from("tasks")
+    .update({
+      completed: isCompleting,
+      completed_at: isCompleting ? now : null,
+    })
+    .eq("id", taskId);
+
+  if (updateError) {
+    return NextResponse.json(
+      { ok: false, error: updateError.message },
+      { status: 500 }
+    );
+  }
+
+  // If completing the task, award XP and update streak
+  if (isCompleting) {
+    const xpToAward = existing.xp_value ?? 10;
+
+    // Fetch current profile
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile) {
+      const newXpTotal = profile.xp_total + xpToAward;
+      const newLevel = Math.floor(0.5 + Math.sqrt(0.25 + newXpTotal / 50));
+      const leveledUp = newLevel > profile.level;
+
+      // Check streak
+      let newStreak = profile.current_streak;
+      let newLongestStreak = profile.longest_streak;
+
+      if (profile.last_active_date !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+        if (profile.last_active_date === yesterdayStr) {
+          // Consecutive day
+          newStreak = profile.current_streak + 1;
+        } else {
+          // Streak broken
+          newStreak = 1;
+        }
+
+        if (newStreak > newLongestStreak) {
+          newLongestStreak = newStreak;
+        }
+      }
+
+      // Update profile
+      await supabase
+        .from("user_profiles")
+        .update({
+          xp_total: newXpTotal,
+          level: newLevel,
+          current_streak: newStreak,
+          longest_streak: newLongestStreak,
+          last_active_date: today,
+        })
+        .eq("user_id", user.id);
+
+      return NextResponse.json({
+        ok: true,
+        xpGained: xpToAward,
+        newLevel: leveledUp ? newLevel : undefined,
+        newStreak,
+      });
     }
+  }
 
-    const userId = data.user.id;
-
-    // 2) Read input
-    const { taskId } = (await req.json()) as { taskId?: string };
-
-    if (!taskId) {
-        return NextResponse.json(
-            { ok: false, error: "Missing taskId" },
-            { status: 400 }
-        );
-    }
-
-    // 3) Ownership check: task must belong to a quest owned by this user
-    const existing = await prisma.task.findFirst({
-        where: {
-            id: taskId,
-            quest: { userId },
-        },
-        select: { id: true, completed: true },
-    });
-
-    if (!existing) {
-        // Important: don't reveal whether it exists but belongs to someone else
-            return NextResponse.json(
-                { ok: false, error: "Task not found"},
-                { status: 404 }
-            );
-    }
-
-    // 4) Toggle
-    await prisma.task.update({
-        where: { id: taskId },
-        data: { completed: !existing.completed },
-    });
-
-    return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true });
 }

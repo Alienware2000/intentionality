@@ -77,7 +77,7 @@ export function groupTasksByWeek(tasks: Task[], start: ISODateString): DayGroup[
   const grouped: DayGroup[] = [];
   for (let i = 0; i < 7; i++) {
     const date = addDaysISO(start, i);
-    const tasksForDay = tasks.filter((t) => t.dueDate === date);
+    const tasksForDay = tasks.filter((t) => t.due_date === date);
     grouped.push({ date, tasks: tasksForDay });
   }
   return grouped;
@@ -95,13 +95,13 @@ export function splitTasksForToday(
 
   for (const t of tasks) {
     if (t.completed) {
-      if (compareISO(t.dueDate, today) === 0) {
+      if (compareISO(t.due_date, today) === 0) {
         todayList.push({ ...t, status: "done" });
       }
       continue;
     }
 
-    const cmp = compareISO(t.dueDate, today);
+    const cmp = compareISO(t.due_date, today);
     if (cmp < 0) {
       overdue.push({ ...t, status: "overdue" });
     } else if (cmp === 0) {
@@ -109,6 +109,6 @@ export function splitTasksForToday(
     }
   }
 
-  overdue.sort((a, b) => compareISO(a.dueDate, b.dueDate));
+  overdue.sort((a, b) => compareISO(a.due_date, b.due_date));
   return { overdue, today: todayList };
 }

@@ -1,24 +1,23 @@
-import { requireUser } from "@/app/lib/auth/requireUser";
 import { getWeekRange } from "@/app/lib/date-utils";
 import WeekClient from "./WeekClient";
 
 export default async function WeekPage() {
-  await requireUser();
-
+  // Authentication is handled by middleware (middleware.ts)
   const { start, end } = getWeekRange(new Date());
 
   return (
-    <div>
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold">This Week</h1>
-        <p className="text-white/70 mt-2">
-          Monday to Sunday plan. ({start} to {end})
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
+          This Week
+        </h1>
+        <div className="mt-2 h-[2px] w-24 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
+        <p className="text-[var(--text-secondary)] text-sm mt-3 font-mono">
+          {start} → {end}
         </p>
       </header>
 
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <WeekClient start={start} end={end} />
-      </section>
+      <WeekClient start={start} end={end} />
     </div>
   );
 }
