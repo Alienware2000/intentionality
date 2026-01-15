@@ -5,7 +5,7 @@
 // Displays key stats: tasks today, XP, streak, quests.
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import StatCard from "./StatCard";
 import type { Task, Quest, UserProfile } from "@/app/lib/types";
 
@@ -19,33 +19,62 @@ export default function DashboardStats({ date }: Props) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        const [profileRes, tasksRes, questsRes] = await Promise.all([
-          fetch("/api/profile"),
-          fetch(`/api/tasks/for-today?date=${date}`),
-          fetch("/api/quests"),
-        ]);
+  const loadStats = useCallback(async () => {
+    try {
+      const [profileRes, tasksRes, questsRes] = await Promise.all([
+        fetch("/api/profile"),
+        fetch(`/api/tasks/for-today?date=${date}`),
+        fetch("/api/quests"),
+      ]);
 
-        const [profileData, tasksData, questsData] = await Promise.all([
-          profileRes.json(),
-          tasksRes.json(),
-          questsRes.json(),
-        ]);
+      const [profileData, tasksData, questsData] = await Promise.all([
+        profileRes.json(),
+        tasksRes.json(),
+        questsRes.json(),
+      ]);
 
-        if (profileData.ok) setProfile(profileData.profile);
-        if (tasksData.ok) setTasks(tasksData.tasks);
-        if (questsData.ok) setQuests(questsData.quests);
-      } catch (e) {
-        console.error("Failed to load stats", e);
-      } finally {
-        setLoading(false);
-      }
+      if (profileData.ok) setProfile(profileData.profile);
+      if (tasksData.ok) setTasks(tasksData.tasks);
+      if (questsData.ok) setQuests(questsData.quests);
+    } catch (e) {
+      console.error("Failed to load stats", e);
+    } finally {
+      setLoading(false);
     }
-
-    loadStats();
   }, [date]);
+
+  useEffect(() => {
+    loadStats();
+
+    // Listen for updates from other components
+    const handleUpdate = () => loadStats();
+    window.addEventListener("profile-updated", handleUpdate);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleUpdate);
+    };
+  }, [loadStats]);
+
+  // Pre-compute tasks by quest for O(1) lookups instead of O(N×M)
+  const tasksByQuest = useMemo(() => {
+    const map: Record<string, Task[]> = {};
+    for (const task of tasks) {
+      if (!map[task.quest_id]) map[task.quest_id] = [];
+      map[task.quest_id].push(task);
+    }
+    return map;
+  }, [tasks]);
+
+  const completedQuests = useMemo(() => {
+    return quests.filter((q) => {
+      const questTasks = tasksByQuest[q.id] ?? [];
+      return questTasks.length > 0 && questTasks.every((t) => t.completed);
+    }).length;
+  }, [quests, tasksByQuest]);
+
+  const todayTasks = useMemo(() => tasks.filter((t) => t.due_date === date), [tasks, date]);
+  const completedToday = todayTasks.filter((t) => t.completed).length;
+  const totalToday = todayTasks.length;
 
   if (loading) {
     return (
@@ -59,15 +88,6 @@ export default function DashboardStats({ date }: Props) {
       </div>
     );
   }
-
-  const todayTasks = tasks.filter((t) => t.due_date === date);
-  const completedToday = todayTasks.filter((t) => t.completed).length;
-  const totalToday = todayTasks.length;
-
-  const completedQuests = quests.filter((q) => {
-    const questTasks = tasks.filter((t) => t.quest_id === q.id);
-    return questTasks.length > 0 && questTasks.every((t) => t.completed);
-  }).length;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

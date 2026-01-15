@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import type { Id, Quest, Task } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 type QuestsResponse = { ok: true; quests: Quest[] };
 type TasksResponse = { ok: true; tasks: Task[] };
@@ -15,6 +16,11 @@ export default function QuestsClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+
+  // Edit/Delete state
+  const [editingQuestId, setEditingQuestId] = useState<Id | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [deletingQuestId, setDeletingQuestId] = useState<Id | null>(null);
 
   async function handleCreate() {
     const title = newTitle.trim();
@@ -34,27 +40,82 @@ export default function QuestsClient() {
     }
   }
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
+  function startEditing(quest: Quest) {
+    setEditingQuestId(quest.id);
+    setEditTitle(quest.title);
+  }
 
-        const [questsData, tasksData] = await Promise.all([
-          fetchApi<QuestsResponse>("/api/quests"),
-          fetchApi<TasksResponse>("/api/tasks/range?start=2000-01-01&end=2100-01-01"),
-        ]);
+  function cancelEditing() {
+    setEditingQuestId(null);
+    setEditTitle("");
+  }
 
-        setQuests(questsData.quests);
-        setTasks(tasksData.tasks);
-      } catch (e) {
-        setError(getErrorMessage(e));
-      } finally {
-        setLoading(false);
-      }
+  async function handleEditQuest(questId: Id) {
+    const title = editTitle.trim();
+    if (!title) return;
+
+    try {
+      await fetchApi("/api/quests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId, title }),
+      });
+
+      setQuests((qs) =>
+        qs.map((q) => (q.id === questId ? { ...q, title } : q))
+      );
+      cancelEditing();
+    } catch (e) {
+      alert(getErrorMessage(e));
     }
+  }
 
-    load();
+  async function handleDeleteQuest(questId: Id) {
+    try {
+      await fetchApi("/api/quests", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId }),
+      });
+
+      setQuests((qs) => qs.filter((q) => q.id !== questId));
+      setTasks((ts) => ts.filter((t) => t.quest_id !== questId));
+      setDeletingQuestId(null);
+      window.dispatchEvent(new Event("profile-updated"));
+    } catch (e) {
+      alert(getErrorMessage(e));
+    }
+  }
+
+  const loadData = useCallback(async () => {
+    try {
+      // Fetch all tasks - we need them all to show quest progress accurately
+      // Using a wide date range to get all tasks
+      const [questsData, tasksData] = await Promise.all([
+        fetchApi<QuestsResponse>("/api/quests"),
+        fetchApi<TasksResponse>("/api/tasks/range?start=2020-01-01&end=2030-01-01"),
+      ]);
+
+      setQuests(questsData.quests);
+      setTasks(tasksData.tasks);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+
+    // Listen for updates from other components
+    const handleUpdate = () => loadData();
+    window.addEventListener("profile-updated", handleUpdate);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleUpdate);
+    };
+  }, [loadData]);
 
   const tasksByQuest = useMemo(() => {
     const map: Record<string, Task[]> = {};
@@ -145,16 +206,70 @@ export default function QuestsClient() {
               >
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="font-medium text-[var(--text-primary)]">
-                        {quest.title}
-                      </h2>
+                    <div className="flex-1 min-w-0">
+                      {editingQuestId === quest.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleEditQuest(quest.id);
+                              if (e.key === "Escape") cancelEditing();
+                            }}
+                            className={cn(
+                              "flex-1 px-2 py-1 rounded",
+                              "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                              "text-[var(--text-primary)]",
+                              "focus:outline-none focus:border-[var(--accent-primary)]"
+                            )}
+                          />
+                          <button
+                            onClick={() => handleEditQuest(quest.id)}
+                            className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                            title="Save"
+                          >
+                            <Check size={14} className="text-[var(--accent-success)]" />
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={14} className="text-[var(--text-muted)]" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 group">
+                          <h2 className="font-medium text-[var(--text-primary)] truncate">
+                            {quest.title}
+                          </h2>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => startEditing(quest)}
+                              className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                              title="Edit quest"
+                            >
+                              <Pencil size={12} className="text-[var(--text-muted)]" />
+                            </button>
+                            {quests.length > 1 && (
+                              <button
+                                onClick={() => setDeletingQuestId(quest.id)}
+                                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                                title="Delete quest"
+                              >
+                                <Trash2 size={12} className="text-[var(--text-muted)]" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">
                         Created: {quest.created_at.slice(0, 10)}
                       </p>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <div className="text-lg font-mono font-semibold text-[var(--text-primary)]">
                         {completed}/{total}
                       </div>
@@ -187,6 +302,15 @@ export default function QuestsClient() {
           })
         )}
       </section>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deletingQuestId !== null}
+        title="Delete Quest"
+        message="This will permanently delete the quest and all its tasks. This action cannot be undone."
+        onConfirm={() => deletingQuestId && handleDeleteQuest(deletingQuestId)}
+        onCancel={() => setDeletingQuestId(null)}
+      />
     </div>
   );
 }

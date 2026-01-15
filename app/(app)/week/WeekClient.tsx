@@ -61,6 +61,7 @@ export default function WeekClient({ start, end }: Props) {
     }
 
     await refresh();
+    window.dispatchEvent(new Event("profile-updated"));
   }
 
   if (loading) {

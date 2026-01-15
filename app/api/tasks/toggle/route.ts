@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import { getLevelFromXp, getLocalDateString } from "@/app/lib/gamification";
 
 /**
  * POST /api/tasks/toggle
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
 
   const isCompleting = !existing.completed;
   const now = new Date().toISOString();
-  const today = now.split("T")[0];
+  const today = getLocalDateString();
 
   // Toggle the completed status
   const { error: updateError } = await supabase
@@ -85,64 +86,81 @@ export async function POST(req: Request) {
     );
   }
 
-  // If completing the task, award XP and update streak
-  if (isCompleting) {
-    const xpToAward = existing.xp_value ?? 10;
+  // Fetch current profile
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
 
-    // Fetch current profile
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (profile) {
-      const newXpTotal = profile.xp_total + xpToAward;
-      const newLevel = Math.floor(0.5 + Math.sqrt(0.25 + newXpTotal / 50));
-      const leveledUp = newLevel > profile.level;
-
-      // Check streak
-      let newStreak = profile.current_streak;
-      let newLongestStreak = profile.longest_streak;
-
-      if (profile.last_active_date !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-        if (profile.last_active_date === yesterdayStr) {
-          // Consecutive day
-          newStreak = profile.current_streak + 1;
-        } else {
-          // Streak broken
-          newStreak = 1;
-        }
-
-        if (newStreak > newLongestStreak) {
-          newLongestStreak = newStreak;
-        }
-      }
-
-      // Update profile
-      await supabase
-        .from("user_profiles")
-        .update({
-          xp_total: newXpTotal,
-          level: newLevel,
-          current_streak: newStreak,
-          longest_streak: newLongestStreak,
-          last_active_date: today,
-        })
-        .eq("user_id", user.id);
-
-      return NextResponse.json({
-        ok: true,
-        xpGained: xpToAward,
-        newLevel: leveledUp ? newLevel : undefined,
-        newStreak,
-      });
-    }
+  if (!profile) {
+    return NextResponse.json({ ok: true });
   }
 
-  return NextResponse.json({ ok: true });
+  const xpAmount = existing.xp_value ?? 10;
+
+  if (isCompleting) {
+    // Award XP and update streak
+    const newXpTotal = profile.xp_total + xpAmount;
+    const newLevel = getLevelFromXp(newXpTotal);
+    const leveledUp = newLevel > profile.level;
+
+    // Check streak
+    let newStreak = profile.current_streak;
+    let newLongestStreak = profile.longest_streak;
+
+    if (profile.last_active_date !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getLocalDateString(yesterday);
+
+      if (profile.last_active_date === yesterdayStr) {
+        newStreak = profile.current_streak + 1;
+      } else {
+        newStreak = 1;
+      }
+
+      if (newStreak > newLongestStreak) {
+        newLongestStreak = newStreak;
+      }
+    }
+
+    await supabase
+      .from("user_profiles")
+      .update({
+        xp_total: newXpTotal,
+        level: newLevel,
+        current_streak: newStreak,
+        longest_streak: newLongestStreak,
+        last_active_date: today,
+      })
+      .eq("user_id", user.id);
+
+    return NextResponse.json({
+      ok: true,
+      xpGained: xpAmount,
+      newLevel: leveledUp ? newLevel : undefined,
+      newStreak,
+      newXpTotal,
+    });
+  } else {
+    // Deduct XP when unchecking
+    const newXpTotal = Math.max(0, profile.xp_total - xpAmount);
+    const newLevel = getLevelFromXp(newXpTotal);
+
+    await supabase
+      .from("user_profiles")
+      .update({
+        xp_total: newXpTotal,
+        level: newLevel,
+      })
+      .eq("user_id", user.id);
+
+    return NextResponse.json({
+      ok: true,
+      xpLost: xpAmount,
+      newXpTotal,
+      newLevel,
+    });
+  }
 }

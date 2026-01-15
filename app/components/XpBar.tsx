@@ -63,7 +63,7 @@ export default function XpBar({
           )}
           initial={animate ? { width: 0 } : false}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         />
       </div>
     </div>
