@@ -12,6 +12,8 @@ import { splitTasksForToday } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import TaskCard from "./TaskCard";
+import EditTaskModal from "./EditTaskModal";
+import ConfirmModal from "./ConfirmModal";
 
 type Props = {
   date: ISODateString;
@@ -30,6 +32,10 @@ export default function TodayClient({ date }: Props) {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [loadingQuests, setLoadingQuests] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit/Delete state
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<Id | null>(null);
 
   const refreshTasks = useCallback(async () => {
     setLoadingTasks(true);
@@ -56,15 +62,18 @@ export default function TodayClient({ date }: Props) {
       setQuests(data.quests);
 
       // Set default quest if current selection is invalid
-      if (!data.quests.some((q) => q.id === questId)) {
-        setQuestId(data.quests[0]?.id ?? "");
-      }
+      setQuestId((currentId) => {
+        if (!data.quests.some((q) => q.id === currentId)) {
+          return data.quests[0]?.id ?? "";
+        }
+        return currentId;
+      });
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setLoadingQuests(false);
     }
-  }, [questId]);
+  }, []);
 
   useEffect(() => {
     refreshTasks();
@@ -91,6 +100,7 @@ export default function TodayClient({ date }: Props) {
     }
 
     await refreshTasks();
+    window.dispatchEvent(new Event("profile-updated"));
   }
 
   async function handleMoveToday(taskId: Id) {
@@ -131,6 +141,43 @@ export default function TodayClient({ date }: Props) {
     } catch (e) {
       setError(getErrorMessage(e));
     }
+  }
+
+  async function handleEditTask(
+    taskId: Id,
+    updates: { title?: string; due_date?: string; priority?: Priority }
+  ) {
+    try {
+      await fetchApi("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, ...updates }),
+      });
+      await refreshTasks();
+      window.dispatchEvent(new Event("profile-updated"));
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  async function handleDeleteTask(taskId: Id) {
+    try {
+      await fetchApi("/api/tasks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId }),
+      });
+      setDeletingTaskId(null);
+      await refreshTasks();
+      window.dispatchEvent(new Event("profile-updated"));
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  function openEditModal(taskId: Id) {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) setEditingTask(task);
   }
 
   if (loadingTasks && loadingQuests) {
@@ -283,10 +330,32 @@ export default function TodayClient({ date }: Props) {
           </p>
         ) : (
           today.map((t) => (
-            <TaskCard key={t.id} task={t} onToggle={handleToggle} />
+            <TaskCard
+              key={t.id}
+              task={t}
+              onToggle={handleToggle}
+              onEdit={openEditModal}
+              onDelete={setDeletingTaskId}
+            />
           ))
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        task={editingTask}
+        onSave={handleEditTask}
+        onClose={() => setEditingTask(null)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deletingTaskId !== null}
+        title="Delete Task"
+        message="This action cannot be undone. The task will be permanently removed."
+        onConfirm={() => deletingTaskId && handleDeleteTask(deletingTaskId)}
+        onCancel={() => setDeletingTaskId(null)}
+      />
     </div>
   );
 }

@@ -28,22 +28,30 @@ export default function Sidebar() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const res = await fetch("/api/profile");
-        const data = await res.json();
-        if (data.ok) {
-          setProfile(data.profile);
-        }
-      } catch (e) {
-        console.error("Failed to load profile", e);
-      } finally {
-        setLoading(false);
+  async function loadProfile() {
+    try {
+      const res = await fetch("/api/profile");
+      const data = await res.json();
+      if (data.ok) {
+        setProfile(data.profile);
       }
+    } catch (e) {
+      console.error("Failed to load profile", e);
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     loadProfile();
+
+    // Listen for profile updates from other components
+    const handleProfileUpdate = () => loadProfile();
+    window.addEventListener("profile-updated", handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
   }, []);
 
   async function handleSignOut() {
