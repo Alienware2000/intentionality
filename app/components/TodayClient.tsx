@@ -1,9 +1,17 @@
 "use client";
 
+// =============================================================================
+// TODAY CLIENT COMPONENT
+// Task management for today's tasks with priority and XP display.
+// =============================================================================
+
 import { useMemo, useState, useEffect, useCallback } from "react";
-import type { ISODateString, Id, Task, Quest } from "@/app/lib/types";
+import { Plus, AlertCircle, ArrowRight } from "lucide-react";
+import type { ISODateString, Id, Task, Quest, Priority } from "@/app/lib/types";
 import { splitTasksForToday } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
+import { cn } from "@/app/lib/cn";
+import TaskCard from "./TaskCard";
 
 type Props = {
   date: ISODateString;
@@ -14,12 +22,13 @@ type QuestsResponse = { ok: true; quests: Quest[] };
 
 export default function TodayClient({ date }: Props) {
   const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState<Priority>("medium");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [questId, setQuestId] = useState<Id>("");
 
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [loadingQuests, setLoadingQuests] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [loadingQuests, setLoadingQuests] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refreshTasks = useCallback(async () => {
@@ -27,7 +36,9 @@ export default function TodayClient({ date }: Props) {
     setError(null);
 
     try {
-      const data = await fetchApi<TasksResponse>(`/api/tasks/for-today?date=${date}`);
+      const data = await fetchApi<TasksResponse>(
+        `/api/tasks/for-today?date=${date}`
+      );
       setTasks(data.tasks);
     } catch (e) {
       setError(getErrorMessage(e));
@@ -66,9 +77,6 @@ export default function TodayClient({ date }: Props) {
   const { overdue, today } = useMemo(() => {
     return splitTasksForToday(tasks, date);
   }, [tasks, date]);
-
-  const total = today.length;
-  const done = today.filter((t) => t.completed).length;
 
   async function handleToggle(taskId: Id) {
     const res = await fetch("/api/tasks/toggle", {
@@ -112,8 +120,9 @@ export default function TodayClient({ date }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: trimmed,
-          dueDate: date,
-          questId,
+          due_date: date,
+          quest_id: questId,
+          priority,
         }),
       });
 
@@ -124,13 +133,31 @@ export default function TodayClient({ date }: Props) {
     }
   }
 
+  if (loadingTasks && loadingQuests) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-16 animate-pulse bg-[var(--bg-card)] rounded-lg"
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className="space-y-4">
+      {/* Add Task Form */}
+      <div className="flex flex-col sm:flex-row gap-2">
         <select
           value={questId}
           onChange={(e) => setQuestId(e.target.value as Id)}
-          className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-white outline-none focus:border-white/25"
+          className={cn(
+            "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-3 py-2.5 text-sm text-[var(--text-primary)]",
+            "outline-none focus:border-[var(--accent-primary)]"
+          )}
         >
           {quests.map((q) => (
             <option key={q.id} value={q.id}>
@@ -139,122 +166,127 @@ export default function TodayClient({ date }: Props) {
           ))}
         </select>
 
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as Priority)}
+          className={cn(
+            "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-3 py-2.5 text-sm text-[var(--text-primary)]",
+            "outline-none focus:border-[var(--accent-primary)]"
+          )}
+        >
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleAdd();
           }}
-          placeholder="Add one small task for today..."
-          className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-white/25"
+          placeholder="Add a task..."
+          className={cn(
+            "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-4 py-2.5 text-sm text-[var(--text-primary)]",
+            "placeholder:text-[var(--text-muted)]",
+            "outline-none focus:border-[var(--accent-primary)]"
+          )}
         />
-
-        <div className="flex items-center justify-between text-sm text-white/60">
-          <span>
-            Progress: {done} / {total} done
-          </span>
-        </div>
 
         <button
           type="button"
           onClick={handleAdd}
-          className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15 transition"
+          className={cn(
+            "flex items-center justify-center gap-2",
+            "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
+            "px-4 py-2.5 text-sm text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition-colors"
+          )}
         >
-          Add
+          <Plus size={16} />
+          <span className="hidden sm:inline">Add</span>
         </button>
       </div>
 
-      {error && <p className="text-red-400 text-sm">Error: {error}</p>}
+      {error && (
+        <p className="text-sm text-[var(--accent-primary)]">Error: {error}</p>
+      )}
 
-      <section className="space-y-3">
-        {overdue.length > 0 && (
-          <>
-            <h3 className="text-red-400 font-semibold">Overdue</h3>
+      {/* Overdue Tasks */}
+      {overdue.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[var(--accent-primary)]">
+            <AlertCircle size={16} />
+            <span className="text-xs font-bold tracking-widest uppercase">
+              Overdue
+            </span>
+          </div>
 
-            {overdue.map((t) => (
-              <div
-                key={t.id}
-                className="w-full rounded-xl border border-red-400/20 bg-red-500/5 p-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-medium text-white/90">{t.title}</div>
-                    <div className="text-xs text-white/50 mt-1">Due: {t.dueDate}</div>
-                  </div>
-
-                  <div className="text-xs rounded-full px-3 py-1 border border-red-400/30 text-red-300">
-                    Overdue
-                  </div>
-                </div>
-
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(t.id)}
-                    className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/15 transition"
-                  >
-                    Mark done
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleMoveToday(t.id)}
-                    className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/15 transition"
-                  >
-                    Move to today
-                  </button>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {today.length === 0 ? (
-          <p className="text-white/50 text-sm">
-            No tasks for today. Add one small thing and build momentum.
-          </p>
-        ) : (
-          today.map((t) => (
-            <button
+          {overdue.map((t) => (
+            <div
               key={t.id}
-              type="button"
-              onClick={() => handleToggle(t.id)}
-              className={[
-                "w-full text-left rounded-xl border p-4 transition",
-                "cursor-pointer",
-                t.completed
-                  ? "border-white/10 bg-white/5 opacity-70"
-                  : "border-white/15 bg-black/20 hover:bg-white/10",
-              ].join(" ")}
+              className={cn(
+                "p-4 rounded-lg",
+                "border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5"
+              )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div
-                    className={[
-                      "font-medium",
-                      t.completed ? "line-through text-white/50" : "text-white/90",
-                    ].join(" ")}
-                  >
+                  <div className="font-medium text-[var(--text-primary)]">
                     {t.title}
                   </div>
-                  <div className="text-xs text-white/50 mt-1">Due: {t.dueDate}</div>
-                </div>
-
-                <div
-                  className={[
-                    "text-xs rounded-full px-3 py-1 border",
-                    t.completed
-                      ? "border-green-400/30 text-green-300"
-                      : "border-white/20 text-white/60",
-                  ].join(" ")}
-                >
-                  {t.completed ? "Done" : "Planned"}
+                  <div className="text-xs font-mono text-[var(--text-muted)] mt-1">
+                    Due: {t.due_date}
+                  </div>
                 </div>
               </div>
-            </button>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggle(t.id)}
+                  className={cn(
+                    "rounded-lg border border-[var(--border-default)]",
+                    "px-3 py-1.5 text-xs text-[var(--text-secondary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors"
+                  )}
+                >
+                  Mark done
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleMoveToday(t.id)}
+                  className={cn(
+                    "flex items-center gap-1",
+                    "rounded-lg border border-[var(--border-default)]",
+                    "px-3 py-1.5 text-xs text-[var(--text-secondary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors"
+                  )}
+                >
+                  <span>Move to today</span>
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Today's Tasks */}
+      <div className="space-y-2">
+        {today.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)] py-8 text-center">
+            No tasks for today. Add one to build momentum.
+          </p>
+        ) : (
+          today.map((t) => (
+            <TaskCard key={t.id} task={t} onToggle={handleToggle} />
           ))
         )}
-      </section>
+      </div>
     </div>
   );
 }

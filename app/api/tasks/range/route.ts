@@ -1,44 +1,66 @@
+// =============================================================================
+// TASK RANGE API ROUTE
+// Fetches tasks within a date range for the week view.
+// RLS ensures users can only see their own tasks.
+// =============================================================================
+
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/lib/db";
 import { createSupabaseServerClient } from "@/app/lib/supabase/server";
 
+/**
+ * GET /api/tasks/range?start=YYYY-MM-DD&end=YYYY-MM-DD
+ *
+ * Fetches all tasks within the specified date range.
+ * Includes the associated quest data.
+ *
+ * Query params:
+ * - start: string (required) - Start date in YYYY-MM-DD format
+ * - end: string (required) - End date in YYYY-MM-DD format
+ *
+ * RLS ensures only tasks from user's quests are returned.
+ */
 export async function GET(req: Request) {
-    // 1) Identify the user
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
+  const supabase = await createSupabaseServerClient();
 
-    if (error || !data.user) {
-        return NextResponse.json(
-            { ok: false, error: "Not authenticated" },
-            { status: 401 }
-        );
-    }
+  // Verify authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-    const userId = data.user.id;
+  if (authError || !user) {
+    return NextResponse.json(
+      { ok: false, error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
 
-    // 2) Read date range
-    const url = new URL(req.url);
-    const start = url.searchParams.get("start");
-    const end = url.searchParams.get("end");
+  // Parse query params
+  const url = new URL(req.url);
+  const start = url.searchParams.get("start");
+  const end = url.searchParams.get("end");
 
-    if (!start || !end) {
-        return NextResponse.json(
-            { ok: false, error: "Missing start or end query param" },
-            { status: 400 }
-        );
-    }
+  if (!start || !end) {
+    return NextResponse.json(
+      { ok: false, error: "Missing start or end query param" },
+      { status: 400 }
+    );
+  }
 
-    // 3) Fetch only this user's tasks
-    const tasks = await prisma.task.findMany({
-        where: {
-            dueDate: { gte: start, lte: end },
-            quest: {
-                userId: userId, // <-- THIS is the security boundary
-            },
-        },
-        orderBy: { dueDate: "asc" },
-        include: { quest: true },
-    });
+  // Fetch tasks in the date range (RLS filters by quest ownership)
+  const { data: tasks, error: fetchError } = await supabase
+    .from("tasks")
+    .select("*, quest:quests(*)")
+    .gte("due_date", start)
+    .lte("due_date", end)
+    .order("due_date", { ascending: true });
 
-    return NextResponse.json({ ok: true, tasks });
+  if (fetchError) {
+    return NextResponse.json(
+      { ok: false, error: fetchError.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, tasks: tasks ?? [] });
 }

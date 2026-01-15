@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import type { Id, Quest, Task } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
+import { cn } from "@/app/lib/cn";
 
 type QuestsResponse = { ok: true; quests: Quest[] };
 type TasksResponse = { ok: true; tasks: Task[] };
@@ -57,28 +59,43 @@ export default function QuestsClient() {
   const tasksByQuest = useMemo(() => {
     const map: Record<string, Task[]> = {};
     for (const task of tasks) {
-      if (!map[task.questId]) map[task.questId] = [];
-      map[task.questId].push(task);
+      if (!map[task.quest_id]) map[task.quest_id] = [];
+      map[task.quest_id].push(task);
     }
     return map;
   }, [tasks]);
 
-  if (loading) return <p className="text-white/50">Loading quests...</p>;
-  if (error) return <p className="text-red-400">Error: {error}</p>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-32 animate-pulse bg-[var(--bg-card)] rounded-lg"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="text-[var(--accent-primary)]">Error: {error}</p>
+    );
+  }
 
   return (
-    <div>
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold">Quests</h1>
-        <p className="text-white/70 mt-2">
-          High-level goals and missions will live here.
-        </p>
-      </header>
-
-      <div className="mb-6 flex gap-2">
+    <div className="space-y-6">
+      {/* Create Quest Form */}
+      <div className="flex gap-2">
         <input
           placeholder="New quest title..."
-          className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+          className={cn(
+            "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-4 py-2.5 text-sm text-[var(--text-primary)]",
+            "placeholder:text-[var(--text-muted)]",
+            "outline-none focus:border-[var(--accent-primary)]"
+          )}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => {
@@ -87,54 +104,88 @@ export default function QuestsClient() {
         />
         <button
           onClick={handleCreate}
-          className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 hover:bg-white/15"
+          className={cn(
+            "flex items-center gap-2",
+            "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
+            "px-4 py-2.5 text-sm text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition"
+          )}
         >
-          Create
+          <Plus size={16} />
+          <span className="hidden sm:inline">Create</span>
         </button>
       </div>
 
+      {/* Quests List */}
       <section className="space-y-4">
-        {quests.map((quest) => {
-          const questTasks = tasksByQuest[quest.id] ?? [];
-          const completed = questTasks.filter((t) => t.completed).length;
-          const total = questTasks.length;
-          const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+        {quests.length === 0 ? (
+          <p className="text-sm text-[var(--text-muted)] py-8 text-center">
+            No quests yet. Create one to get started.
+          </p>
+        ) : (
+          quests.map((quest) => {
+            const questTasks = tasksByQuest[quest.id] ?? [];
+            const completed = questTasks.filter((t) => t.completed).length;
+            const total = questTasks.length;
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+            const totalXp = questTasks.reduce((sum, t) => sum + (t.xp_value ?? 10), 0);
+            const earnedXp = questTasks
+              .filter((t) => t.completed)
+              .reduce((sum, t) => sum + (t.xp_value ?? 10), 0);
 
-          return (
-            <div
-              key={quest.id}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">{quest.title}</h2>
-                  <p className="text-white/60 mt-1">
-                    Created: {quest.createdAt.slice(0, 10)}
-                  </p>
-                </div>
+            return (
+              <div
+                key={quest.id}
+                className={cn(
+                  "rounded-lg border-l-2 bg-[var(--bg-card)]",
+                  percent === 100
+                    ? "border-l-[var(--accent-success)]"
+                    : "border-l-[var(--accent-primary)]"
+                )}
+              >
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="font-medium text-[var(--text-primary)]">
+                        {quest.title}
+                      </h2>
+                      <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">
+                        Created: {quest.created_at.slice(0, 10)}
+                      </p>
+                    </div>
 
-                <div className="text-right">
-                  <div className="text-sm text-white/60">Progress</div>
-                  <div className="text-lg font-semibold">
-                    {completed}/{total}
+                    <div className="text-right">
+                      <div className="text-lg font-mono font-semibold text-[var(--text-primary)]">
+                        {completed}/{total}
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)]">
+                        +{earnedXp}/{totalXp} XP
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mt-4">
+                    <div className="h-1 w-full rounded-full bg-[var(--bg-elevated)]">
+                      <div
+                        className={cn(
+                          "h-1 rounded-full transition-all",
+                          percent === 100
+                            ? "bg-[var(--accent-success)]"
+                            : "bg-[var(--accent-primary)]"
+                        )}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mt-2">
+                      {total === 0 ? "No tasks yet." : `${percent}% complete`}
+                    </p>
                   </div>
                 </div>
               </div>
-
-              <div className="mt-5">
-                <div className="h-2 w-full rounded-full bg-white/10">
-                  <div
-                    className="h-2 rounded-full bg-white/40"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-                <p className="text-xs text-white/50 mt-2">
-                  {total === 0 ? "No tasks yet." : `${percent}% complete`}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </section>
     </div>
   );

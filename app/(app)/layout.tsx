@@ -1,4 +1,3 @@
-import { requireUser } from "@/app/lib/auth/requireUser";
 import Sidebar from "../components/Sidebar";
 
 export default async function AppLayout({
@@ -6,8 +5,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireUser();
-
+  // Authentication is handled by middleware (middleware.ts)
   return (
     <div className="relative z-10 flex h-screen overflow-hidden">
       <Sidebar />

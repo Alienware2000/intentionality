@@ -1,8 +1,41 @@
 @import "tailwindcss";
 
+/* =============================================================================
+   INTENTIONALITY - DESIGN SYSTEM
+   Inspired by anime.js: dramatic dark theme with high-contrast accents
+   ============================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base colors - true black with dramatic contrast */
+  --bg-base: #000000;
+  --bg-elevated: #0a0a0a;
+  --bg-card: #111111;
+  --bg-hover: #1a1a1a;
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-muted: #525252;
+
+  /* Accent colors - anime.js inspired */
+  --accent-primary: #ef4444;        /* red-500 - main accent, XP bar */
+  --accent-highlight: #ebffa5;      /* lime-yellow - highlights, level-ups */
+  --accent-success: #22c55e;        /* green - completions */
+  --accent-streak: #f97316;         /* orange - streaks/fire */
+
+  /* Priority colors */
+  --priority-high: #ef4444;         /* red */
+  --priority-medium: #eab308;       /* yellow */
+  --priority-low: #525252;          /* grey */
+
+  /* Borders and lines */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(239, 68, 68, 0.4);
+
+  /* Legacy - for Tailwind compatibility */
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -12,25 +45,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* --- Intentionality v0: cleaner cyber background --- */
-:root {
-  --accent: 34 197 94; /* neon green */
-}
+/* =============================================================================
+   BACKGROUND EFFECTS
+   Subtle grid pattern with red accent glows
+   ============================================================================= */
 
-/* fixed overlay container */
 .intentionality-bg {
   position: fixed;
   inset: 0;
@@ -38,35 +63,99 @@ body {
   z-index: 0;
 }
 
-/* grid layer (subtle) */
+/* Grid layer - subtle geometric pattern */
 .intentionality-bg::before {
   content: "";
   position: absolute;
   inset: 0;
-
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 64px 64px;
-
-  opacity: 0.25;
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.4;
 }
 
-/* glow + vignette layer (localized, not a wash) */
+/* Glow layer - red accent glows at corners */
 .intentionality-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-
   background:
-    /* localized glows */
-    radial-gradient(700px circle at 20% 15%, rgb(var(--accent) / 0.18), transparent 60%),
-    radial-gradient(600px circle at 85% 30%, rgb(var(--accent) / 0.10), transparent 55%),
-    radial-gradient(900px circle at 50% 85%, rgb(var(--accent) / 0.08), transparent 60%),
-
-    /* vignette to keep edges dark and readable */
-    radial-gradient(1200px circle at 50% 50%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.65) 100%);
-
+    /* Top-left red glow */
+    radial-gradient(600px circle at 10% 10%, rgba(239, 68, 68, 0.08), transparent 50%),
+    /* Bottom-right subtle glow */
+    radial-gradient(800px circle at 90% 90%, rgba(239, 68, 68, 0.05), transparent 50%),
+    /* Vignette for depth */
+    radial-gradient(1400px circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
   opacity: 1;
 }
 
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Monospace text for numbers and stats */
+.font-mono-stats {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
+
+/* Red glow effect for important elements */
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Orange glow for streaks */
+.glow-orange {
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.4);
+}
+
+/* Lime highlight glow */
+.glow-highlight {
+  box-shadow: 0 0 20px rgba(235, 255, 165, 0.4);
+}
+
+/* Thin divider line */
+.divider-line {
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* Red accent line (for headers) */
+.accent-line {
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary) 0%, transparent 100%);
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(235, 255, 165, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(235, 255, 165, 0.5);
+  }
+}
+
+@keyframes xp-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-glow {
+    animation: none;
+  }
+}

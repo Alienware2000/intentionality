@@ -1,60 +1,43 @@
-import Link from "next/link";
 import TodayClient from "@/app/components/TodayClient";
+import DashboardStats from "@/app/components/DashboardStats";
 import { getTodayISO } from "@/app/lib/date-utils";
-import { requireUser } from "@/app/lib/auth/requireUser";
 
 export default async function Home() {
-  await requireUser();
-
+  // Authentication is handled by middleware (middleware.ts)
   const today = getTodayISO();
 
   return (
-    <div>
-      <header className="mb-8">
-        <h1 className="text-4xl font-semibold tracking-tight">Intentionality</h1>
-        <p className="text-white/70 mt-2">Command Center (v0)</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <header>
+        <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
+          Command Center
+        </h1>
+        <div className="mt-2 h-[2px] w-32 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/week" className="rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition">
-          <h2 className="text-lg font-medium">This Week</h2>
-          <p className="text-white/60 mt-2">
-          Your weekly plan will live here.
-          </p>
-        </Link>
-
-        <Link href="/quests" className="rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition">
-          <h2 className="text-lg font-medium">Quests</h2>
-          <p className="text-white/60 mt-2">
-            High-level goals and missions will live here.
-          </p>
-        </Link>
-
-        <Link href="/auth" className="rounded-2xl border border-white/10 bg-white/5 p-6 hover:bg-white/10 transition">
-          <h2 className="text-lg font-medium">Auth</h2>
-          <p className="text-white/60 mt-2">
-            Sign up, log in, log out.
-          </p>
-        </Link>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-lg font-medium">XP & Status</h2>
-          <p className="text-white/60 mt-2">
-            Progress, XP, and streaks will live here.
-          </p>
-        </div>
+      {/* Stats Section */}
+      <section>
+        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
+          Stats
+        </h2>
+        <DashboardStats date={today} />
       </section>
 
-      <section className="mt-10">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-2xl font-semibold">Today</h2>
-          <span className="text-sm text-white/60">{today} </span>
+      {/* Divider */}
+      <div className="h-px bg-[var(--border-subtle)]" />
+
+      {/* Today Section */}
+      <section>
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+            Today
+          </h2>
+          <span className="text-xs font-mono text-[var(--text-muted)]">{today}</span>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-6">
-          <TodayClient date={today} />
-        </div>
+        <TodayClient date={today} />
       </section>
     </div>
-  )
+  );
 }
