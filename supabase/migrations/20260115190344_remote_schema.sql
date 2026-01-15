@@ -1,0 +1,1 @@
+-- Initial empty baseline (schema was empty at this point)
