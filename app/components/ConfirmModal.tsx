@@ -50,8 +50,9 @@ export default function ConfirmModal({
             transition={{ duration: 0.1 }}
             className={cn(
               "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-full max-w-md p-6 rounded-lg",
-              "bg-[var(--bg-card)] border border-[var(--border-default)]"
+              "w-full max-w-md p-4 sm:p-6 rounded-lg mx-4 sm:mx-0",
+              "bg-[var(--bg-card)] border border-[var(--border-default)]",
+              "max-h-[90vh] overflow-y-auto"
             )}
           >
             {/* Close button */}

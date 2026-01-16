@@ -152,49 +152,53 @@ export default function HabitsClient({ date }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Add Habit Form */}
-      <div className="flex gap-2">
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as Priority)}
-          className={cn(
-            "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-            "px-2 py-2 text-sm text-[var(--text-primary)]",
-            "outline-none focus:border-[var(--accent-primary)]"
-          )}
-        >
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
+      {/* Add Habit Form - stacks on mobile */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-2">
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as Priority)}
+            className={cn(
+              "flex-1 sm:flex-initial rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
+              "outline-none focus:border-[var(--accent-primary)]"
+            )}
+          >
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
 
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleAdd();
-          }}
-          placeholder="Add a daily habit..."
-          className={cn(
-            "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-            "px-3 py-2 text-sm text-[var(--text-primary)]",
-            "placeholder:text-[var(--text-muted)]",
-            "outline-none focus:border-[var(--accent-primary)]"
-          )}
-        />
+        <div className="flex gap-2 flex-1">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdd();
+            }}
+            placeholder="Add a daily habit..."
+            className={cn(
+              "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
+              "placeholder:text-[var(--text-muted)]",
+              "outline-none focus:border-[var(--accent-primary)]"
+            )}
+          />
 
-        <button
-          type="button"
-          onClick={handleAdd}
-          className={cn(
-            "flex items-center justify-center",
-            "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
-            "px-3 py-2 text-sm text-[var(--accent-primary)]",
-            "hover:bg-[var(--accent-primary)]/20 transition-colors"
-          )}
-        >
-          <Plus size={16} />
-        </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            className={cn(
+              "flex items-center justify-center",
+              "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
+              "px-4 py-2.5 text-sm text-[var(--accent-primary)]",
+              "hover:bg-[var(--accent-primary)]/20 transition-colors"
+            )}
+          >
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
 
       {error && (

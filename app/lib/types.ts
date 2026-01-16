@@ -268,6 +268,41 @@ export type FocusCompleteResponse = {
 };
 
 // =============================================================================
+// BRAIN DUMP TYPES
+// =============================================================================
+
+/**
+ * Brain dump entry for capturing quick thoughts.
+ * Can be processed manually or via AI into tasks/quests.
+ */
+export type BrainDumpEntry = {
+  id: Id;
+  user_id: string;
+  content: string;
+  processed: boolean;
+  processed_at: string | null;
+  processing_result: BrainDumpProcessingResult | null;
+  created_at: string;
+};
+
+/**
+ * Result from AI processing of a brain dump entry.
+ * Contains suggested tasks, quests, and any questions.
+ */
+export type BrainDumpProcessingResult = {
+  tasks: Array<{
+    title: string;
+    due_date?: string;
+    priority: Priority;
+    quest_suggestion?: string;
+  }>;
+  quests?: Array<{
+    title: string;
+  }>;
+  notes?: string;
+};
+
+// =============================================================================
 // TIMELINE TYPES
 // =============================================================================
 
@@ -288,4 +323,64 @@ export type DayTimelineResponse = {
   scheduledItems: TimelineItem[];  // Items with times, sorted chronologically
   unscheduledTasks: Task[];        // Tasks without scheduled_time
   overdueTasks: Task[];            // Only for today
+};
+
+// =============================================================================
+// CANVAS INTEGRATION TYPES
+// =============================================================================
+
+/**
+ * Canvas LMS connection for a user.
+ * Stores OAuth credentials and sync settings.
+ */
+export type CanvasConnection = {
+  id: Id;
+  user_id: string;
+  instance_url: string;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  selected_courses: string[];
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Synced assignment record linking Canvas assignment to task.
+ */
+export type SyncedAssignment = {
+  id: Id;
+  user_id: string;
+  canvas_assignment_id: string;
+  canvas_course_id: string;
+  task_id: Id | null;
+  quest_id: Id;
+  assignment_name: string;
+  due_at: string | null;
+  last_synced_at: string;
+  created_at: string;
+};
+
+/**
+ * Canvas course from the Canvas API.
+ */
+export type CanvasCourse = {
+  id: number;
+  name: string;
+  course_code: string;
+  enrollment_term_id?: number;
+};
+
+/**
+ * Canvas assignment from the Canvas API.
+ */
+export type CanvasAssignment = {
+  id: number;
+  name: string;
+  description: string | null;
+  due_at: string | null;
+  points_possible: number | null;
+  course_id: number;
+  html_url: string;
 };

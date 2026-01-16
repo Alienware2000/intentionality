@@ -26,6 +26,7 @@ import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
+import { useCelebration } from "./CelebrationOverlay";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
 
@@ -47,6 +48,7 @@ export default function DayTimeline({
   onRefresh,
 }: Props) {
   const { refreshProfile } = useProfile();
+  const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
 
   const {
     scheduledItems,
@@ -57,7 +59,23 @@ export default function DayTimeline({
     refresh,
     toggleTask,
     toggleScheduleBlock,
-  } = useDayTimeline(date, { onProfileUpdate: refreshProfile });
+  } = useDayTimeline(date, {
+    onProfileUpdate: refreshProfile,
+    onTaskToggle: (result) => {
+      // Show XP gain animation
+      if (result.xpGained) {
+        showXpGain(result.xpGained);
+      }
+      // Show level up celebration
+      if (result.newLevel) {
+        showLevelUp(result.newLevel);
+      }
+      // Show streak milestone
+      if (result.newStreak) {
+        showStreakMilestone(result.newStreak);
+      }
+    },
+  });
 
   // Add task form state
   const [showForm, setShowForm] = useState(false);
@@ -263,12 +281,13 @@ export default function DayTimeline({
         <div className="pt-1">
           {showForm ? (
             <div className={cn("space-y-2 p-3 bg-[var(--bg-card)] rounded-lg border border-[var(--border-default)]")}>
-              <div className="flex gap-2">
+              {/* First row: Quest, Priority, Time - stacks on mobile */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={questId}
                   onChange={(e) => setQuestId(e.target.value)}
                   className={cn(
-                    "flex-1 min-w-0 px-2 py-1.5 text-xs rounded",
+                    "flex-1 min-w-0 px-3 py-2 text-sm rounded",
                     "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                     "text-[var(--text-primary)]",
                     "focus:outline-none focus:border-[var(--accent-primary)]"
@@ -278,35 +297,38 @@ export default function DayTimeline({
                     <option key={q.id} value={q.id}>{q.title}</option>
                   ))}
                 </select>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as Priority)}
-                  className={cn(
-                    "px-2 py-1.5 text-xs rounded",
-                    "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
-                    "text-[var(--text-primary)]",
-                    "focus:outline-none focus:border-[var(--accent-primary)]"
-                  )}
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  placeholder="Time"
-                  className={cn(
-                    "px-2 py-1.5 text-xs rounded",
-                    "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
-                    "text-[var(--text-primary)]",
-                    "focus:outline-none focus:border-[var(--accent-primary)]",
-                    "[color-scheme:dark]"
-                  )}
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as Priority)}
+                    className={cn(
+                      "flex-1 sm:flex-initial px-3 py-2 text-sm rounded",
+                      "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                      "text-[var(--text-primary)]",
+                      "focus:outline-none focus:border-[var(--accent-primary)]"
+                    )}
+                  >
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    placeholder="Time"
+                    className={cn(
+                      "flex-1 sm:flex-initial px-3 py-2 text-sm rounded",
+                      "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                      "text-[var(--text-primary)]",
+                      "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "[color-scheme:dark]"
+                    )}
+                  />
+                </div>
               </div>
-              <div className="flex gap-2">
+              {/* Second row: Title and buttons - stacks on mobile */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -314,34 +336,36 @@ export default function DayTimeline({
                   placeholder="Task title..."
                   autoFocus
                   className={cn(
-                    "flex-1 min-w-0 px-2 py-1.5 text-sm rounded",
+                    "flex-1 min-w-0 px-3 py-2 text-sm rounded",
                     "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                     "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                     "focus:outline-none focus:border-[var(--accent-primary)]"
                   )}
                 />
-                <button
-                  onClick={handleAddTask}
-                  disabled={adding || !title.trim()}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded",
-                    "bg-[var(--accent-primary)] text-white",
-                    "hover:bg-[var(--accent-primary)]/80 transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                >
-                  {adding ? "..." : "Add"}
-                </button>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs rounded",
-                    "bg-[var(--bg-hover)] text-[var(--text-muted)]",
-                    "hover:bg-[var(--bg-elevated)] transition-colors"
-                  )}
-                >
-                  Cancel
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddTask}
+                    disabled={adding || !title.trim()}
+                    className={cn(
+                      "flex-1 sm:flex-initial px-4 py-2 text-sm font-medium rounded",
+                      "bg-[var(--accent-primary)] text-white",
+                      "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    {adding ? "..." : "Add"}
+                  </button>
+                  <button
+                    onClick={() => setShowForm(false)}
+                    className={cn(
+                      "flex-1 sm:flex-initial px-4 py-2 text-sm rounded",
+                      "bg-[var(--bg-hover)] text-[var(--text-muted)]",
+                      "hover:bg-[var(--bg-elevated)] transition-colors"
+                    )}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
               {addError && (
                 <p className="text-xs text-[var(--accent-primary)]">{addError}</p>
@@ -419,13 +443,15 @@ function ScheduledTaskItem({
         onClick={() => onToggle(task.id)}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          compact ? "w-4 h-4" : "w-5 h-5",
+          // Larger touch targets on mobile
+          compact ? "w-5 h-5 sm:w-4 sm:h-4" : "w-6 h-6 sm:w-5 sm:h-5",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
         )}
       >
-        {isCompleted && <Check size={compact ? 10 : 12} className="text-white" />}
+        {isCompleted && <Check size={compact ? 12 : 14} className="text-white sm:hidden" />}
+        {isCompleted && <Check size={compact ? 10 : 12} className="text-white hidden sm:block" />}
       </button>
 
       {task.scheduled_time && (
@@ -447,25 +473,27 @@ function ScheduledTaskItem({
         {task.title}
       </span>
 
-      {/* Edit/Delete buttons - show on hover */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
+      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onEdit(task);
           }}
-          className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
-          <Pencil size={compact ? 12 : 14} />
+          <Pencil size={compact ? 14 : 16} className="sm:hidden" />
+          <Pencil size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(task.id);
           }}
-          className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+          className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
-          <Trash2 size={compact ? 12 : 14} />
+          <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
+          <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
       </div>
 
@@ -510,13 +538,15 @@ function UnscheduledTaskItem({
         onClick={() => onToggle(task.id)}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          compact ? "w-4 h-4" : "w-5 h-5",
+          // Larger touch targets on mobile
+          compact ? "w-5 h-5 sm:w-4 sm:h-4" : "w-6 h-6 sm:w-5 sm:h-5",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
         )}
       >
-        {isCompleted && <Check size={compact ? 10 : 12} className="text-white" />}
+        {isCompleted && <Check size={compact ? 12 : 14} className="text-white sm:hidden" />}
+        {isCompleted && <Check size={compact ? 10 : 12} className="text-white hidden sm:block" />}
       </button>
 
       <span
@@ -529,25 +559,27 @@ function UnscheduledTaskItem({
         {task.title}
       </span>
 
-      {/* Edit/Delete buttons - show on hover */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
+      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onEdit(task);
           }}
-          className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+          className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
-          <Pencil size={compact ? 12 : 14} />
+          <Pencil size={compact ? 14 : 16} className="sm:hidden" />
+          <Pencil size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(task.id);
           }}
-          className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+          className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
-          <Trash2 size={compact ? 12 : 14} />
+          <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
+          <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
       </div>
 
@@ -668,33 +700,36 @@ function OverdueTaskItem({
           {task.title}
         </span>
 
-        {/* Edit/Delete buttons - show on hover */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit(task)}
-            className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
-            <Pencil size={compact ? 12 : 14} />
+            <Pencil size={compact ? 14 : 16} className="sm:hidden" />
+            <Pencil size={compact ? 12 : 14} className="hidden sm:block" />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+            className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
           >
-            <Trash2 size={compact ? 12 : 14} />
+            <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
+            <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
           </button>
         </div>
 
-        <span className="text-xs font-mono text-[var(--text-muted)]">
+        <span className="text-xs font-mono text-[var(--text-muted)] hidden sm:inline">
           {task.due_date}
         </span>
       </div>
-      <div className={cn("flex gap-2", compact ? "mt-2" : "mt-2")}>
+      {/* Action buttons - stack on mobile */}
+      <div className={cn("flex flex-wrap gap-2", compact ? "mt-2" : "mt-2")}>
         <button
           onClick={() => onToggle(task.id)}
           className={cn(
             "rounded border border-[var(--border-default)]",
             "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
-            compact ? "px-2 py-1 text-xs" : "px-2.5 py-1 text-xs"
+            "px-3 py-2 text-sm sm:px-2.5 sm:py-1 sm:text-xs"
           )}
         >
           Done
@@ -704,11 +739,12 @@ function OverdueTaskItem({
           className={cn(
             "flex items-center gap-1 rounded border border-[var(--border-default)]",
             "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
-            compact ? "px-2 py-1 text-xs" : "px-2.5 py-1 text-xs"
+            "px-3 py-2 text-sm sm:px-2.5 sm:py-1 sm:text-xs"
           )}
         >
           <span>Move to today</span>
-          <ArrowRight size={10} />
+          <ArrowRight size={12} className="sm:hidden" />
+          <ArrowRight size={10} className="hidden sm:block" />
         </button>
       </div>
     </div>

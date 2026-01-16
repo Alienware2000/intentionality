@@ -14,9 +14,19 @@ import { fetchApi, getErrorMessage } from "../api";
 // Types
 // -----------------------------------------------------------------------------
 
+type ToggleResult = {
+  xpGained?: number;
+  xpLost?: number;
+  newLevel?: number;
+  newStreak?: number;
+  newXpTotal?: number;
+};
+
 type UseDayTimelineOptions = {
   /** Callback to trigger profile refresh after XP-granting actions */
   onProfileUpdate?: () => void;
+  /** Callback when task is toggled, receives XP/level info for celebrations */
+  onTaskToggle?: (result: ToggleResult) => void;
 };
 
 type UseDayTimelineReturn = {
@@ -82,7 +92,7 @@ export function useDayTimeline(
   const toggleTask = useCallback(
     async (taskId: string) => {
       try {
-        await fetchApi("/api/tasks/toggle", {
+        const result = await fetchApi<{ ok: true } & ToggleResult>("/api/tasks/toggle", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId }),
@@ -90,6 +100,9 @@ export function useDayTimeline(
 
         // Notify profile update
         options?.onProfileUpdate?.();
+
+        // Notify celebration callback with XP/level info
+        options?.onTaskToggle?.(result);
 
         // Refresh data
         await refresh();
