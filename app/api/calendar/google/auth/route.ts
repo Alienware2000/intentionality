@@ -26,9 +26,10 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
+    // Don't leak configuration details - return generic error
     return NextResponse.json(
-      { ok: false, error: "Google OAuth is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local" },
-      { status: 500 }
+      { ok: false, error: "Google Calendar integration is not available" },
+      { status: 503 }
     );
   }
 

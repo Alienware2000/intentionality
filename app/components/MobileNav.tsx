@@ -115,6 +115,7 @@ export default function MobileNav() {
           {/* Menu Button */}
           <button
             onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
             className={cn(
               "flex flex-col items-center justify-center flex-1 h-full",
               "text-[var(--text-muted)] min-w-[64px]"
@@ -158,6 +159,7 @@ export default function MobileNav() {
                 </h2>
                 <button
                   onClick={() => setMenuOpen(false)}
+                  aria-label="Close menu"
                   className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   <X size={20} className="text-[var(--text-muted)]" />

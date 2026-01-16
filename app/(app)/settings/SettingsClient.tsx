@@ -5,7 +5,6 @@
 // Main settings interface with integrations section.
 // =============================================================================
 
-import CanvasConnectionCard from "./CanvasConnectionCard";
 import CalendarImportCard from "./CalendarImportCard";
 import GoogleCalendarCard from "./GoogleCalendarCard";
 
@@ -29,16 +28,6 @@ export default function SettingsClient() {
         </h2>
         <div className="space-y-4">
           <GoogleCalendarCard />
-        </div>
-      </section>
-
-      {/* Canvas Integration Section */}
-      <section>
-        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
-          Canvas LMS
-        </h2>
-        <div className="space-y-4">
-          <CanvasConnectionCard />
         </div>
       </section>
     </div>

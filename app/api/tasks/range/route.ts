@@ -45,11 +45,13 @@ export const GET = withAuth(async ({ supabase, request }) => {
   }
 
   // Fetch tasks in the date range (RLS filters by quest ownership)
+  // Filter out soft-deleted tasks
   const { data: tasks, error: fetchError } = await supabase
     .from("tasks")
     .select("*, quest:quests(*)")
     .gte("due_date", start)
     .lte("due_date", end)
+    .is("deleted_at", null)
     .order("due_date", { ascending: true });
 
   if (fetchError) {

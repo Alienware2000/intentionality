@@ -55,16 +55,19 @@ export const GET = withAuth(async ({ supabase, request }) => {
     // Fetch in parallel: tasks, schedule blocks, and completions
     const [tasksResult, blocksResult, completionsResult] = await Promise.all([
       // Fetch tasks for this date (and overdue if today)
+      // Filter out soft-deleted tasks
       isToday
         ? supabase
             .from("tasks")
             .select("*, quest:quests(*)")
+            .is("deleted_at", null)
             .or(`due_date.eq.${date},and(due_date.lt.${date},completed.eq.false)`)
             .order("created_at", { ascending: true })
         : supabase
             .from("tasks")
             .select("*, quest:quests(*)")
             .eq("due_date", date)
+            .is("deleted_at", null)
             .order("created_at", { ascending: true }),
 
       // Fetch schedule blocks active on this date

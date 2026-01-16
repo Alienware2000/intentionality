@@ -6,7 +6,7 @@
 // Used by both Today and Week views for consistent display.
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -27,6 +27,7 @@ import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
 import { useCelebration } from "./CelebrationOverlay";
+import { useToast } from "./Toast";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
 
@@ -37,6 +38,8 @@ type Props = {
   compact?: boolean;
   quests?: Quest[];
   onRefresh?: () => void;
+  /** Show all schedule blocks (default: only show imminent blocks within 45 min) */
+  showAllBlocks?: boolean;
 };
 
 export default function DayTimeline({
@@ -46,12 +49,14 @@ export default function DayTimeline({
   compact = false,
   quests = [],
   onRefresh,
+  showAllBlocks = false,
 }: Props) {
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
+  const { showToast } = useToast();
 
   const {
-    scheduledItems,
+    scheduledItems: rawScheduledItems,
     unscheduledTasks,
     overdueTasks,
     loading,
@@ -76,6 +81,44 @@ export default function DayTimeline({
       }
     },
   });
+
+  // Filter schedule blocks to only show imminent ones (within 45 min window)
+  // unless showAllBlocks is true
+  const scheduledItems = useMemo(() => {
+    if (showAllBlocks) return rawScheduledItems;
+
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    // Only filter blocks for today's date
+    if (date !== todayStr) return rawScheduledItems;
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const IMMINENT_WINDOW_MINUTES = 45; // Show blocks within 45 min before/after start
+
+    return rawScheduledItems.filter((item) => {
+      // Always show tasks
+      if (item.type === "task") return true;
+
+      // For blocks, check if imminent
+      const block = item.data;
+      const [startHour, startMin] = block.start_time.split(":").map(Number);
+      const [endHour, endMin] = block.end_time.split(":").map(Number);
+      const blockStartMinutes = startHour * 60 + startMin;
+      const blockEndMinutes = endHour * 60 + endMin;
+
+      // Show if:
+      // - Block starts within IMMINENT_WINDOW_MINUTES from now, OR
+      // - Block is currently happening (started but not ended), OR
+      // - Block ended within 15 min ago (small grace period)
+      const isImminent = blockStartMinutes - currentMinutes <= IMMINENT_WINDOW_MINUTES &&
+                         blockStartMinutes - currentMinutes >= -15;
+      const isHappening = currentMinutes >= blockStartMinutes && currentMinutes <= blockEndMinutes;
+      const justEnded = currentMinutes - blockEndMinutes <= 15 && currentMinutes > blockEndMinutes;
+
+      return isImminent || isHappening || justEnded;
+    });
+  }, [rawScheduledItems, date, showAllBlocks]);
 
   // Add task form state
   const [showForm, setShowForm] = useState(false);
@@ -165,6 +208,30 @@ export default function DayTimeline({
       await refresh();
       onRefresh?.();
       refreshProfile();
+
+      // Show toast with undo option
+      showToast({
+        message: "Task deleted",
+        type: "default",
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await fetchApi("/api/tasks/restore", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ taskId }),
+              });
+              await refresh();
+              onRefresh?.();
+              refreshProfile();
+            } catch {
+              // Silent fail - task stays deleted
+            }
+          },
+        },
+      });
     } catch {
       setDeletingTaskId(null);
       // Silent fail - task remains
@@ -400,7 +467,7 @@ export default function DayTimeline({
       <ConfirmModal
         isOpen={deletingTaskId !== null}
         title="Delete Task"
-        message="This will permanently delete this task. This action cannot be undone."
+        message="Delete this task? You can undo this action for a few seconds after deletion."
         onConfirm={() => deletingTaskId && handleDeleteTask(deletingTaskId)}
         onCancel={() => setDeletingTaskId(null)}
       />
@@ -441,6 +508,7 @@ function ScheduledTaskItem({
     >
       <button
         onClick={() => onToggle(task.id)}
+        aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
           // Larger touch targets on mobile
@@ -480,6 +548,7 @@ function ScheduledTaskItem({
             e.stopPropagation();
             onEdit(task);
           }}
+          aria-label="Edit task"
           className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
           <Pencil size={compact ? 14 : 16} className="sm:hidden" />
@@ -490,6 +559,7 @@ function ScheduledTaskItem({
             e.stopPropagation();
             onDelete(task.id);
           }}
+          aria-label="Delete task"
           className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
@@ -536,6 +606,7 @@ function UnscheduledTaskItem({
     >
       <button
         onClick={() => onToggle(task.id)}
+        aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
           // Larger touch targets on mobile
@@ -566,6 +637,7 @@ function UnscheduledTaskItem({
             e.stopPropagation();
             onEdit(task);
           }}
+          aria-label="Edit task"
           className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
           <Pencil size={compact ? 14 : 16} className="sm:hidden" />
@@ -576,6 +648,7 @@ function UnscheduledTaskItem({
             e.stopPropagation();
             onDelete(task.id);
           }}
+          aria-label="Delete task"
           className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
@@ -620,6 +693,7 @@ function ScheduleBlockItem({
         {block.is_completable && (
           <button
             onClick={() => onToggle(block.id)}
+            aria-label={completed ? "Mark block incomplete" : "Mark block complete"}
             className={cn(
               "flex-shrink-0 rounded-full border-2 flex items-center justify-center",
               compact ? "w-4 h-4" : "w-5 h-5",
@@ -704,6 +778,7 @@ function OverdueTaskItem({
         <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit(task)}
+            aria-label="Edit task"
             className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <Pencil size={compact ? 14 : 16} className="sm:hidden" />
@@ -711,6 +786,7 @@ function OverdueTaskItem({
           </button>
           <button
             onClick={() => onDelete(task.id)}
+            aria-label="Delete task"
             className="p-2 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
           >
             <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
@@ -726,6 +802,7 @@ function OverdueTaskItem({
       <div className={cn("flex flex-wrap gap-2", compact ? "mt-2" : "mt-2")}>
         <button
           onClick={() => onToggle(task.id)}
+          aria-label="Mark task as done"
           className={cn(
             "rounded border border-[var(--border-default)]",
             "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
@@ -736,6 +813,7 @@ function OverdueTaskItem({
         </button>
         <button
           onClick={() => onMoveToday(task.id)}
+          aria-label="Move task to today"
           className={cn(
             "flex items-center gap-1 rounded border border-[var(--border-default)]",
             "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",

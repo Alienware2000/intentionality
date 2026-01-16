@@ -60,10 +60,12 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   }
 
   // Fetch the current task state (RLS will return null if not owned by user)
+  // Only allow toggling non-deleted tasks
   const { data: existing, error: fetchError } = await supabase
     .from("tasks")
     .select("id, completed, xp_value, priority")
     .eq("id", taskId)
+    .is("deleted_at", null)
     .single();
 
   if (fetchError || !existing) {

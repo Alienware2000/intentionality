@@ -16,10 +16,12 @@ import {
   Link2,
   Check,
   AlertCircle,
-  ChevronDown,
-  ChevronUp,
   Pause,
   Play,
+  ChevronDown,
+  ExternalLink,
+  GraduationCap,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -42,8 +44,10 @@ type QuestsResponse = {
 type SyncResult = {
   tasksCreated: number;
   tasksUpdated: number;
+  tasksDeleted: number;
   scheduleBlocksCreated: number;
   scheduleBlocksUpdated: number;
+  scheduleBlocksDeleted: number;
   eventsProcessed: number;
   errors: string[];
 };
@@ -80,6 +84,9 @@ export default function CalendarImportCard() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Guide accordion state
+  const [expandedGuide, setExpandedGuide] = useState<"canvas" | "google" | "outlook" | null>(null);
 
   // Sync state
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -318,16 +325,202 @@ export default function CalendarImportCard() {
                   Add Calendar Feed
                 </h4>
                 <p className="text-xs text-[var(--text-muted)]">
-                  Paste an ICS feed URL from Canvas, Google Calendar, or any calendar app.
-                  <br />
-                  <span className="text-[var(--text-secondary)]">
-                    Canvas: Calendar → Calendar Feed → Copy link
-                  </span>
-                  <br />
-                  <span className="text-[var(--text-secondary)]">
-                    Google: Settings → [Calendar] → Secret address in iCal format
-                  </span>
+                  Paste an ICS feed URL from your calendar. Need help finding it?
                 </p>
+
+                {/* Platform Guides Accordion */}
+                <div className="space-y-2">
+                  {/* Canvas Guide */}
+                  <div className="rounded border border-[var(--border-subtle)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedGuide(expandedGuide === "canvas" ? null : "canvas")}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 text-left",
+                        "hover:bg-[var(--bg-hover)] transition-colors",
+                        expandedGuide === "canvas" && "bg-[var(--bg-hover)]"
+                      )}
+                    >
+                      <GraduationCap size={16} className="text-[var(--accent-primary)]" />
+                      <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">
+                        Canvas LMS
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "text-[var(--text-muted)] transition-transform",
+                          expandedGuide === "canvas" && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    <AnimatePresence>
+                      {expandedGuide === "canvas" && (
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: "auto" }}
+                          exit={{ height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-3 pb-3 pt-1 space-y-3">
+                            <ol className="text-xs text-[var(--text-secondary)] space-y-2">
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center text-[10px] font-bold">1</span>
+                                <span>Log into your Canvas account and go to <span className="text-[var(--text-primary)] font-medium">Calendar</span> (left sidebar)</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center text-[10px] font-bold">2</span>
+                                <span>Click <span className="text-[var(--text-primary)] font-medium">Calendar Feed</span> link at the bottom of the page</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center text-[10px] font-bold">3</span>
+                                <span>Copy the entire URL that appears (starts with <code className="px-1 py-0.5 rounded bg-[var(--bg-elevated)] text-[10px]">https://</code>)</span>
+                              </li>
+                            </ol>
+                            <a
+                              href="https://canvas.yale.edu/calendar"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-[var(--accent-primary)] hover:underline"
+                            >
+                              Open Yale Canvas Calendar
+                              <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Google Calendar Guide */}
+                  <div className="rounded border border-[var(--border-subtle)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedGuide(expandedGuide === "google" ? null : "google")}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 text-left",
+                        "hover:bg-[var(--bg-hover)] transition-colors",
+                        expandedGuide === "google" && "bg-[var(--bg-hover)]"
+                      )}
+                    >
+                      <Calendar size={16} className="text-[#4285F4]" />
+                      <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">
+                        Google Calendar
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "text-[var(--text-muted)] transition-transform",
+                          expandedGuide === "google" && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    <AnimatePresence>
+                      {expandedGuide === "google" && (
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: "auto" }}
+                          exit={{ height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-3 pb-3 pt-1 space-y-3">
+                            <ol className="text-xs text-[var(--text-secondary)] space-y-2">
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4285F4]/10 text-[#4285F4] flex items-center justify-center text-[10px] font-bold">1</span>
+                                <span>Open <a href="https://calendar.google.com/calendar/r/settings" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-primary)] hover:underline">Google Calendar Settings</a></span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4285F4]/10 text-[#4285F4] flex items-center justify-center text-[10px] font-bold">2</span>
+                                <span>In the left sidebar, click on the calendar you want to sync</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4285F4]/10 text-[#4285F4] flex items-center justify-center text-[10px] font-bold">3</span>
+                                <span>Scroll to <span className="text-[var(--text-primary)] font-medium">&quot;Integrate calendar&quot;</span> section</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4285F4]/10 text-[#4285F4] flex items-center justify-center text-[10px] font-bold">4</span>
+                                <span>Copy <span className="text-[var(--text-primary)] font-medium">&quot;Secret address in iCal format&quot;</span></span>
+                              </li>
+                            </ol>
+                            <a
+                              href="https://calendar.google.com/calendar/r/settings"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-[var(--accent-primary)] hover:underline"
+                            >
+                              Open Google Calendar Settings
+                              <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Outlook Guide */}
+                  <div className="rounded border border-[var(--border-subtle)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedGuide(expandedGuide === "outlook" ? null : "outlook")}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 text-left",
+                        "hover:bg-[var(--bg-hover)] transition-colors",
+                        expandedGuide === "outlook" && "bg-[var(--bg-hover)]"
+                      )}
+                    >
+                      <Mail size={16} className="text-[#0078D4]" />
+                      <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">
+                        Outlook / Microsoft 365
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={cn(
+                          "text-[var(--text-muted)] transition-transform",
+                          expandedGuide === "outlook" && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    <AnimatePresence>
+                      {expandedGuide === "outlook" && (
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: "auto" }}
+                          exit={{ height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-3 pb-3 pt-1 space-y-3">
+                            <ol className="text-xs text-[var(--text-secondary)] space-y-2">
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#0078D4]/10 text-[#0078D4] flex items-center justify-center text-[10px] font-bold">1</span>
+                                <span>Open <a href="https://outlook.office.com/calendar" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-primary)] hover:underline">Outlook Calendar</a></span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#0078D4]/10 text-[#0078D4] flex items-center justify-center text-[10px] font-bold">2</span>
+                                <span>Click <span className="text-[var(--text-primary)] font-medium">Settings</span> (gear icon) → <span className="text-[var(--text-primary)] font-medium">View all Outlook settings</span></span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#0078D4]/10 text-[#0078D4] flex items-center justify-center text-[10px] font-bold">3</span>
+                                <span>Go to <span className="text-[var(--text-primary)] font-medium">Calendar</span> → <span className="text-[var(--text-primary)] font-medium">Shared calendars</span></span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#0078D4]/10 text-[#0078D4] flex items-center justify-center text-[10px] font-bold">4</span>
+                                <span>Under <span className="text-[var(--text-primary)] font-medium">&quot;Publish a calendar&quot;</span>, select your calendar, click <span className="text-[var(--text-primary)] font-medium">Publish</span>, then copy the ICS link</span>
+                              </li>
+                            </ol>
+                            <a
+                              href="https://outlook.office.com/calendar/options/calendar/SharedCalendars"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-[var(--accent-primary)] hover:underline"
+                            >
+                              Open Outlook Calendar Settings
+                              <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -663,8 +856,10 @@ export default function CalendarImportCard() {
               Synced {syncResult.eventsProcessed} events.
               {syncResult.tasksCreated > 0 && ` ${syncResult.tasksCreated} tasks created.`}
               {syncResult.tasksUpdated > 0 && ` ${syncResult.tasksUpdated} tasks updated.`}
+              {syncResult.tasksDeleted > 0 && ` ${syncResult.tasksDeleted} tasks deleted.`}
               {syncResult.scheduleBlocksCreated > 0 && ` ${syncResult.scheduleBlocksCreated} blocks created.`}
               {syncResult.scheduleBlocksUpdated > 0 && ` ${syncResult.scheduleBlocksUpdated} blocks updated.`}
+              {syncResult.scheduleBlocksDeleted > 0 && ` ${syncResult.scheduleBlocksDeleted} blocks deleted.`}
             </div>
             {syncResult.errors.length > 0 && (
               <div className="mt-2 text-xs text-[var(--priority-high)] space-y-1">
