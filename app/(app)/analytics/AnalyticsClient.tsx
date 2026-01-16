@@ -152,7 +152,7 @@ export default function AnalyticsClient() {
               key={d}
               onClick={() => setDays(d)}
               className={cn(
-                "px-3 py-1 text-xs font-medium rounded transition-colors",
+                "px-3 py-2 sm:py-1 text-xs font-medium rounded transition-colors",
                 days === d
                   ? "bg-[var(--accent-primary)] text-white"
                   : "bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"

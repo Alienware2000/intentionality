@@ -239,10 +239,10 @@ export default function QuestsClient() {
                           <h2 className="font-medium text-[var(--text-primary)] truncate">
                             {quest.title}
                           </h2>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => startEditing(quest)}
-                              className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                              className="p-2 sm:p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
                               title="Edit quest"
                             >
                               <Pencil size={12} className="text-[var(--text-muted)]" />
@@ -250,7 +250,7 @@ export default function QuestsClient() {
                             {quests.length > 1 && (
                               <button
                                 onClick={() => setDeletingQuestId(quest.id)}
-                                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                                className="p-2 sm:p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
                                 title="Delete quest"
                               >
                                 <Trash2 size={12} className="text-[var(--text-muted)]" />
