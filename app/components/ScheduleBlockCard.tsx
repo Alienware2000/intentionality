@@ -74,31 +74,33 @@ export default function ScheduleBlockCard({
           )}
         </div>
 
-        {/* Actions */}
+        {/* Actions - always visible on mobile, hover on desktop */}
         {(onEdit || onDelete) && (
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {onEdit && (
               <button
                 onClick={() => onEdit(block)}
                 className={cn(
-                  "p-1.5 rounded",
+                  "p-2 sm:p-1.5 rounded",
                   "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
                   "hover:bg-[var(--bg-hover)] transition-colors"
                 )}
               >
-                <Edit2 size={14} />
+                <Edit2 size={16} className="sm:hidden" />
+                <Edit2 size={14} className="hidden sm:block" />
               </button>
             )}
             {onDelete && (
               <button
                 onClick={() => onDelete(block.id)}
                 className={cn(
-                  "p-1.5 rounded",
+                  "p-2 sm:p-1.5 rounded",
                   "text-[var(--text-muted)] hover:text-[var(--accent-primary)]",
                   "hover:bg-[var(--bg-hover)] transition-colors"
                 )}
               >
-                <Trash2 size={14} />
+                <Trash2 size={16} className="sm:hidden" />
+                <Trash2 size={14} className="hidden sm:block" />
               </button>
             )}
           </div>

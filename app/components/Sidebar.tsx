@@ -22,7 +22,7 @@ import { useTheme } from "./ThemeProvider";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "This Week", href: "/week", icon: Calendar },
+  { label: "Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
   { label: "Inbox", href: "/inbox", icon: Inbox },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },

@@ -158,7 +158,8 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
 
             {/* Actions */}
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-[var(--text-muted)]">
+              {/* Keyboard shortcut hint - only show on desktop */}
+              <p className="hidden md:block text-xs text-[var(--text-muted)]">
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px]">
                   {typeof window !== "undefined" && navigator.platform.includes("Mac")
                     ? "Cmd"
@@ -170,11 +171,13 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                 </kbd>
                 {" to capture"}
               </p>
+              {/* Spacer for mobile to push button to the right */}
+              <div className="md:hidden" />
               <button
                 onClick={handleCapture}
                 disabled={saving || !content.trim()}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg",
+                  "flex items-center gap-2 px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
                   "bg-[var(--accent-primary)] text-white",
                   "hover:bg-[var(--accent-primary)]/80 transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed"

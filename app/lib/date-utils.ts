@@ -60,6 +60,21 @@ export function formatDayLabel(dateISO: ISODateString): string {
 }
 
 /**
+ * Format an ISO date (YYYY-MM-DD) into a full display format.
+ * Example: "2025-01-16" → "Thursday, January 16, 2025"
+ */
+export function formatDisplayDate(dateISO: ISODateString): string {
+  const [year, month, day] = dateISO.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/**
  * Get the Monday-Sunday week range for a given date.
  */
 export function getWeekRange(date: Date): { start: ISODateString; end: ISODateString } {
@@ -220,4 +235,75 @@ export function formatCountdown(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+// -----------------------------------------------------------------------------
+// Week Navigation Utilities
+// -----------------------------------------------------------------------------
+
+/**
+ * Format a week range for display.
+ * Example: "Jan 13 - Jan 19, 2026" or "Dec 30, 2025 - Jan 5, 2026"
+ *
+ * @param start - ISO date string for week start (Monday)
+ * @param end - ISO date string for week end (Sunday)
+ * @returns Formatted week range string
+ *
+ * @example
+ * ```ts
+ * formatWeekRange("2026-01-13", "2026-01-19"); // "Jan 13 - Jan 19, 2026"
+ * formatWeekRange("2025-12-30", "2026-01-05"); // "Dec 30, 2025 - Jan 5, 2026"
+ * ```
+ */
+export function formatWeekRange(start: ISODateString, end: ISODateString): string {
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+
+  const startDate = new Date(startYear, startMonth - 1, startDay);
+  const endDate = new Date(endYear, endMonth - 1, endDay);
+
+  const startMonthStr = startDate.toLocaleDateString("en-US", { month: "short" });
+  const endMonthStr = endDate.toLocaleDateString("en-US", { month: "short" });
+
+  // If same year
+  if (startYear === endYear) {
+    // If same month
+    if (startMonth === endMonth) {
+      return `${startMonthStr} ${startDay} - ${endDay}, ${startYear}`;
+    }
+    return `${startMonthStr} ${startDay} - ${endMonthStr} ${endDay}, ${startYear}`;
+  }
+
+  // Different years (e.g., Dec 30, 2025 - Jan 5, 2026)
+  return `${startMonthStr} ${startDay}, ${startYear} - ${endMonthStr} ${endDay}, ${endYear}`;
+}
+
+/**
+ * Check if a given week start date is the current week.
+ *
+ * @param weekStart - ISO date string for the Monday of the week to check
+ * @returns true if the given week is the current week
+ *
+ * @example
+ * ```ts
+ * // If today is Jan 16, 2026 (Thursday)
+ * isCurrentWeek("2026-01-13"); // true (current week's Monday)
+ * isCurrentWeek("2026-01-20"); // false (next week's Monday)
+ * ```
+ */
+export function isCurrentWeek(weekStart: ISODateString): boolean {
+  const { start: currentWeekStart } = getWeekRange(new Date());
+  return weekStart === currentWeekStart;
+}
+
+/**
+ * Get the week range for a given ISO date string (starting Monday).
+ *
+ * @param dateISO - ISO date string to get the week range for
+ * @returns Object with start (Monday) and end (Sunday) ISO date strings
+ */
+export function getWeekRangeFromISO(dateISO: ISODateString): { start: ISODateString; end: ISODateString } {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return getWeekRange(date);
 }

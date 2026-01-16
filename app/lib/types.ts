@@ -384,3 +384,61 @@ export type CanvasAssignment = {
   course_id: number;
   html_url: string;
 };
+
+// =============================================================================
+// CALENDAR IMPORT TYPES
+// =============================================================================
+
+/** Import mode for calendar events */
+export type CalendarImportMode = "tasks" | "schedule" | "smart";
+
+/**
+ * Calendar subscription for ICS feed imports.
+ */
+export type CalendarSubscription = {
+  id: Id;
+  user_id: string;
+  name: string;
+  feed_url: string;
+  feed_type: "ics" | "google";
+  import_as: CalendarImportMode;
+  target_quest_id: Id | null;
+  last_synced_at: string | null;
+  sync_error: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Google Calendar connection via OAuth.
+ */
+export type GoogleCalendarConnection = {
+  id: Id;
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+  email: string | null;
+  selected_calendars: string[];
+  import_as: CalendarImportMode;
+  target_quest_id: Id | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Record of an imported event (to avoid duplicates).
+ */
+export type ImportedEvent = {
+  id: Id;
+  user_id: string;
+  source_type: "ics_subscription" | "ics_upload" | "google";
+  source_id: Id | null;
+  external_uid: string;
+  created_as: "task" | "schedule_block";
+  created_id: Id;
+  event_hash: string | null;
+  created_at: string;
+};

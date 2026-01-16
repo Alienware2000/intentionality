@@ -43,15 +43,60 @@ async function validateCanvasCredentials(
 
     if (!response.ok) {
       if (response.status === 401) {
-        return { valid: false, error: "Invalid access token" };
+        return {
+          valid: false,
+          error: "Invalid or expired access token. Please generate a new token in Canvas Settings.",
+        };
       }
-      return { valid: false, error: `Canvas API error: ${response.status}` };
+      if (response.status === 403) {
+        return {
+          valid: false,
+          error: "Access denied. Your school may have disabled API access. Contact your IT department.",
+        };
+      }
+      if (response.status === 404) {
+        return {
+          valid: false,
+          error: "Canvas instance not found. Please check the URL is correct.",
+        };
+      }
+      return {
+        valid: false,
+        error: `Canvas API error (${response.status}). Please verify your credentials.`,
+      };
     }
 
     const user = await response.json();
     return { valid: true, userName: user.name };
   } catch (error) {
-    return { valid: false, error: "Could not connect to Canvas instance" };
+    // Check for specific network errors
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    if (errorMessage.includes("ENOTFOUND") || errorMessage.includes("getaddrinfo")) {
+      return {
+        valid: false,
+        error: "Could not find Canvas server. Please check the URL is correct (e.g., canvas.university.edu).",
+      };
+    }
+
+    if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("ETIMEDOUT")) {
+      return {
+        valid: false,
+        error: "Could not connect to Canvas server. The server may be down or blocking connections.",
+      };
+    }
+
+    if (errorMessage.includes("certificate") || errorMessage.includes("SSL")) {
+      return {
+        valid: false,
+        error: "SSL certificate error. Your school's Canvas may have a custom certificate.",
+      };
+    }
+
+    return {
+      valid: false,
+      error: "Could not connect to Canvas. Please check the URL and try again.",
+    };
   }
 }
 

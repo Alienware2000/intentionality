@@ -46,12 +46,12 @@ export default function TaskCard({
       )}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Checkbox */}
+      {/* Checkbox - larger touch target on mobile */}
       <button
         type="button"
         onClick={() => onToggle?.(task.id)}
         className={cn(
-          "flex-shrink-0 w-5 h-5 rounded",
+          "flex-shrink-0 w-6 h-6 sm:w-5 sm:h-5 rounded",
           "border-2 flex items-center justify-center",
           "transition-colors duration-150 cursor-pointer",
           isCompleted
@@ -85,27 +85,29 @@ export default function TaskCard({
         )}
       </button>
 
-      {/* Action buttons - show on hover */}
+      {/* Action buttons - always visible on mobile, hover on desktop */}
       {hasActions && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           {onEdit && (
             <button
               type="button"
               onClick={() => onEdit(task.id)}
-              className="p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+              className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
               title="Edit task"
             >
-              <Pencil size={14} className="text-[var(--text-muted)]" />
+              <Pencil size={16} className="text-[var(--text-muted)] sm:hidden" />
+              <Pencil size={14} className="text-[var(--text-muted)] hidden sm:block" />
             </button>
           )}
           {onDelete && (
             <button
               type="button"
               onClick={() => onDelete(task.id)}
-              className="p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+              className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
               title="Delete task"
             >
-              <Trash2 size={14} className="text-[var(--text-muted)]" />
+              <Trash2 size={16} className="text-[var(--text-muted)] sm:hidden" />
+              <Trash2 size={14} className="text-[var(--text-muted)] hidden sm:block" />
             </button>
           )}
         </div>
