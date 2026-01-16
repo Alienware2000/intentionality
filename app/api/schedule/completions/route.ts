@@ -3,83 +3,69 @@
 // Fetches completions for schedule blocks on a given date.
 // =============================================================================
 
-import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  getSearchParams,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
+
+// -----------------------------------------------------------------------------
+// GET /api/schedule/completions
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/schedule/completions?date=YYYY-MM-DD
  *
  * Fetches all schedule block completions for the user on a specific date.
+ * First retrieves user's block IDs, then fetches completions for those blocks.
  *
- * Query params:
- * - date: string (required) - YYYY-MM-DD format
+ * @authentication Required
  *
- * Returns:
- * - ok: boolean
- * - completions: ScheduleBlockCompletion[]
+ * @query {string} date - Date in YYYY-MM-DD format (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {ScheduleBlockCompletion[]} completions - Array of completions
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing date parameter
+ * @throws {500} Database error
  */
-export async function GET(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
-  const url = new URL(req.url);
-  const date = url.searchParams.get("date");
+export const GET = withAuth(async ({ user, supabase, request }) => {
+  const params = getSearchParams(request);
+  const date = params.get("date");
 
   if (!date) {
-    return NextResponse.json(
-      { ok: false, error: "Missing date parameter" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing date parameter");
   }
 
-  try {
-    // First get user's schedule block IDs
-    const { data: blocks, error: blocksError } = await supabase
-      .from("schedule_blocks")
-      .select("id")
-      .eq("user_id", user.id);
+  // First get user's schedule block IDs
+  const { data: blocks, error: blocksError } = await supabase
+    .from("schedule_blocks")
+    .select("id")
+    .eq("user_id", user.id);
 
-    if (blocksError) {
-      return NextResponse.json(
-        { ok: false, error: blocksError.message },
-        { status: 500 }
-      );
-    }
-
-    const blockIds = blocks?.map((b) => b.id) ?? [];
-
-    if (blockIds.length === 0) {
-      return NextResponse.json({ ok: true, completions: [] });
-    }
-
-    // Fetch completions for those blocks on the given date
-    const { data: completions, error: completionsError } = await supabase
-      .from("schedule_block_completions")
-      .select("*")
-      .in("block_id", blockIds)
-      .eq("completed_date", date);
-
-    if (completionsError) {
-      return NextResponse.json(
-        { ok: false, error: completionsError.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, completions: completions ?? [] });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  if (blocksError) {
+    return ApiErrors.serverError(blocksError.message);
   }
-}
+
+  const blockIds = blocks?.map((b) => b.id) ?? [];
+
+  if (blockIds.length === 0) {
+    return successResponse({ completions: [] });
+  }
+
+  // Fetch completions for those blocks on the given date
+  const { data: completions, error: completionsError } = await supabase
+    .from("schedule_block_completions")
+    .select("*")
+    .in("block_id", blockIds)
+    .eq("completed_date", date);
+
+  if (completionsError) {
+    return ApiErrors.serverError(completionsError.message);
+  }
+
+  return successResponse({ completions: completions ?? [] });
+});

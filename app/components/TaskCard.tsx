@@ -9,7 +9,8 @@
 import { motion } from "framer-motion";
 import { Check, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
-import type { Task, Priority } from "@/app/lib/types";
+import { PRIORITY_BORDER_COLORS, PRIORITY_LABELS } from "@/app/lib/constants";
+import type { Task } from "@/app/lib/types";
 
 type Props = {
   task: Task;
@@ -18,18 +19,6 @@ type Props = {
   onDelete?: (taskId: string) => void;
   showDate?: boolean;
   className?: string;
-};
-
-const priorityColors: Record<Priority, string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--priority-low)]",
-};
-
-const priorityLabels: Record<Priority, string> = {
-  high: "HIGH",
-  medium: "MED",
-  low: "LOW",
 };
 
 export default function TaskCard({
@@ -51,7 +40,7 @@ export default function TaskCard({
         "border-l-4 rounded-r-lg",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors duration-150",
-        priorityColors[task.priority],
+        PRIORITY_BORDER_COLORS[task.priority],
         isCompleted && "opacity-50",
         className
       )}
@@ -124,7 +113,7 @@ export default function TaskCard({
 
       {/* Priority label */}
       <div className="hidden sm:block text-xs text-[var(--text-muted)] font-mono">
-        {priorityLabels[task.priority]}
+        {PRIORITY_LABELS[task.priority]}
       </div>
 
       {/* XP value */}

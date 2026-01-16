@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import type { ISODateString, Id, HabitWithStatus, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import { useProfile } from "./ProfileProvider";
 import HabitCard from "./HabitCard";
 import EditHabitModal from "./EditHabitModal";
 import ConfirmModal from "./ConfirmModal";
@@ -30,6 +31,8 @@ export default function HabitsClient({ date }: Props) {
   // Edit/Delete state
   const [editingHabit, setEditingHabit] = useState<HabitWithStatus | null>(null);
   const [deletingHabitId, setDeletingHabitId] = useState<Id | null>(null);
+
+  const { refreshProfile } = useProfile();
 
   const refreshHabits = useCallback(async () => {
     setLoading(true);
@@ -67,12 +70,12 @@ export default function HabitsClient({ date }: Props) {
     });
 
     if (!res.ok) {
-      console.warn("Failed to toggle", await res.text());
+      setError("Failed to toggle habit");
       return;
     }
 
     await refreshHabits();
-    window.dispatchEvent(new Event("profile-updated"));
+    refreshProfile();
   }
 
   async function handleAdd() {
@@ -123,7 +126,7 @@ export default function HabitsClient({ date }: Props) {
 
       setDeletingHabitId(null);
       await refreshHabits();
-      window.dispatchEvent(new Event("profile-updated"));
+      refreshProfile();
     } catch (e) {
       setError(getErrorMessage(e));
     }

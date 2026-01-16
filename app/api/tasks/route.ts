@@ -1,13 +1,50 @@
 // =============================================================================
 // TASKS API ROUTE
-// Handles CRUD operations for tasks.
-// Uses Supabase for both auth and database.
+// Handles CRUD operations for tasks (individual action items).
 // RLS policies enforce that users can only access tasks in their own quests.
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
-import { getLevelFromXp } from "@/app/lib/gamification";
+import {
+  withAuth,
+  parseJsonBody,
+  getSearchParams,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
+import { getLevelFromXp, XP_VALUES } from "@/app/lib/gamification";
+import type { Priority } from "@/app/lib/types";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+/** Request body for POST /api/tasks */
+type CreateTaskBody = {
+  title?: string;
+  due_date?: string;
+  quest_id?: string;
+  priority?: Priority;
+  scheduled_time?: string | null;
+};
+
+/** Request body for PATCH /api/tasks */
+type UpdateTaskBody = {
+  taskId?: string;
+  title?: string;
+  due_date?: string;
+  priority?: Priority;
+  scheduled_time?: string | null;
+};
+
+/** Request body for DELETE /api/tasks */
+type DeleteTaskBody = {
+  taskId?: string;
+};
+
+// -----------------------------------------------------------------------------
+// GET /api/tasks
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/tasks?date=YYYY-MM-DD
@@ -15,36 +52,25 @@ import { getLevelFromXp } from "@/app/lib/gamification";
  * Fetches all tasks for a specific date for the authenticated user.
  * Includes the associated quest data.
  *
- * Query params:
- * - date: string (required) - Date in YYYY-MM-DD format
+ * @authentication Required
  *
- * RLS ensures only tasks from user's quests are returned.
+ * @query {string} date - Date in YYYY-MM-DD format (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Task[]} tasks - Array of tasks for the date
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing date query param
+ * @throws {500} Database error
  */
-export async function GET(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const GET = withAuth(async ({ supabase, request }) => {
   // Parse query params
-  const url = new URL(req.url);
-  const date = url.searchParams.get("date");
+  const params = getSearchParams(request);
+  const date = params.get("date");
 
   if (!date) {
-    return NextResponse.json(
-      { ok: false, error: "Missing date query param" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing date query param");
   }
 
   // Fetch tasks for the date (RLS filters by quest ownership)
@@ -55,291 +81,230 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: true });
 
   if (fetchError) {
-    return NextResponse.json(
-      { ok: false, error: fetchError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(fetchError.message);
   }
 
-  return NextResponse.json({ ok: true, tasks: tasks ?? [] });
-}
+  return successResponse({ tasks: tasks ?? [] });
+});
+
+// -----------------------------------------------------------------------------
+// POST /api/tasks
+// -----------------------------------------------------------------------------
 
 /**
  * POST /api/tasks
  *
  * Creates a new task in the specified quest.
  *
- * Request body:
- * - title: string (required) - The task title
- * - due_date: string (required) - Date in YYYY-MM-DD format
- * - quest_id: string (required) - UUID of the quest
- * - priority: string (optional) - 'low' | 'medium' | 'high' (default: 'medium')
+ * @authentication Required
  *
- * RLS policy ensures the quest belongs to the user.
+ * @body {string} title - The task title (required)
+ * @body {string} due_date - Date in YYYY-MM-DD format (required)
+ * @body {string} quest_id - UUID of the quest (required)
+ * @body {Priority} [priority="medium"] - Task priority
+ * @body {string|null} [scheduled_time] - Time in HH:MM format
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Task} task - The created task with quest data
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing required fields
+ * @throws {404} Quest not found (prevents info disclosure about other users' quests)
+ * @throws {500} Database error
  */
-export async function POST(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
+export const POST = withAuth(async ({ supabase, request }) => {
+  // Parse request body
+  const body = await parseJsonBody<CreateTaskBody>(request);
   const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+    title,
+    due_date,
+    quest_id,
+    priority = "medium",
+    scheduled_time,
+  } = body ?? {};
 
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (!title || !due_date || !quest_id) {
+    return ApiErrors.badRequest("Missing title, due_date, or quest_id");
   }
 
-  try {
-    // Parse request body
-    const body = await req.json();
-    const { title, due_date, quest_id, priority = "medium", scheduled_time } = body as {
-      title?: string;
-      due_date?: string;
-      quest_id?: string;
-      priority?: "low" | "medium" | "high";
-      scheduled_time?: string | null;
-    };
+  // Calculate XP value based on priority
+  const xp_value = XP_VALUES[priority] ?? XP_VALUES.medium;
 
-    if (!title || !due_date || !quest_id) {
-      return NextResponse.json(
-        { ok: false, error: "Missing title, due_date, or quest_id" },
-        { status: 400 }
-      );
-    }
+  // Verify quest ownership (RLS also enforces, but we check for better error)
+  // Note: Using 404 instead of 403 to prevent information disclosure
+  const { data: quest, error: questError } = await supabase
+    .from("quests")
+    .select("id")
+    .eq("id", quest_id)
+    .single();
 
-    // Calculate XP value based on priority
-    const xpValues = { low: 5, medium: 10, high: 25 };
-    const xp_value = xpValues[priority] ?? 10;
-
-    // Verify quest ownership (RLS will also enforce this, but we check for a better error message)
-    const { data: quest, error: questError } = await supabase
-      .from("quests")
-      .select("id")
-      .eq("id", quest_id)
-      .single();
-
-    if (questError || !quest) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid quest_id (not owned by user)" },
-        { status: 403 }
-      );
-    }
-
-    // Create the task (RLS enforces quest ownership)
-    const { data: task, error: createError } = await supabase
-      .from("tasks")
-      .insert({
-        title: title.trim(),
-        due_date,
-        quest_id,
-        priority,
-        xp_value,
-        completed: false,
-        scheduled_time: scheduled_time || null,
-      })
-      .select("*, quest:quests(*)")
-      .single();
-
-    if (createError) {
-      return NextResponse.json(
-        { ok: false, error: createError.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, task });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  if (questError || !quest) {
+    return ApiErrors.notFound("Quest not found");
   }
-}
+
+  // Create the task
+  const { data: task, error: createError } = await supabase
+    .from("tasks")
+    .insert({
+      title: title.trim(),
+      due_date,
+      quest_id,
+      priority,
+      xp_value,
+      completed: false,
+      scheduled_time: scheduled_time || null,
+    })
+    .select("*, quest:quests(*)")
+    .single();
+
+  if (createError) {
+    return ApiErrors.serverError(createError.message);
+  }
+
+  return successResponse({ task });
+});
+
+// -----------------------------------------------------------------------------
+// PATCH /api/tasks
+// -----------------------------------------------------------------------------
 
 /**
  * PATCH /api/tasks
  *
- * Updates a task's title, due_date, or priority.
- *
- * Request body:
- * - taskId: string (required) - UUID of the task
- * - title?: string - New title
- * - due_date?: string - New date (YYYY-MM-DD)
- * - priority?: 'low' | 'medium' | 'high' - New priority
- *
+ * Updates a task's title, due_date, priority, or scheduled_time.
  * At least one field to update is required.
  * If priority changes, xp_value is recalculated.
- * RLS ensures the task belongs to a quest owned by the user.
+ *
+ * @authentication Required
+ *
+ * @body {string} taskId - UUID of the task (required)
+ * @body {string} [title] - New title
+ * @body {string} [due_date] - New date (YYYY-MM-DD)
+ * @body {Priority} [priority] - New priority
+ * @body {string|null} [scheduled_time] - New time (HH:MM) or null
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Task} task - The updated task with quest data
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing taskId or no fields to update
+ * @throws {500} Database error
  */
-export async function PATCH(req: Request) {
-  const supabase = await createSupabaseServerClient();
+export const PATCH = withAuth(async ({ supabase, request }) => {
+  const body = await parseJsonBody<UpdateTaskBody>(request);
+  const { taskId, title, due_date, priority, scheduled_time } = body ?? {};
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (!taskId) {
+    return ApiErrors.badRequest("Missing taskId");
   }
 
-  try {
-    const body = await req.json();
-    const { taskId, title, due_date, priority, scheduled_time } = body as {
-      taskId?: string;
-      title?: string;
-      due_date?: string;
-      priority?: "low" | "medium" | "high";
-      scheduled_time?: string | null;
-    };
-
-    if (!taskId) {
-      return NextResponse.json(
-        { ok: false, error: "Missing taskId" },
-        { status: 400 }
-      );
-    }
-
-    if (!title && !due_date && !priority && scheduled_time === undefined) {
-      return NextResponse.json(
-        { ok: false, error: "No fields to update" },
-        { status: 400 }
-      );
-    }
-
-    // Build update object
-    const updates: Record<string, unknown> = {};
-    if (title) updates.title = title.trim();
-    if (due_date) updates.due_date = due_date;
-    if (priority) {
-      updates.priority = priority;
-      const xpValues = { low: 5, medium: 10, high: 25 };
-      updates.xp_value = xpValues[priority];
-    }
-    if (scheduled_time !== undefined) {
-      updates.scheduled_time = scheduled_time || null;
-    }
-
-    const { data: task, error: updateError } = await supabase
-      .from("tasks")
-      .update(updates)
-      .eq("id", taskId)
-      .select("*, quest:quests(*)")
-      .single();
-
-    if (updateError) {
-      return NextResponse.json(
-        { ok: false, error: updateError.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, task });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  if (!title && !due_date && !priority && scheduled_time === undefined) {
+    return ApiErrors.badRequest("No fields to update");
   }
-}
+
+  // Build update object
+  const updates: Record<string, unknown> = {};
+  if (title) updates.title = title.trim();
+  if (due_date) updates.due_date = due_date;
+  if (priority) {
+    updates.priority = priority;
+    updates.xp_value = XP_VALUES[priority];
+  }
+  if (scheduled_time !== undefined) {
+    updates.scheduled_time = scheduled_time || null;
+  }
+
+  const { data: task, error: updateError } = await supabase
+    .from("tasks")
+    .update(updates)
+    .eq("id", taskId)
+    .select("*, quest:quests(*)")
+    .single();
+
+  if (updateError) {
+    return ApiErrors.serverError(updateError.message);
+  }
+
+  return successResponse({ task });
+});
+
+// -----------------------------------------------------------------------------
+// DELETE /api/tasks
+// -----------------------------------------------------------------------------
 
 /**
  * DELETE /api/tasks
  *
- * Deletes a task.
+ * Deletes a task. If the task was completed, XP is deducted from user profile.
  *
- * Request body:
- * - taskId: string (required) - UUID of the task to delete
+ * @authentication Required
  *
- * If task was completed, XP is deducted from user profile.
- * RLS ensures the task belongs to a quest owned by the user.
+ * @body {string} taskId - UUID of the task to delete (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {number} [newXpTotal] - New XP total after deduction
+ * @returns {number} [newLevel] - New level after deduction
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing taskId
+ * @throws {404} Task not found
+ * @throws {500} Database error
  */
-export async function DELETE(req: Request) {
-  const supabase = await createSupabaseServerClient();
+export const DELETE = withAuth(async ({ user, supabase, request }) => {
+  const body = await parseJsonBody<DeleteTaskBody>(request);
+  const taskId = body?.taskId;
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (!taskId) {
+    return ApiErrors.badRequest("Missing taskId");
   }
 
-  try {
-    const body = await req.json();
-    const { taskId } = body as { taskId?: string };
+  // Fetch task to check if it was completed
+  const { data: task, error: fetchError } = await supabase
+    .from("tasks")
+    .select("completed, xp_value")
+    .eq("id", taskId)
+    .single();
 
-    if (!taskId) {
-      return NextResponse.json(
-        { ok: false, error: "Missing taskId" },
-        { status: 400 }
-      );
-    }
+  if (fetchError || !task) {
+    return ApiErrors.notFound("Task not found");
+  }
 
-    // Fetch task to check if it was completed
-    const { data: task, error: fetchError } = await supabase
-      .from("tasks")
-      .select("completed, xp_value")
-      .eq("id", taskId)
+  // Delete the task
+  const { error: deleteError } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", taskId);
+
+  if (deleteError) {
+    return ApiErrors.serverError(deleteError.message);
+  }
+
+  // If task was completed, deduct XP
+  let newXpTotal: number | undefined;
+  let newLevel: number | undefined;
+
+  if (task.completed) {
+    const xpAmount = task.xp_value ?? 10;
+
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("xp_total, level")
+      .eq("user_id", user.id)
       .single();
 
-    if (fetchError || !task) {
-      return NextResponse.json(
-        { ok: false, error: "Task not found" },
-        { status: 404 }
-      );
-    }
+    if (profile) {
+      newXpTotal = Math.max(0, profile.xp_total - xpAmount);
+      newLevel = getLevelFromXp(newXpTotal);
 
-    // Delete the task
-    const { error: deleteError } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", taskId);
-
-    if (deleteError) {
-      return NextResponse.json(
-        { ok: false, error: deleteError.message },
-        { status: 500 }
-      );
-    }
-
-    // If task was completed, deduct XP
-    let newXpTotal: number | undefined;
-    let newLevel: number | undefined;
-
-    if (task.completed) {
-      const xpAmount = task.xp_value ?? 10;
-
-      const { data: profile } = await supabase
+      await supabase
         .from("user_profiles")
-        .select("xp_total, level")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile) {
-        newXpTotal = Math.max(0, profile.xp_total - xpAmount);
-        newLevel = getLevelFromXp(newXpTotal);
-
-        await supabase
-          .from("user_profiles")
-          .update({
-            xp_total: newXpTotal,
-            level: newLevel,
-          })
-          .eq("user_id", user.id);
-      }
+        .update({ xp_total: newXpTotal, level: newLevel })
+        .eq("user_id", user.id);
     }
-
-    return NextResponse.json({ ok: true, newXpTotal, newLevel });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
-}
+
+  return NextResponse.json({ ok: true, newXpTotal, newLevel });
+});

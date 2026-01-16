@@ -5,9 +5,13 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import { withAuth, getSearchParams, ApiErrors } from "@/app/lib/auth-middleware";
 import { getDayOfWeek, getTodayISO } from "@/app/lib/date-utils";
 import type { Task, ScheduleBlock, TimelineItem, DayOfWeek } from "@/app/lib/types";
+
+// -----------------------------------------------------------------------------
+// GET /api/day-timeline
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/day-timeline?date=YYYY-MM-DD
@@ -19,30 +23,28 @@ import type { Task, ScheduleBlock, TimelineItem, DayOfWeek } from "@/app/lib/typ
  * Items are sorted chronologically by time.
  * Tasks without scheduled_time are returned separately.
  * Overdue tasks are only included when date is today.
+ *
+ * @authentication Required
+ *
+ * @query {string} date - Date in YYYY-MM-DD format (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {string} date - The requested date
+ * @returns {TimelineItem[]} scheduledItems - Chronologically sorted items with times
+ * @returns {Task[]} unscheduledTasks - Tasks without scheduled_time
+ * @returns {Task[]} overdueTasks - Overdue tasks (only for today)
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing date query param
+ * @throws {500} Database error
  */
-export async function GET(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
-  const url = new URL(req.url);
-  const date = url.searchParams.get("date");
+export const GET = withAuth(async ({ supabase, request }) => {
+  const params = getSearchParams(request);
+  const date = params.get("date");
 
   if (!date) {
-    return NextResponse.json(
-      { ok: false, error: "Missing date query param" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing date query param");
   }
 
   const today = getTodayISO();
@@ -53,7 +55,6 @@ export async function GET(req: Request) {
     // Fetch in parallel: tasks, schedule blocks, and completions
     const [tasksResult, blocksResult, completionsResult] = await Promise.all([
       // Fetch tasks for this date (and overdue if today)
-      // Note: We sort by scheduled_time in JS since PostgREST may have stale schema cache
       isToday
         ? supabase
             .from("tasks")
@@ -79,18 +80,12 @@ export async function GET(req: Request) {
         .eq("completed_date", date),
     ]);
 
+    // Handle errors
     if (tasksResult.error) {
-      return NextResponse.json(
-        { ok: false, error: tasksResult.error.message },
-        { status: 500 }
-      );
+      return ApiErrors.serverError(tasksResult.error.message);
     }
-
     if (blocksResult.error) {
-      return NextResponse.json(
-        { ok: false, error: blocksResult.error.message },
-        { status: 500 }
-      );
+      return ApiErrors.serverError(blocksResult.error.message);
     }
 
     const tasks = (tasksResult.data ?? []) as Task[];
@@ -111,8 +106,10 @@ export async function GET(req: Request) {
 
     for (const task of tasks) {
       if (isToday && task.due_date < date && !task.completed) {
+        // Overdue task (only for today view)
         overdueTasks.push(task);
       } else if (task.due_date === date) {
+        // Task for this date
         if (task.scheduled_time) {
           scheduledTasks.push(task);
         } else {
@@ -158,6 +155,6 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return ApiErrors.serverError(message);
   }
-}
+});

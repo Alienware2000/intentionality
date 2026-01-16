@@ -21,8 +21,11 @@ import {
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
-import type { ISODateString, Task, ScheduleBlock, TimelineItem, Priority, Id, Quest } from "@/app/lib/types";
+import { formatTime } from "@/app/lib/date-utils";
+import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
+import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
+import { useProfile } from "./ProfileProvider";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
 
@@ -35,20 +38,6 @@ type Props = {
   onRefresh?: () => void;
 };
 
-const priorityColors: Record<Priority, string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--priority-low)]",
-};
-
-function formatTime(time: string): string {
-  const [hours, minutes] = time.split(":");
-  const h = parseInt(hours, 10);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 || 12;
-  return `${hour12}:${minutes} ${ampm}`;
-}
-
 export default function DayTimeline({
   date,
   showOverdue = false,
@@ -57,6 +46,8 @@ export default function DayTimeline({
   quests = [],
   onRefresh,
 }: Props) {
+  const { refreshProfile } = useProfile();
+
   const {
     scheduledItems,
     unscheduledTasks,
@@ -66,7 +57,7 @@ export default function DayTimeline({
     refresh,
     toggleTask,
     toggleScheduleBlock,
-  } = useDayTimeline(date);
+  } = useDayTimeline(date, { onProfileUpdate: refreshProfile });
 
   // Add task form state
   const [showForm, setShowForm] = useState(false);
@@ -106,7 +97,7 @@ export default function DayTimeline({
       setShowForm(false);
       await refresh();
       onRefresh?.();
-      window.dispatchEvent(new Event("profile-updated"));
+      refreshProfile();
     } catch (e) {
       setAddError(getErrorMessage(e));
     } finally {
@@ -123,8 +114,8 @@ export default function DayTimeline({
       });
       await refresh();
       onRefresh?.();
-    } catch (e) {
-      console.error("Failed to move task:", e);
+    } catch {
+      // Silent fail - task stays in place
     }
   }
 
@@ -140,8 +131,8 @@ export default function DayTimeline({
       });
       await refresh();
       onRefresh?.();
-    } catch (e) {
-      console.error("Failed to edit task:", e);
+    } catch {
+      // Silent fail - task keeps original values
     }
   }
 
@@ -155,9 +146,10 @@ export default function DayTimeline({
       setDeletingTaskId(null);
       await refresh();
       onRefresh?.();
-      window.dispatchEvent(new Event("profile-updated"));
-    } catch (e) {
-      console.error("Failed to delete task:", e);
+      refreshProfile();
+    } catch {
+      setDeletingTaskId(null);
+      // Silent fail - task remains
     }
   }
 
@@ -417,7 +409,7 @@ function ScheduledTaskItem({
         "group flex items-center gap-3 rounded-lg border-l-4",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors",
-        priorityColors[task.priority],
+        PRIORITY_BORDER_COLORS[task.priority],
         isCompleted && "opacity-50",
         compact ? "p-2" : "p-3"
       )}
@@ -508,7 +500,7 @@ function UnscheduledTaskItem({
         "group flex items-center gap-3 rounded-lg border-l-4",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors",
-        priorityColors[task.priority],
+        PRIORITY_BORDER_COLORS[task.priority],
         isCompleted && "opacity-50",
         compact ? "p-2" : "p-3"
       )}

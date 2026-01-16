@@ -1,54 +1,62 @@
 // =============================================================================
 // TASK TOGGLE API ROUTE
 // Toggles the completed status of a task.
-// Awards XP when completing a task.
+// Awards XP when completing, deducts when uncompleting.
 // RLS ensures users can only toggle their own tasks.
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  parseJsonBody,
+  ApiErrors,
+} from "@/app/lib/auth-middleware";
 import { getLevelFromXp, getLocalDateString } from "@/app/lib/gamification";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+/** Request body for POST /api/tasks/toggle */
+type ToggleTaskBody = {
+  taskId?: string;
+};
+
+// -----------------------------------------------------------------------------
+// POST /api/tasks/toggle
+// -----------------------------------------------------------------------------
 
 /**
  * POST /api/tasks/toggle
  *
  * Toggles the completed status of a task.
  * When completing a task, awards XP and updates streak.
+ * When uncompleting, deducts XP.
  *
- * Request body:
- * - taskId: string (required) - UUID of the task to toggle
+ * @authentication Required
  *
- * Returns:
- * - ok: boolean
- * - xpGained?: number (when completing task)
- * - newLevel?: number (if leveled up)
+ * @body {string} taskId - UUID of the task to toggle (required)
  *
- * RLS ensures the task belongs to a quest owned by the user.
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {number} [xpGained] - XP gained (when completing)
+ * @returns {number} [xpLost] - XP lost (when uncompleting)
+ * @returns {number} [newLevel] - New level (if leveled up)
+ * @returns {number} [newStreak] - Current streak (when completing)
+ * @returns {number} newXpTotal - Total XP after toggle
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing taskId
+ * @throws {404} Task not found
+ * @throws {500} Database error
  */
-export async function POST(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const POST = withAuth(async ({ user, supabase, request }) => {
   // Parse request body
-  const { taskId } = (await req.json()) as { taskId?: string };
+  const body = await parseJsonBody<ToggleTaskBody>(request);
+  const taskId = body?.taskId;
 
   if (!taskId) {
-    return NextResponse.json(
-      { ok: false, error: "Missing taskId" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing taskId");
   }
 
   // Fetch the current task state (RLS will return null if not owned by user)
@@ -60,10 +68,7 @@ export async function POST(req: Request) {
 
   if (fetchError || !existing) {
     // Don't reveal whether task exists but belongs to someone else
-    return NextResponse.json(
-      { ok: false, error: "Task not found" },
-      { status: 404 }
-    );
+    return ApiErrors.notFound("Task not found");
   }
 
   const isCompleting = !existing.completed;
@@ -80,10 +85,7 @@ export async function POST(req: Request) {
     .eq("id", taskId);
 
   if (updateError) {
-    return NextResponse.json(
-      { ok: false, error: updateError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(updateError.message);
   }
 
   // Fetch current profile
@@ -105,7 +107,7 @@ export async function POST(req: Request) {
     const newLevel = getLevelFromXp(newXpTotal);
     const leveledUp = newLevel > profile.level;
 
-    // Check streak
+    // Calculate streak
     let newStreak = profile.current_streak;
     let newLongestStreak = profile.longest_streak;
 
@@ -114,12 +116,13 @@ export async function POST(req: Request) {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = getLocalDateString(yesterday);
 
-      if (profile.last_active_date === yesterdayStr) {
-        newStreak = profile.current_streak + 1;
-      } else {
-        newStreak = 1;
-      }
+      // Increment streak if active yesterday, otherwise reset to 1
+      newStreak =
+        profile.last_active_date === yesterdayStr
+          ? profile.current_streak + 1
+          : 1;
 
+      // Update longest streak if new record
       if (newStreak > newLongestStreak) {
         newLongestStreak = newStreak;
       }
@@ -163,4 +166,4 @@ export async function POST(req: Request) {
       newLevel,
     });
   }
-}
+});

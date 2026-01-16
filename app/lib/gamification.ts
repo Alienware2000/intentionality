@@ -56,13 +56,6 @@ export function getLevelProgress(totalXp: number): {
 }
 
 /**
- * Get the XP value for a task based on its priority.
- */
-export function getXpForPriority(priority: Priority): number {
-  return XP_VALUES[priority] ?? XP_VALUES.medium;
-}
-
-/**
  * Get today's date as YYYY-MM-DD in local timezone.
  */
 export function getLocalDateString(date: Date = new Date()): string {

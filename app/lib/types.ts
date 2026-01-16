@@ -98,7 +98,14 @@ export type ApiErrorResponse = {
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-/** Response from task toggle with XP info */
+/**
+ * Response from task toggle with XP info.
+ *
+ * @future Reserved for enhanced task completion feedback UI.
+ * Will be used to show celebratory animations and detailed XP breakdown
+ * when a user completes a task. Currently the API returns this structure
+ * but it's not fully utilized in the frontend.
+ */
 export type TaskToggleResponse = {
   ok: true;
   xpGained?: number;
@@ -145,7 +152,14 @@ export type HabitCompletion = {
   xp_awarded: number;
 };
 
-/** Response from habit toggle with XP/streak info */
+/**
+ * Response from habit toggle with XP/streak info.
+ *
+ * @future Reserved for enhanced habit completion animations.
+ * Will be used to show streak celebrations, XP gain/loss animations,
+ * and level-up notifications. Currently the API returns this structure
+ * but it's not fully utilized in the frontend.
+ */
 export type HabitToggleResponse = {
   ok: true;
   xpGained?: number;
@@ -185,6 +199,10 @@ export type ScheduleBlock = {
 
 /**
  * Schedule block with computed fields for display.
+ *
+ * @future Reserved for week view calendar with schedule blocks.
+ * Will be used when implementing a full weekly calendar that shows
+ * schedule blocks alongside tasks for each day.
  */
 export type ScheduleBlockForDay = ScheduleBlock & {
   date: ISODateString;  // The specific date this instance is for
@@ -234,7 +252,13 @@ export type FocusSession = {
   task?: Task;                  // Optional joined task
 };
 
-/** Response from focus session complete */
+/**
+ * Response from focus session complete.
+ *
+ * @future Reserved for focus session completion celebration modal.
+ * Will be used to show detailed session summary, XP earned, and
+ * congratulatory animations when a focus session is completed.
+ */
 export type FocusCompleteResponse = {
   ok: true;
   xpGained: number;

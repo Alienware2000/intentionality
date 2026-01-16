@@ -10,6 +10,15 @@ import { useState, useEffect, useCallback } from "react";
 import type { ISODateString, Task, TimelineItem, DayTimelineResponse } from "../types";
 import { fetchApi, getErrorMessage } from "../api";
 
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+type UseDayTimelineOptions = {
+  /** Callback to trigger profile refresh after XP-granting actions */
+  onProfileUpdate?: () => void;
+};
+
 type UseDayTimelineReturn = {
   scheduledItems: TimelineItem[];
   unscheduledTasks: Task[];
@@ -21,7 +30,28 @@ type UseDayTimelineReturn = {
   toggleScheduleBlock: (blockId: string) => Promise<void>;
 };
 
-export function useDayTimeline(date: ISODateString): UseDayTimelineReturn {
+// -----------------------------------------------------------------------------
+// Hook
+// -----------------------------------------------------------------------------
+
+/**
+ * Hook for fetching and managing day timeline data.
+ * Handles tasks, schedule blocks, and overdue items for a specific date.
+ *
+ * @param date - Date in YYYY-MM-DD format
+ * @param options - Optional configuration
+ * @param options.onProfileUpdate - Callback to trigger when XP changes (e.g., task toggle)
+ *
+ * @example
+ * const { refreshProfile } = useProfile();
+ * const { scheduledItems, toggleTask } = useDayTimeline(date, {
+ *   onProfileUpdate: refreshProfile
+ * });
+ */
+export function useDayTimeline(
+  date: ISODateString,
+  options?: UseDayTimelineOptions
+): UseDayTimelineReturn {
   const [scheduledItems, setScheduledItems] = useState<TimelineItem[]>([]);
   const [unscheduledTasks, setUnscheduledTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
@@ -58,8 +88,8 @@ export function useDayTimeline(date: ISODateString): UseDayTimelineReturn {
           body: JSON.stringify({ taskId }),
         });
 
-        // Dispatch profile update event
-        window.dispatchEvent(new CustomEvent("profile-updated"));
+        // Notify profile update
+        options?.onProfileUpdate?.();
 
         // Refresh data
         await refresh();
@@ -67,7 +97,7 @@ export function useDayTimeline(date: ISODateString): UseDayTimelineReturn {
         setError(getErrorMessage(e));
       }
     },
-    [refresh]
+    [refresh, options]
   );
 
   const toggleScheduleBlock = useCallback(
@@ -79,8 +109,8 @@ export function useDayTimeline(date: ISODateString): UseDayTimelineReturn {
           body: JSON.stringify({ blockId, date }),
         });
 
-        // Dispatch profile update event
-        window.dispatchEvent(new CustomEvent("profile-updated"));
+        // Notify profile update
+        options?.onProfileUpdate?.();
 
         // Refresh data
         await refresh();
@@ -88,7 +118,7 @@ export function useDayTimeline(date: ISODateString): UseDayTimelineReturn {
         setError(getErrorMessage(e));
       }
     },
-    [date, refresh]
+    [date, refresh, options]
   );
 
   return {

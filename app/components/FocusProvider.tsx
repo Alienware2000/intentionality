@@ -16,6 +16,7 @@ import {
 } from "react";
 import type { FocusSession } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
+import { useProfile } from "./ProfileProvider";
 
 type FocusMode = "work" | "break" | "idle";
 
@@ -57,6 +58,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   });
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { refreshProfile } = useProfile();
 
   // Check for active session on mount
   useEffect(() => {
@@ -188,12 +190,12 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         error: null,
       });
 
-      // Dispatch profile update event
-      window.dispatchEvent(new CustomEvent("profile-updated"));
+      // Refresh profile to update XP
+      refreshProfile();
     } catch (e) {
       setState((prev) => ({ ...prev, error: getErrorMessage(e) }));
     }
-  }, [state.session]);
+  }, [state.session, refreshProfile]);
 
   const abandonSession = useCallback(async () => {
     if (!state.session) return;

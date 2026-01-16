@@ -10,6 +10,7 @@ import { Plus, X } from "lucide-react";
 import type { ISODateString, Id, Quest, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import { useProfile } from "./ProfileProvider";
 
 type Props = {
   date: ISODateString;
@@ -28,6 +29,8 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { refreshProfile } = useProfile();
+
   const loadQuests = useCallback(async () => {
     try {
       const data = await fetchApi<QuestsResponse>("/api/quests");
@@ -35,8 +38,8 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
       if (data.quests.length > 0 && !questId) {
         setQuestId(data.quests[0].id);
       }
-    } catch (e) {
-      console.error("Failed to load quests", e);
+    } catch {
+      // Silent fail - quests will remain empty
     }
   }, [questId]);
 
@@ -68,7 +71,7 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
       setTitle("");
       setIsOpen(false);
       onTaskAdded?.();
-      window.dispatchEvent(new Event("profile-updated"));
+      refreshProfile();
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {

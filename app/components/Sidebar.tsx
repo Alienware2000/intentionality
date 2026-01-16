@@ -6,7 +6,6 @@
 // anime.js inspired: minimal design with line accents.
 // =============================================================================
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, LayoutDashboard, Calendar, Target } from "lucide-react";
@@ -14,7 +13,11 @@ import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
-import type { UserProfile } from "@/app/lib/types";
+import { useProfile } from "./ProfileProvider";
+
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -22,37 +25,18 @@ const navItems = [
   { label: "Quests", href: "/quests", icon: Target },
 ];
 
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
+/**
+ * Sidebar provides main navigation and displays user profile stats.
+ * Shows level, XP, and streak from ProfileProvider context.
+ */
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  async function loadProfile() {
-    try {
-      const res = await fetch("/api/profile");
-      const data = await res.json();
-      if (data.ok) {
-        setProfile(data.profile);
-      }
-    } catch (e) {
-      console.error("Failed to load profile", e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadProfile();
-
-    // Listen for profile updates from other components
-    const handleProfileUpdate = () => loadProfile();
-    window.addEventListener("profile-updated", handleProfileUpdate);
-
-    return () => {
-      window.removeEventListener("profile-updated", handleProfileUpdate);
-    };
-  }, []);
+  const { profile, loading } = useProfile();
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
