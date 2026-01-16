@@ -3,6 +3,7 @@ import HabitsClient from "@/app/components/HabitsClient";
 import DashboardStats from "@/app/components/DashboardStats";
 import FocusLauncher from "@/app/components/FocusLauncher";
 import QuickActions from "@/app/components/QuickActions";
+import DashboardSync from "@/app/components/DashboardSync";
 import { getTodayISO, formatDisplayDate } from "@/app/lib/date-utils";
 
 export default async function Home() {
@@ -18,9 +19,12 @@ export default async function Home() {
           <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
             Command Center
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)] font-mono">
-            {displayDate}
-          </p>
+          <div className="mt-1 flex items-center gap-4">
+            <p className="text-sm text-[var(--text-muted)] font-mono">
+              {displayDate}
+            </p>
+            <DashboardSync />
+          </div>
           <div className="mt-2 h-[2px] w-32 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
         </div>
         <QuickActions />

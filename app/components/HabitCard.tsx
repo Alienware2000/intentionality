@@ -40,6 +40,7 @@ export default function HabitCard({
       <button
         type="button"
         onClick={() => onToggle?.(habit.id)}
+        aria-label={isCompleted ? "Mark habit incomplete" : "Mark habit complete"}
         className={cn(
           "flex-shrink-0 w-6 h-6 sm:w-5 sm:h-5 rounded",
           "border-2 flex items-center justify-center",
@@ -77,8 +78,8 @@ export default function HabitCard({
           <button
             type="button"
             onClick={() => onEdit(habit.id)}
+            aria-label="Edit habit"
             className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
-            title="Edit habit"
           >
             <Pencil size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Pencil size={12} className="text-[var(--text-muted)] hidden sm:block" />
@@ -88,8 +89,8 @@ export default function HabitCard({
           <button
             type="button"
             onClick={() => onDelete(habit.id)}
+            aria-label="Delete habit"
             className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
-            title="Delete habit"
           >
             <Trash2 size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Trash2 size={12} className="text-[var(--text-muted)] hidden sm:block" />

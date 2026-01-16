@@ -100,6 +100,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
               </h2>
               <button
                 onClick={onClose}
+                aria-label="Close dialog"
                 className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <X size={18} className="text-[var(--text-muted)]" />

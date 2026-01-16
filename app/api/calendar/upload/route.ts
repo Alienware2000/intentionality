@@ -190,7 +190,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
         result.scheduleBlocksCreated++;
       }
-    } catch (e) {
+    } catch {
       result.errors.push(`Error processing event: ${event.summary}`);
     }
   }

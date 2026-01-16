@@ -74,10 +74,12 @@ export const GET = withAuth(async ({ supabase, request }) => {
   }
 
   // Fetch tasks for the date (RLS filters by quest ownership)
+  // Filter out soft-deleted tasks
   const { data: tasks, error: fetchError } = await supabase
     .from("tasks")
     .select("*, quest:quests(*)")
     .eq("due_date", date)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (fetchError) {
@@ -237,7 +239,9 @@ export const PATCH = withAuth(async ({ supabase, request }) => {
 /**
  * DELETE /api/tasks
  *
- * Deletes a task. If the task was completed, XP is deducted from user profile.
+ * Soft deletes a task by setting deleted_at timestamp.
+ * If the task was completed, XP is deducted from user profile.
+ * Task can be restored later via POST /api/tasks/restore.
  *
  * @authentication Required
  *
@@ -261,21 +265,22 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Missing taskId");
   }
 
-  // Fetch task to check if it was completed
+  // Fetch task to check if it was completed (only active tasks)
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
     .select("completed, xp_value")
     .eq("id", taskId)
+    .is("deleted_at", null)
     .single();
 
   if (fetchError || !task) {
     return ApiErrors.notFound("Task not found");
   }
 
-  // Delete the task
+  // Soft delete the task by setting deleted_at
   const { error: deleteError } = await supabase
     .from("tasks")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", taskId);
 
   if (deleteError) {

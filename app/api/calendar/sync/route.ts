@@ -23,8 +23,10 @@ type SyncBody = {
 type SyncResult = {
   tasksCreated: number;
   tasksUpdated: number;
+  tasksDeleted: number;
   scheduleBlocksCreated: number;
   scheduleBlocksUpdated: number;
+  scheduleBlocksDeleted: number;
   eventsProcessed: number;
   errors: string[];
 };
@@ -67,11 +69,16 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   const result: SyncResult = {
     tasksCreated: 0,
     tasksUpdated: 0,
+    tasksDeleted: 0,
     scheduleBlocksCreated: 0,
     scheduleBlocksUpdated: 0,
+    scheduleBlocksDeleted: 0,
     eventsProcessed: parseResult.events.length,
     errors: [],
   };
+
+  // Track which UIDs we see in this sync (for deletion detection)
+  const seenUids = new Set<string>();
 
   // Get existing imported events for this subscription
   const { data: existingImports } = await supabase
@@ -112,6 +119,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // Process events
   for (const event of parseResult.events) {
     try {
+      // Track this UID as seen (for deletion detection)
+      seenUids.add(event.uid);
+
       // Skip events in the past (more than 7 days ago)
       const eventDate = new Date(event.startDate);
       const weekAgo = new Date();
@@ -238,8 +248,32 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
           result.scheduleBlocksCreated++;
         }
       }
-    } catch (e) {
+    } catch {
       result.errors.push(`Error processing event: ${event.summary}`);
+    }
+  }
+
+  // Delete items that no longer exist in the calendar feed
+  // Only delete items that were imported from this subscription
+  if (existingImports && existingImports.length > 0) {
+    for (const imported of existingImports) {
+      if (!seenUids.has(imported.external_uid)) {
+        try {
+          // Delete the created item (task or schedule block)
+          if (imported.created_as === "task") {
+            await supabase.from("tasks").delete().eq("id", imported.created_id);
+            result.tasksDeleted++;
+          } else {
+            await supabase.from("schedule_blocks").delete().eq("id", imported.created_id);
+            result.scheduleBlocksDeleted++;
+          }
+
+          // Delete the import tracking record
+          await supabase.from("imported_events").delete().eq("id", imported.id);
+        } catch {
+          result.errors.push(`Failed to delete removed event: ${imported.external_uid}`);
+        }
+      }
     }
   }
 

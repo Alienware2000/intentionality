@@ -141,7 +141,7 @@ export const GET = withAuth(async ({ supabase }) => {
       importAs: connection.import_as,
       targetQuestId: connection.target_quest_id,
     });
-  } catch (error) {
+  } catch {
     return ApiErrors.serverError("Failed to fetch calendars");
   }
 });

@@ -23,8 +23,7 @@ type Props = {
 type ScheduleResponse = { ok: true; blocks: ScheduleBlock[] };
 type QuestsResponse = { ok: true; quests: Quest[] };
 
-export default function WeekClient({ start, end }: Props) {
-  const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
+export default function WeekClient({ start }: Props) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +41,10 @@ export default function WeekClient({ start, end }: Props) {
     setError(null);
 
     try {
-      const [scheduleData, questsData] = await Promise.all([
+      const [, questsData] = await Promise.all([
         fetchApi<ScheduleResponse>("/api/schedule"),
         fetchApi<QuestsResponse>("/api/quests"),
       ]);
-      setScheduleBlocks(scheduleData.blocks);
       setQuests(questsData.quests);
     } catch (e) {
       setError(getErrorMessage(e));

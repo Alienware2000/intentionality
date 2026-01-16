@@ -54,10 +54,12 @@ export const POST = withAuth(async ({ supabase, request }) => {
   }
 
   // Verify task exists and belongs to user (RLS enforces this)
+  // Only allow moving non-deleted tasks
   const { data: existing, error: fetchError } = await supabase
     .from("tasks")
     .select("id")
     .eq("id", taskId)
+    .is("deleted_at", null)
     .single();
 
   if (fetchError || !existing) {

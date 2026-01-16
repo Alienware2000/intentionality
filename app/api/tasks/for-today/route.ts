@@ -46,9 +46,11 @@ export const GET = withAuth(async ({ supabase, request }) => {
   // Fetch tasks using PostgREST OR syntax:
   // - due_date = date (all tasks due today)
   // - OR (due_date < date AND completed = false) (overdue incomplete tasks)
+  // Filter out soft-deleted tasks
   const { data: tasks, error: fetchError } = await supabase
     .from("tasks")
     .select("*, quest:quests(*)")
+    .is("deleted_at", null)
     .or(`due_date.eq.${date},and(due_date.lt.${date},completed.eq.false)`)
     .order("due_date", { ascending: true })
     .order("created_at", { ascending: true });

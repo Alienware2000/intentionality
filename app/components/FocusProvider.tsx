@@ -81,7 +81,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
             error: null,
           });
         }
-      } catch (e) {
+      } catch {
         // Silently ignore - no active session
       }
     }

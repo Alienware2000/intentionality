@@ -63,6 +63,7 @@ export type Task = {
   priority: Priority;
   xp_value: number;
   created_at: string;
+  deleted_at: string | null;  // Soft delete timestamp
   quest?: Quest;
 };
 
@@ -441,4 +442,29 @@ export type ImportedEvent = {
   created_id: Id;
   event_hash: string | null;
   created_at: string;
+};
+
+// =============================================================================
+// AUTO-SYNC TYPES
+// =============================================================================
+
+/**
+ * Sync status for a single integration (Canvas or Google Calendar).
+ * Tracks connection state, sync progress, and any errors.
+ */
+export type IntegrationSyncStatus = {
+  connected: boolean;
+  syncing: boolean;
+  lastSyncedAt: string | null;
+  error: string | null;
+};
+
+/**
+ * Combined auto-sync state for all integrations.
+ * Used by the useAutoSync hook and SyncStatusIndicator component.
+ */
+export type AutoSyncState = {
+  canvas: IntegrationSyncStatus;
+  googleCalendar: IntegrationSyncStatus;
+  isAnySyncing: boolean;
 };
