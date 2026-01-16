@@ -57,6 +57,7 @@ export type Task = {
   quest_id: Id;
   title: string;
   due_date: ISODateString;
+  scheduled_time: string | null;  // HH:MM format for timeline ordering
   completed: boolean;
   completed_at: string | null;
   priority: Priority;
@@ -103,4 +104,164 @@ export type TaskToggleResponse = {
   xpGained?: number;
   newLevel?: number;
   newStreak?: number;
+};
+
+// =============================================================================
+// HABIT TYPES
+// =============================================================================
+
+/**
+ * Habit represents a recurring daily action.
+ * User owns directly (not tied to quests).
+ * Each habit tracks its own streak.
+ */
+export type Habit = {
+  id: Id;
+  user_id: string;
+  title: string;
+  priority: Priority;
+  xp_value: number;
+  current_streak: number;
+  longest_streak: number;
+  last_completed_date: ISODateString | null;
+  created_at: string;
+};
+
+/**
+ * Habit with computed completion status for today.
+ */
+export type HabitWithStatus = Habit & {
+  completedToday: boolean;
+};
+
+/**
+ * Habit completion record.
+ */
+export type HabitCompletion = {
+  id: Id;
+  habit_id: Id;
+  completed_date: ISODateString;
+  completed_at: string;
+  xp_awarded: number;
+};
+
+/** Response from habit toggle with XP/streak info */
+export type HabitToggleResponse = {
+  ok: true;
+  xpGained?: number;
+  xpLost?: number;
+  newStreak: number;
+  newLevel?: number;
+  newXpTotal: number;
+};
+
+// =============================================================================
+// SCHEDULE TYPES
+// =============================================================================
+
+/** Day of week number (1=Monday, 7=Sunday) */
+export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+/**
+ * Schedule block represents a recurring time slot.
+ * Used for classes, gym, work, etc.
+ */
+export type ScheduleBlock = {
+  id: Id;
+  user_id: string;
+  title: string;
+  start_time: string;         // HH:MM format (e.g., "09:00")
+  end_time: string;           // HH:MM format (e.g., "10:30")
+  days_of_week: DayOfWeek[];  // [1,3,5] = Mon/Wed/Fri
+  color: string;              // Hex color for display
+  location: string | null;    // Optional room/location
+  start_date: ISODateString | null;  // When schedule starts
+  end_date: ISODateString | null;    // When schedule ends
+  is_completable: boolean;    // Can be checked off (gym, study sessions)
+  priority: Priority | null;  // For XP calculation if completable
+  xp_value: number | null;    // XP awarded on completion
+  created_at: string;
+};
+
+/**
+ * Schedule block with computed fields for display.
+ */
+export type ScheduleBlockForDay = ScheduleBlock & {
+  date: ISODateString;  // The specific date this instance is for
+};
+
+/**
+ * Schedule block with today's completion status.
+ */
+export type ScheduleBlockWithStatus = ScheduleBlock & {
+  completedToday: boolean;
+};
+
+/**
+ * Schedule block completion record.
+ */
+export type ScheduleBlockCompletion = {
+  id: Id;
+  block_id: Id;
+  completed_date: ISODateString;
+  completed_at: string;
+  xp_awarded: number;
+};
+
+// =============================================================================
+// FOCUS SESSION TYPES
+// =============================================================================
+
+/** Focus session status */
+export type FocusSessionStatus = "active" | "completed" | "abandoned";
+
+/**
+ * Focus session represents a Pomodoro-style work session.
+ * Awards XP based on duration when completed.
+ */
+export type FocusSession = {
+  id: Id;
+  user_id: string;
+  task_id: Id | null;           // Optional linked task
+  title: string | null;         // Optional session title
+  work_duration: number;        // minutes (default 25)
+  break_duration: number;       // minutes (default 5)
+  started_at: string;           // ISO timestamp
+  completed_at: string | null;  // ISO timestamp when finished
+  status: FocusSessionStatus;
+  xp_awarded: number | null;
+  created_at: string;
+  task?: Task;                  // Optional joined task
+};
+
+/** Response from focus session complete */
+export type FocusCompleteResponse = {
+  ok: true;
+  xpGained: number;
+  newLevel?: number;
+  newXpTotal: number;
+  focusMinutesAdded: number;
+};
+
+// =============================================================================
+// TIMELINE TYPES
+// =============================================================================
+
+/**
+ * A timeline item can be either a task or a schedule block.
+ * Used in the unified DayTimeline component.
+ */
+export type TimelineItem =
+  | { type: "task"; data: Task }
+  | { type: "schedule_block"; data: ScheduleBlock; completed: boolean };
+
+/**
+ * Response from the day-timeline API.
+ */
+export type DayTimelineResponse = {
+  ok: true;
+  date: ISODateString;
+  scheduledItems: TimelineItem[];  // Items with times, sorted chronologically
+  unscheduledTasks: Task[];        // Tasks without scheduled_time
+  overdueTasks: Task[];            // Only for today
 };

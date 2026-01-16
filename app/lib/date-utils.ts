@@ -1,4 +1,4 @@
-import type { ISODateString, Task, TaskWithStatus, DayGroup } from "./types";
+import type { ISODateString, Task, TaskWithStatus, DayGroup, DayOfWeek } from "./types";
 
 /**
  * Get today's date in ISO format (YYYY-MM-DD).
@@ -68,6 +68,17 @@ export function compareISO(a: ISODateString, b: ISODateString): number {
   if (a < b) return -1;
   if (a > b) return 1;
   return 0;
+}
+
+/**
+ * Get day of week from ISO date string (1=Monday, 7=Sunday).
+ */
+export function getDayOfWeek(dateISO: ISODateString): DayOfWeek {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const jsDay = dt.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  // Convert to 1=Mon, ..., 7=Sun
+  return (jsDay === 0 ? 7 : jsDay) as DayOfWeek;
 }
 
 /**

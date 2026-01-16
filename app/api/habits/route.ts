@@ -1,29 +1,27 @@
 // =============================================================================
-// TASKS API ROUTE
-// Handles CRUD operations for tasks.
+// HABITS API ROUTE
+// Handles CRUD operations for daily habits.
 // Uses Supabase for both auth and database.
-// RLS policies enforce that users can only access tasks in their own quests.
+// RLS policies enforce that users can only access their own habits.
 // =============================================================================
 
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/app/lib/supabase/server";
-import { getLevelFromXp } from "@/app/lib/gamification";
+import { XP_VALUES, getLevelFromXp } from "@/app/lib/gamification";
 
 /**
- * GET /api/tasks?date=YYYY-MM-DD
+ * GET /api/habits?date=YYYY-MM-DD
  *
- * Fetches all tasks for a specific date for the authenticated user.
- * Includes the associated quest data.
+ * Fetches all habits for the user with today's completion status.
  *
  * Query params:
- * - date: string (required) - Date in YYYY-MM-DD format
+ * - date: string (required) - Date to check completion status
  *
- * RLS ensures only tasks from user's quests are returned.
+ * RLS ensures only the user's own habits are returned.
  */
 export async function GET(req: Request) {
   const supabase = await createSupabaseServerClient();
 
-  // Verify authentication
   const {
     data: { user },
     error: authError,
@@ -36,7 +34,6 @@ export async function GET(req: Request) {
     );
   }
 
-  // Parse query params
   const url = new URL(req.url);
   const date = url.searchParams.get("date");
 
@@ -47,40 +44,48 @@ export async function GET(req: Request) {
     );
   }
 
-  // Fetch tasks for the date (RLS filters by quest ownership)
-  const { data: tasks, error: fetchError } = await supabase
-    .from("tasks")
-    .select("*, quest:quests(*)")
-    .eq("due_date", date)
+  // Fetch all habits
+  const { data: habits, error: habitsError } = await supabase
+    .from("habits")
+    .select("*")
     .order("created_at", { ascending: true });
 
-  if (fetchError) {
+  if (habitsError) {
     return NextResponse.json(
-      { ok: false, error: fetchError.message },
+      { ok: false, error: habitsError.message },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ ok: true, tasks: tasks ?? [] });
+  // Fetch today's completions
+  const { data: completions } = await supabase
+    .from("habit_completions")
+    .select("habit_id")
+    .eq("completed_date", date);
+
+  const completedIds = new Set(completions?.map((c) => c.habit_id) ?? []);
+
+  // Add completedToday status to each habit
+  const habitsWithStatus = (habits ?? []).map((h) => ({
+    ...h,
+    completedToday: completedIds.has(h.id),
+  }));
+
+  return NextResponse.json({ ok: true, habits: habitsWithStatus });
 }
 
 /**
- * POST /api/tasks
+ * POST /api/habits
  *
- * Creates a new task in the specified quest.
+ * Creates a new habit.
  *
  * Request body:
- * - title: string (required) - The task title
- * - due_date: string (required) - Date in YYYY-MM-DD format
- * - quest_id: string (required) - UUID of the quest
- * - priority: string (optional) - 'low' | 'medium' | 'high' (default: 'medium')
- *
- * RLS policy ensures the quest belongs to the user.
+ * - title: string (required)
+ * - priority: 'low' | 'medium' | 'high' (optional, default: 'medium')
  */
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
 
-  // Verify authentication
   const {
     data: { user },
     error: authError,
@@ -94,54 +99,31 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Parse request body
     const body = await req.json();
-    const { title, due_date, quest_id, priority = "medium", scheduled_time } = body as {
+    const { title, priority = "medium" } = body as {
       title?: string;
-      due_date?: string;
-      quest_id?: string;
       priority?: "low" | "medium" | "high";
-      scheduled_time?: string | null;
     };
 
-    if (!title || !due_date || !quest_id) {
+    if (!title || !title.trim()) {
       return NextResponse.json(
-        { ok: false, error: "Missing title, due_date, or quest_id" },
+        { ok: false, error: "Missing title" },
         { status: 400 }
       );
     }
 
     // Calculate XP value based on priority
-    const xpValues = { low: 5, medium: 10, high: 25 };
-    const xp_value = xpValues[priority] ?? 10;
+    const xp_value = XP_VALUES[priority] ?? XP_VALUES.medium;
 
-    // Verify quest ownership (RLS will also enforce this, but we check for a better error message)
-    const { data: quest, error: questError } = await supabase
-      .from("quests")
-      .select("id")
-      .eq("id", quest_id)
-      .single();
-
-    if (questError || !quest) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid quest_id (not owned by user)" },
-        { status: 403 }
-      );
-    }
-
-    // Create the task (RLS enforces quest ownership)
-    const { data: task, error: createError } = await supabase
-      .from("tasks")
+    const { data: habit, error: createError } = await supabase
+      .from("habits")
       .insert({
+        user_id: user.id,
         title: title.trim(),
-        due_date,
-        quest_id,
         priority,
         xp_value,
-        completed: false,
-        scheduled_time: scheduled_time || null,
       })
-      .select("*, quest:quests(*)")
+      .select()
       .single();
 
     if (createError) {
@@ -151,7 +133,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, task });
+    return NextResponse.json({ ok: true, habit });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
@@ -159,19 +141,16 @@ export async function POST(req: Request) {
 }
 
 /**
- * PATCH /api/tasks
+ * PATCH /api/habits
  *
- * Updates a task's title, due_date, or priority.
+ * Updates a habit's title or priority.
  *
  * Request body:
- * - taskId: string (required) - UUID of the task
- * - title?: string - New title
- * - due_date?: string - New date (YYYY-MM-DD)
- * - priority?: 'low' | 'medium' | 'high' - New priority
+ * - habitId: string (required)
+ * - title?: string
+ * - priority?: 'low' | 'medium' | 'high'
  *
- * At least one field to update is required.
  * If priority changes, xp_value is recalculated.
- * RLS ensures the task belongs to a quest owned by the user.
  */
 export async function PATCH(req: Request) {
   const supabase = await createSupabaseServerClient();
@@ -190,22 +169,20 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const { taskId, title, due_date, priority, scheduled_time } = body as {
-      taskId?: string;
+    const { habitId, title, priority } = body as {
+      habitId?: string;
       title?: string;
-      due_date?: string;
       priority?: "low" | "medium" | "high";
-      scheduled_time?: string | null;
     };
 
-    if (!taskId) {
+    if (!habitId) {
       return NextResponse.json(
-        { ok: false, error: "Missing taskId" },
+        { ok: false, error: "Missing habitId" },
         { status: 400 }
       );
     }
 
-    if (!title && !due_date && !priority && scheduled_time === undefined) {
+    if (!title && !priority) {
       return NextResponse.json(
         { ok: false, error: "No fields to update" },
         { status: 400 }
@@ -215,21 +192,16 @@ export async function PATCH(req: Request) {
     // Build update object
     const updates: Record<string, unknown> = {};
     if (title) updates.title = title.trim();
-    if (due_date) updates.due_date = due_date;
     if (priority) {
       updates.priority = priority;
-      const xpValues = { low: 5, medium: 10, high: 25 };
-      updates.xp_value = xpValues[priority];
-    }
-    if (scheduled_time !== undefined) {
-      updates.scheduled_time = scheduled_time || null;
+      updates.xp_value = XP_VALUES[priority];
     }
 
-    const { data: task, error: updateError } = await supabase
-      .from("tasks")
+    const { data: habit, error: updateError } = await supabase
+      .from("habits")
       .update(updates)
-      .eq("id", taskId)
-      .select("*, quest:quests(*)")
+      .eq("id", habitId)
+      .select()
       .single();
 
     if (updateError) {
@@ -239,7 +211,7 @@ export async function PATCH(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, task });
+    return NextResponse.json({ ok: true, habit });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
@@ -247,15 +219,14 @@ export async function PATCH(req: Request) {
 }
 
 /**
- * DELETE /api/tasks
+ * DELETE /api/habits
  *
- * Deletes a task.
+ * Deletes a habit and all its completions.
  *
  * Request body:
- * - taskId: string (required) - UUID of the task to delete
+ * - habitId: string (required)
  *
- * If task was completed, XP is deducted from user profile.
- * RLS ensures the task belongs to a quest owned by the user.
+ * XP from completed days is deducted from user profile.
  */
 export async function DELETE(req: Request) {
   const supabase = await createSupabaseServerClient();
@@ -274,34 +245,29 @@ export async function DELETE(req: Request) {
 
   try {
     const body = await req.json();
-    const { taskId } = body as { taskId?: string };
+    const { habitId } = body as { habitId?: string };
 
-    if (!taskId) {
+    if (!habitId) {
       return NextResponse.json(
-        { ok: false, error: "Missing taskId" },
+        { ok: false, error: "Missing habitId" },
         { status: 400 }
       );
     }
 
-    // Fetch task to check if it was completed
-    const { data: task, error: fetchError } = await supabase
-      .from("tasks")
-      .select("completed, xp_value")
-      .eq("id", taskId)
-      .single();
+    // Sum XP from all completions for this habit
+    const { data: completions } = await supabase
+      .from("habit_completions")
+      .select("xp_awarded")
+      .eq("habit_id", habitId);
 
-    if (fetchError || !task) {
-      return NextResponse.json(
-        { ok: false, error: "Task not found" },
-        { status: 404 }
-      );
-    }
+    const xpToDeduct =
+      completions?.reduce((sum, c) => sum + (c.xp_awarded ?? 0), 0) ?? 0;
 
-    // Delete the task
+    // Delete the habit (completions cascade)
     const { error: deleteError } = await supabase
-      .from("tasks")
+      .from("habits")
       .delete()
-      .eq("id", taskId);
+      .eq("id", habitId);
 
     if (deleteError) {
       return NextResponse.json(
@@ -310,21 +276,19 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // If task was completed, deduct XP
+    // Deduct XP from user profile
     let newXpTotal: number | undefined;
     let newLevel: number | undefined;
 
-    if (task.completed) {
-      const xpAmount = task.xp_value ?? 10;
-
+    if (xpToDeduct > 0) {
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("xp_total, level")
+        .select("xp_total")
         .eq("user_id", user.id)
         .single();
 
       if (profile) {
-        newXpTotal = Math.max(0, profile.xp_total - xpAmount);
+        newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
         newLevel = getLevelFromXp(newXpTotal);
 
         await supabase
@@ -337,7 +301,12 @@ export async function DELETE(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, newXpTotal, newLevel });
+    return NextResponse.json({
+      ok: true,
+      xpDeducted: xpToDeduct,
+      newXpTotal,
+      newLevel,
+    });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

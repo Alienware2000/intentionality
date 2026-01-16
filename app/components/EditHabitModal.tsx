@@ -1,22 +1,21 @@
 "use client";
 
 // =============================================================================
-// EDIT TASK MODAL COMPONENT
-// Modal for editing task title, due date, and priority.
-// anime.js inspired: dark theme, minimal form controls.
+// EDIT HABIT MODAL COMPONENT
+// Modal for editing habit title and priority.
 // =============================================================================
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import type { Task, Priority } from "@/app/lib/types";
+import type { HabitWithStatus, Priority } from "@/app/lib/types";
 import { cn } from "@/app/lib/cn";
 
 type Props = {
-  task: Task | null;
+  habit: HabitWithStatus | null;
   onSave: (
-    taskId: string,
-    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null }
+    habitId: string,
+    updates: { title?: string; priority?: Priority }
   ) => Promise<void>;
   onClose: () => void;
 };
@@ -27,32 +26,26 @@ const priorityOptions: { value: Priority; label: string; color: string }[] = [
   { value: "low", label: "Low", color: "var(--priority-low)" },
 ];
 
-export default function EditTaskModal({ task, onSave, onClose }: Props) {
+export default function EditHabitModal({ habit, onSave, onClose }: Props) {
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
-  const [scheduledTime, setScheduledTime] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Sync state when task changes
+  // Sync state when habit changes
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDueDate(task.due_date);
-      setPriority(task.priority);
-      setScheduledTime(task.scheduled_time ?? "");
+    if (habit) {
+      setTitle(habit.title);
+      setPriority(habit.priority);
     }
-  }, [task]);
+  }, [habit]);
 
   async function handleSave() {
-    if (!task || !title.trim()) return;
+    if (!habit || !title.trim()) return;
     setSaving(true);
     try {
-      await onSave(task.id, {
+      await onSave(habit.id, {
         title: title.trim(),
-        due_date: dueDate,
         priority,
-        scheduled_time: scheduledTime || null,
       });
       onClose();
     } finally {
@@ -67,7 +60,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
 
   return (
     <AnimatePresence>
-      {task && (
+      {habit && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -94,7 +87,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                Edit Task
+                Edit Habit
               </h2>
               <button
                 onClick={onClose}
@@ -124,46 +117,6 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
                     "transition-colors"
                   )}
                 />
-              </div>
-
-              {/* Due Date and Scheduled Time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className={cn(
-                      "w-full px-3 py-2 rounded",
-                      "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
-                      "text-[var(--text-primary)]",
-                      "focus:outline-none focus:border-[var(--accent-primary)]",
-                      "transition-colors",
-                      "[color-scheme:dark]"
-                    )}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
-                    Time (Optional)
-                  </label>
-                  <input
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    className={cn(
-                      "w-full px-3 py-2 rounded",
-                      "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
-                      "text-[var(--text-primary)]",
-                      "focus:outline-none focus:border-[var(--accent-primary)]",
-                      "transition-colors",
-                      "[color-scheme:dark]"
-                    )}
-                  />
-                </div>
               </div>
 
               {/* Priority */}

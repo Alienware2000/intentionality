@@ -111,3 +111,12 @@ export function calculateStreak(
   // Streak broken, start over
   return 1;
 }
+
+/**
+ * Calculate XP earned from a focus session based on duration.
+ * Rate: 0.6 XP per minute
+ * Examples: 25 min = 15 XP, 45 min = 27 XP, 90 min = 54 XP
+ */
+export function getFocusXp(minutes: number): number {
+  return Math.round(minutes * 0.6);
+}

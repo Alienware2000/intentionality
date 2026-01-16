@@ -1,67 +1,87 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ISODateString, Id, Task, Priority } from "@/app/lib/types";
-import { groupTasksByWeek, formatDayLabel } from "@/app/lib/date-utils";
+// =============================================================================
+// WEEK CLIENT COMPONENT
+// Weekly view showing each day's timeline with unified tasks + schedule blocks.
+// =============================================================================
+
+import { useEffect, useState, useCallback } from "react";
+import { Calendar } from "lucide-react";
+import type { ISODateString, ScheduleBlock, Quest } from "@/app/lib/types";
+import { formatDayLabel, addDaysISO } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import DayTimeline from "@/app/components/DayTimeline";
+import AddScheduleModal from "@/app/components/AddScheduleModal";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 type Props = {
   start: ISODateString;
   end: ISODateString;
 };
 
-type TasksResponse = { ok: true; tasks: Task[] };
-
-const priorityColors: Record<Priority, string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--priority-low)]",
-};
+type ScheduleResponse = { ok: true; blocks: ScheduleBlock[] };
+type QuestsResponse = { ok: true; quests: Quest[] };
 
 export default function WeekClient({ start, end }: Props) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function refresh() {
+  // Schedule modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<ScheduleBlock | null>(null);
+  const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
+
+  // Refresh counter to force DayTimeline refresh
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await fetchApi<TasksResponse>(
-        `/api/tasks/range?start=${start}&end=${end}`
-      );
-      setTasks(data.tasks);
+      const [scheduleData, questsData] = await Promise.all([
+        fetchApi<ScheduleResponse>("/api/schedule"),
+        fetchApi<QuestsResponse>("/api/quests"),
+      ]);
+      setScheduleBlocks(scheduleData.blocks);
+      setQuests(questsData.quests);
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [start, end]);
+    loadData();
+  }, [loadData]);
 
-  const groupedTasks = useMemo(() => {
-    return groupTasksByWeek(tasks, start);
-  }, [tasks, start]);
+  function triggerRefresh() {
+    setRefreshKey((k) => k + 1);
+  }
 
-  async function handleToggle(taskId: Id) {
-    const res = await fetch("/api/tasks/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taskId }),
-    });
-
-    if (!res.ok) {
-      console.warn("Failed to toggle", await res.text());
-      return;
+  async function handleDeleteBlock(blockId: string) {
+    try {
+      await fetchApi("/api/schedule", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockId }),
+      });
+      setDeletingBlockId(null);
+      await loadData();
+      triggerRefresh();
+    } catch (e) {
+      setError(getErrorMessage(e));
     }
+  }
 
-    await refresh();
-    window.dispatchEvent(new Event("profile-updated"));
+  // Generate array of 7 days
+  const days: ISODateString[] = [];
+  for (let i = 0; i < 7; i++) {
+    days.push(addDaysISO(start, i));
   }
 
   if (loading) {
@@ -82,105 +102,80 @@ export default function WeekClient({ start, end }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {groupedTasks.map((day) => {
-        const completedCount = day.tasks.filter((t) => t.completed).length;
-        const totalXp = day.tasks.reduce((sum, t) => sum + (t.xp_value ?? 10), 0);
+    <>
+      {/* Add Schedule Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => {
+            setEditingBlock(null);
+            setShowScheduleModal(true);
+          }}
+          className={cn(
+            "flex items-center gap-2",
+            "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-4 py-2.5 text-sm text-[var(--text-secondary)]",
+            "hover:bg-[var(--bg-hover)] transition-colors"
+          )}
+        >
+          <Calendar size={16} />
+          <span>Add Schedule Block</span>
+        </button>
+      </div>
 
-        return (
+      <div className="space-y-4">
+        {days.map((date) => (
           <div
-            key={day.date}
+            key={date}
             className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]"
           >
             {/* Day Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
               <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                {formatDayLabel(day.date)}
+                {formatDayLabel(date)}
               </h2>
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-mono text-[var(--text-muted)]">
-                  {completedCount}/{day.tasks.length} done
-                </span>
-                <span className="text-xs font-mono text-[var(--text-muted)]">
-                  +{totalXp} XP
-                </span>
-              </div>
+              <span className="text-xs font-mono text-[var(--text-muted)]">
+                {date}
+              </span>
             </div>
 
-            {/* Tasks */}
-            <div className="p-2">
-              {day.tasks.length === 0 ? (
-                <p className="text-[var(--text-muted)] text-sm py-4 text-center">
-                  No tasks for this day.
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {day.tasks.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => handleToggle(t.id)}
-                      className={cn(
-                        "w-full text-left rounded-lg border-l-2 p-3 transition",
-                        "bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)]",
-                        priorityColors[t.priority ?? "medium"],
-                        t.completed && "opacity-60"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          {/* Checkbox */}
-                          <div
-                            className={cn(
-                              "w-4 h-4 rounded border flex items-center justify-center",
-                              t.completed
-                                ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
-                                : "border-[var(--border-default)]"
-                            )}
-                          >
-                            {t.completed && (
-                              <svg
-                                className="w-3 h-3 text-[var(--bg-base)]"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={3}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </div>
-
-                          {/* Title */}
-                          <span
-                            className={cn(
-                              "text-sm",
-                              t.completed
-                                ? "line-through text-[var(--text-muted)]"
-                                : "text-[var(--text-primary)]"
-                            )}
-                          >
-                            {t.title}
-                          </span>
-                        </div>
-
-                        {/* XP Badge */}
-                        <span className="text-xs font-mono text-[var(--text-muted)]">
-                          +{t.xp_value ?? 10} XP
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Day Timeline Content */}
+            <div className="p-3">
+              <DayTimeline
+                key={`${date}-${refreshKey}`}
+                date={date}
+                showOverdue={false}
+                showAddTask={true}
+                compact={true}
+                quests={quests}
+                onRefresh={triggerRefresh}
+              />
             </div>
           </div>
-        );
-      })}
-    </div>
+        ))}
+      </div>
+
+      {/* Add/Edit Schedule Modal */}
+      <AddScheduleModal
+        block={editingBlock}
+        isOpen={showScheduleModal}
+        onClose={() => {
+          setShowScheduleModal(false);
+          setEditingBlock(null);
+        }}
+        onSaved={() => {
+          loadData();
+          triggerRefresh();
+        }}
+      />
+
+      {/* Delete Schedule Confirmation */}
+      <ConfirmModal
+        isOpen={deletingBlockId !== null}
+        title="Delete Schedule Block"
+        message="This will remove the recurring schedule block. This action cannot be undone."
+        onConfirm={() => deletingBlockId && handleDeleteBlock(deletingBlockId)}
+        onCancel={() => setDeletingBlockId(null)}
+      />
+    </>
   );
 }
