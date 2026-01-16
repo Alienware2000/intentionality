@@ -4,8 +4,16 @@
 // RLS ensures users can only see their own tasks.
 // =============================================================================
 
-import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  getSearchParams,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
+
+// -----------------------------------------------------------------------------
+// GET /api/tasks/for-today
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/tasks/for-today?date=YYYY-MM-DD
@@ -14,36 +22,25 @@ import { createSupabaseServerClient } from "@/app/lib/supabase/server";
  * - All tasks due on the specified date
  * - All overdue tasks that are not completed
  *
- * Query params:
- * - date: string (required) - Today's date in YYYY-MM-DD format
+ * @authentication Required
  *
- * RLS ensures only tasks from user's quests are returned.
+ * @query {string} date - Today's date in YYYY-MM-DD format (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Task[]} tasks - Array of tasks for today + overdue
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing date query param
+ * @throws {500} Database error
  */
-export async function GET(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const GET = withAuth(async ({ supabase, request }) => {
   // Parse query params
-  const url = new URL(req.url);
-  const date = url.searchParams.get("date");
+  const params = getSearchParams(request);
+  const date = params.get("date");
 
   if (!date) {
-    return NextResponse.json(
-      { ok: false, error: "Missing date query param" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing date query param");
   }
 
   // Fetch tasks using PostgREST OR syntax:
@@ -57,11 +54,8 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: true });
 
   if (fetchError) {
-    return NextResponse.json(
-      { ok: false, error: fetchError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(fetchError.message);
   }
 
-  return NextResponse.json({ ok: true, tasks: tasks ?? [] });
-}
+  return successResponse({ tasks: tasks ?? [] });
+});

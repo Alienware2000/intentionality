@@ -9,13 +9,8 @@ import { motion } from "framer-motion";
 import { Play, Pause, X, SkipForward, Check, Zap, Coffee } from "lucide-react";
 import { useFocus } from "./FocusProvider";
 import { getFocusXp } from "@/app/lib/gamification";
+import { formatCountdown } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
 
 export default function FocusTimer() {
   const {
@@ -96,7 +91,7 @@ export default function FocusTimer() {
             isBreak ? "text-[var(--accent-success)]" : "text-[var(--text-primary)]"
           )}
         >
-          {formatTime(timeRemaining)}
+          {formatCountdown(timeRemaining)}
         </span>
       </div>
 

@@ -7,19 +7,14 @@
 
 import { Check, Pencil, Trash2, Flame } from "lucide-react";
 import { cn } from "@/app/lib/cn";
-import type { HabitWithStatus, Priority } from "@/app/lib/types";
+import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
+import type { HabitWithStatus } from "@/app/lib/types";
 
 type Props = {
   habit: HabitWithStatus;
   onToggle?: (habitId: string) => void;
   onEdit?: (habitId: string) => void;
   onDelete?: (habitId: string) => void;
-};
-
-const priorityColors: Record<Priority, string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--priority-low)]",
 };
 
 export default function HabitCard({
@@ -37,7 +32,7 @@ export default function HabitCard({
         "border-l-2 rounded-r-lg",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors duration-150",
-        priorityColors[habit.priority],
+        PRIORITY_BORDER_COLORS[habit.priority],
         isCompleted && "opacity-60"
       )}
     >

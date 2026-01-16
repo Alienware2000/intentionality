@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import type { Id, Quest, Task } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import { useProfile } from "@/app/components/ProfileProvider";
 import ConfirmModal from "@/app/components/ConfirmModal";
 
 type QuestsResponse = { ok: true; quests: Quest[] };
@@ -21,6 +22,8 @@ export default function QuestsClient() {
   const [editingQuestId, setEditingQuestId] = useState<Id | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [deletingQuestId, setDeletingQuestId] = useState<Id | null>(null);
+
+  const { refreshProfile } = useProfile();
 
   async function handleCreate() {
     const title = newTitle.trim();
@@ -81,7 +84,7 @@ export default function QuestsClient() {
       setQuests((qs) => qs.filter((q) => q.id !== questId));
       setTasks((ts) => ts.filter((t) => t.quest_id !== questId));
       setDeletingQuestId(null);
-      window.dispatchEvent(new Event("profile-updated"));
+      refreshProfile();
     } catch (e) {
       alert(getErrorMessage(e));
     }
@@ -107,14 +110,6 @@ export default function QuestsClient() {
 
   useEffect(() => {
     loadData();
-
-    // Listen for updates from other components
-    const handleUpdate = () => loadData();
-    window.addEventListener("profile-updated", handleUpdate);
-
-    return () => {
-      window.removeEventListener("profile-updated", handleUpdate);
-    };
   }, [loadData]);
 
   const tasksByQuest = useMemo(() => {

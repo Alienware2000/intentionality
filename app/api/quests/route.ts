@@ -1,13 +1,41 @@
 // =============================================================================
 // QUESTS API ROUTE
-// Handles CRUD operations for quests.
-// Uses Supabase for both auth and database.
+// Handles CRUD operations for quests (high-level goals).
 // RLS policies enforce that users can only access their own quests.
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  parseJsonBody,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
 import { getLevelFromXp } from "@/app/lib/gamification";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+/** Request body for POST /api/quests */
+type CreateQuestBody = {
+  title?: string;
+};
+
+/** Request body for PATCH /api/quests */
+type UpdateQuestBody = {
+  questId?: string;
+  title?: string;
+};
+
+/** Request body for DELETE /api/quests */
+type DeleteQuestBody = {
+  questId?: string;
+};
+
+// -----------------------------------------------------------------------------
+// GET /api/quests
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/quests
@@ -15,24 +43,16 @@ import { getLevelFromXp } from "@/app/lib/gamification";
  * Fetches all quests for the authenticated user.
  * If the user has no quests, creates a default "General Tasks" quest.
  *
- * RLS ensures only the user's own quests are returned.
+ * @authentication Required
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Quest[]} quests - Array of user's quests
+ *
+ * @throws {401} Not authenticated
+ * @throws {500} Database error
  */
-export async function GET() {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication using getUser() (validates JWT with auth server)
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const GET = withAuth(async ({ user, supabase }) => {
   // Fetch user's quests (RLS automatically filters by user_id)
   const { data: quests, error: fetchError } = await supabase
     .from("quests")
@@ -40,10 +60,7 @@ export async function GET() {
     .order("created_at", { ascending: true });
 
   if (fetchError) {
-    return NextResponse.json(
-      { ok: false, error: fetchError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(fetchError.message);
   }
 
   // Create default quest if user has none
@@ -55,53 +72,43 @@ export async function GET() {
       .single();
 
     if (createError) {
-      return NextResponse.json(
-        { ok: false, error: createError.message },
-        { status: 500 }
-      );
+      return ApiErrors.serverError(createError.message);
     }
 
-    return NextResponse.json({ ok: true, quests: [newQuest] });
+    return successResponse({ quests: [newQuest] });
   }
 
-  return NextResponse.json({ ok: true, quests });
-}
+  return successResponse({ quests });
+});
+
+// -----------------------------------------------------------------------------
+// POST /api/quests
+// -----------------------------------------------------------------------------
 
 /**
  * POST /api/quests
  *
  * Creates a new quest for the authenticated user.
  *
- * Request body:
- * - title: string (required) - The quest title
+ * @authentication Required
  *
- * RLS policy ensures the quest is created with the correct user_id.
+ * @body {string} title - The quest title (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Quest} quest - The created quest
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing title
+ * @throws {500} Database error
  */
-export async function POST(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const POST = withAuth(async ({ user, supabase, request }) => {
   // Parse request body
-  const body = await req.json();
-  const { title } = body as { title?: string };
+  const body = await parseJsonBody<CreateQuestBody>(request);
+  const title = body?.title;
 
   if (!title || !title.trim()) {
-    return NextResponse.json(
-      { ok: false, error: "Missing title" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing title");
   }
 
   // Create the quest (RLS enforces user ownership)
@@ -112,190 +119,152 @@ export async function POST(req: Request) {
     .single();
 
   if (createError) {
-    return NextResponse.json(
-      { ok: false, error: createError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(createError.message);
   }
 
-  return NextResponse.json({ ok: true, quest });
-}
+  return successResponse({ quest });
+});
+
+// -----------------------------------------------------------------------------
+// PATCH /api/quests
+// -----------------------------------------------------------------------------
 
 /**
  * PATCH /api/quests
  *
  * Updates a quest's title.
  *
- * Request body:
- * - questId: string (required) - UUID of the quest
- * - title: string (required) - New title
+ * @authentication Required
  *
- * RLS ensures the quest belongs to the user.
+ * @body {string} questId - UUID of the quest (required)
+ * @body {string} title - New title (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Quest} quest - The updated quest
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing questId or title
+ * @throws {500} Database error
  */
-export async function PATCH(req: Request) {
-  const supabase = await createSupabaseServerClient();
+export const PATCH = withAuth(async ({ supabase, request }) => {
+  const body = await parseJsonBody<UpdateQuestBody>(request);
+  const { questId, title } = body ?? {};
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (!questId) {
+    return ApiErrors.badRequest("Missing questId");
   }
 
-  try {
-    const body = await req.json();
-    const { questId, title } = body as { questId?: string; title?: string };
-
-    if (!questId) {
-      return NextResponse.json(
-        { ok: false, error: "Missing questId" },
-        { status: 400 }
-      );
-    }
-
-    if (!title || !title.trim()) {
-      return NextResponse.json(
-        { ok: false, error: "Missing title" },
-        { status: 400 }
-      );
-    }
-
-    const { data: quest, error: updateError } = await supabase
-      .from("quests")
-      .update({ title: title.trim() })
-      .eq("id", questId)
-      .select()
-      .single();
-
-    if (updateError) {
-      return NextResponse.json(
-        { ok: false, error: updateError.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, quest });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  if (!title || !title.trim()) {
+    return ApiErrors.badRequest("Missing title");
   }
-}
+
+  const { data: quest, error: updateError } = await supabase
+    .from("quests")
+    .update({ title: title.trim() })
+    .eq("id", questId)
+    .select()
+    .single();
+
+  if (updateError) {
+    return ApiErrors.serverError(updateError.message);
+  }
+
+  return successResponse({ quest });
+});
+
+// -----------------------------------------------------------------------------
+// DELETE /api/quests
+// -----------------------------------------------------------------------------
 
 /**
  * DELETE /api/quests
  *
  * Deletes a quest and all its tasks (via cascade).
- *
- * Request body:
- * - questId: string (required) - UUID of the quest to delete
- *
  * Will fail if this is the user's only quest.
  * XP from completed tasks is revoked from user profile.
- * RLS ensures the quest belongs to the user.
+ *
+ * @authentication Required
+ *
+ * @body {string} questId - UUID of the quest to delete (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {number} xpDeducted - Total XP deducted
+ * @returns {number} [newXpTotal] - New XP total after deduction
+ * @returns {number} [newLevel] - New level after deduction
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing questId or cannot delete only quest
+ * @throws {500} Database error
  */
-export async function DELETE(req: Request) {
-  const supabase = await createSupabaseServerClient();
+export const DELETE = withAuth(async ({ user, supabase, request }) => {
+  const body = await parseJsonBody<DeleteQuestBody>(request);
+  const questId = body?.questId;
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (!questId) {
+    return ApiErrors.badRequest("Missing questId");
   }
 
-  try {
-    const body = await req.json();
-    const { questId } = body as { questId?: string };
+  // Check if this is the user's only quest
+  const { count, error: countError } = await supabase
+    .from("quests")
+    .select("*", { count: "exact", head: true });
 
-    if (!questId) {
-      return NextResponse.json(
-        { ok: false, error: "Missing questId" },
-        { status: 400 }
-      );
-    }
+  if (countError) {
+    return ApiErrors.serverError(countError.message);
+  }
 
-    // Check if this is the user's only quest
-    const { count, error: countError } = await supabase
-      .from("quests")
-      .select("*", { count: "exact", head: true });
+  if (count !== null && count <= 1) {
+    return ApiErrors.badRequest("Cannot delete your only quest");
+  }
 
-    if (countError) {
-      return NextResponse.json(
-        { ok: false, error: countError.message },
-        { status: 500 }
-      );
-    }
+  // Sum XP from completed tasks in this quest (to deduct later)
+  const { data: completedTasks } = await supabase
+    .from("tasks")
+    .select("xp_value")
+    .eq("quest_id", questId)
+    .eq("completed", true);
 
-    if (count !== null && count <= 1) {
-      return NextResponse.json(
-        { ok: false, error: "Cannot delete your only quest" },
-        { status: 400 }
-      );
-    }
+  const xpToDeduct =
+    completedTasks?.reduce((sum, t) => sum + (t.xp_value ?? 10), 0) ?? 0;
 
-    // Sum XP from completed tasks in this quest
-    const { data: completedTasks } = await supabase
-      .from("tasks")
-      .select("xp_value")
-      .eq("quest_id", questId)
-      .eq("completed", true);
+  // Delete the quest (tasks cascade due to FK constraint)
+  const { error: deleteError } = await supabase
+    .from("quests")
+    .delete()
+    .eq("id", questId);
 
-    const xpToDeduct = completedTasks?.reduce(
-      (sum, t) => sum + (t.xp_value ?? 10),
-      0
-    ) ?? 0;
+  if (deleteError) {
+    return ApiErrors.serverError(deleteError.message);
+  }
 
-    // Delete the quest (tasks cascade due to FK constraint)
-    const { error: deleteError } = await supabase
-      .from("quests")
-      .delete()
-      .eq("id", questId);
+  // Deduct XP from completed tasks
+  let newXpTotal: number | undefined;
+  let newLevel: number | undefined;
 
-    if (deleteError) {
-      return NextResponse.json(
-        { ok: false, error: deleteError.message },
-        { status: 500 }
-      );
-    }
+  if (xpToDeduct > 0) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("xp_total")
+      .eq("user_id", user.id)
+      .single();
 
-    // Deduct XP from completed tasks
-    let newXpTotal: number | undefined;
-    let newLevel: number | undefined;
+    if (profile) {
+      newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
+      newLevel = getLevelFromXp(newXpTotal);
 
-    if (xpToDeduct > 0) {
-      const { data: profile } = await supabase
+      await supabase
         .from("user_profiles")
-        .select("xp_total")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile) {
-        newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
-        newLevel = getLevelFromXp(newXpTotal);
-
-        await supabase
-          .from("user_profiles")
-          .update({
-            xp_total: newXpTotal,
-            level: newLevel,
-          })
-          .eq("user_id", user.id);
-      }
+        .update({ xp_total: newXpTotal, level: newLevel })
+        .eq("user_id", user.id);
     }
-
-    return NextResponse.json({ ok: true, xpDeducted: xpToDeduct, newXpTotal, newLevel });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
-}
+
+  return NextResponse.json({
+    ok: true,
+    xpDeducted: xpToDeduct,
+    newXpTotal,
+    newLevel,
+  });
+});

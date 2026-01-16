@@ -1,7 +1,24 @@
+// =============================================================================
+// DATE UTILITIES
+// Date manipulation and formatting helpers for the Intentionality app.
+// Handles ISO date strings, week calculations, and time formatting.
+// =============================================================================
+
 import type { ISODateString, Task, TaskWithStatus, DayGroup, DayOfWeek } from "./types";
+
+// -----------------------------------------------------------------------------
+// Date String Conversions
+// -----------------------------------------------------------------------------
 
 /**
  * Get today's date in ISO format (YYYY-MM-DD).
+ *
+ * @returns Today's date as an ISO date string in local timezone
+ *
+ * @example
+ * ```ts
+ * const today = getTodayISO(); // "2025-01-16"
+ * ```
  */
 export function getTodayISO(): ISODateString {
   const d = new Date();
@@ -81,8 +98,27 @@ export function getDayOfWeek(dateISO: ISODateString): DayOfWeek {
   return (jsDay === 0 ? 7 : jsDay) as DayOfWeek;
 }
 
+// -----------------------------------------------------------------------------
+// Task Grouping Utilities
+// NOTE: These functions are reserved for future features
+// -----------------------------------------------------------------------------
+
 /**
  * Group tasks into 7 buckets (Mon-Sun) starting at `start`.
+ *
+ * @future Reserved for weekly calendar view with drag-drop task rescheduling.
+ * This function will be used when implementing a full week calendar view
+ * that allows users to drag tasks between days.
+ *
+ * @param tasks - Array of tasks to group
+ * @param start - ISO date string of the Monday to start from
+ * @returns Array of 7 DayGroup objects, one for each day Mon-Sun
+ *
+ * @example
+ * ```ts
+ * const weekGroups = groupTasksByWeek(tasks, "2025-01-13");
+ * // Returns: [{ date: "2025-01-13", tasks: [...] }, ...]
+ * ```
  */
 export function groupTasksByWeek(tasks: Task[], start: ISODateString): DayGroup[] {
   const grouped: DayGroup[] = [];
@@ -96,6 +132,21 @@ export function groupTasksByWeek(tasks: Task[], start: ISODateString): DayGroup[
 
 /**
  * Split tasks into overdue and today's tasks based on the given date.
+ *
+ * @future Reserved for split-view dashboard showing overdue vs today tasks.
+ * This function will be used when implementing a dashboard that clearly
+ * separates overdue tasks from today's tasks with different visual treatment.
+ *
+ * @param tasks - Array of tasks to split
+ * @param today - ISO date string representing "today"
+ * @returns Object with overdue and today arrays, each containing TaskWithStatus
+ *
+ * @example
+ * ```ts
+ * const { overdue, today } = splitTasksForToday(allTasks, "2025-01-16");
+ * // overdue: tasks with due_date < today and not completed
+ * // today: tasks with due_date === today (completed or not)
+ * ```
  */
 export function splitTasksForToday(
   tasks: Task[],
@@ -122,4 +173,51 @@ export function splitTasksForToday(
 
   overdue.sort((a, b) => compareISO(a.due_date, b.due_date));
   return { overdue, today: todayList };
+}
+
+// -----------------------------------------------------------------------------
+// Time Formatting
+// -----------------------------------------------------------------------------
+
+/**
+ * Format a 24-hour time string (HH:MM) to 12-hour format with AM/PM.
+ *
+ * @param time - Time string in HH:MM format (e.g., "14:30")
+ * @returns Formatted time string (e.g., "2:30 PM")
+ *
+ * @example
+ * ```ts
+ * formatTime("09:00"); // "9:00 AM"
+ * formatTime("14:30"); // "2:30 PM"
+ * formatTime("00:00"); // "12:00 AM"
+ * formatTime("12:00"); // "12:00 PM"
+ * ```
+ */
+export function formatTime(time: string): string {
+  const [hours, minutes] = time.split(":");
+  const h = parseInt(hours, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
+/**
+ * Format seconds into MM:SS countdown format.
+ * Used for timer displays (focus sessions, pomodoro timers).
+ *
+ * @param seconds - Total seconds to format (non-negative)
+ * @returns Formatted string in MM:SS format (e.g., "05:30")
+ *
+ * @example
+ * ```ts
+ * formatCountdown(330);  // "05:30"
+ * formatCountdown(60);   // "01:00"
+ * formatCountdown(5);    // "00:05"
+ * formatCountdown(3600); // "60:00"
+ * ```
+ */
+export function formatCountdown(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }

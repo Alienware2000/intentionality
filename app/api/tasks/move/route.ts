@@ -4,47 +4,53 @@
 // RLS ensures users can only move their own tasks.
 // =============================================================================
 
-import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  parseJsonBody,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+/** Request body for POST /api/tasks/move */
+type MoveTaskBody = {
+  taskId?: string;
+  dueDate?: string;
+};
+
+// -----------------------------------------------------------------------------
+// POST /api/tasks/move
+// -----------------------------------------------------------------------------
 
 /**
  * POST /api/tasks/move
  *
  * Updates the due date of a task.
  *
- * Request body:
- * - taskId: string (required) - UUID of the task to move
- * - dueDate: string (required) - New date in YYYY-MM-DD format
+ * @authentication Required
  *
- * RLS ensures the task belongs to a quest owned by the user.
+ * @body {string} taskId - UUID of the task to move (required)
+ * @body {string} dueDate - New date in YYYY-MM-DD format (required)
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {Task} task - The updated task
+ *
+ * @throws {401} Not authenticated
+ * @throws {400} Missing taskId or dueDate
+ * @throws {404} Task not found
+ * @throws {500} Database error
  */
-export async function POST(req: Request) {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const POST = withAuth(async ({ supabase, request }) => {
   // Parse request body
-  const { taskId, dueDate } = (await req.json()) as {
-    taskId?: string;
-    dueDate?: string;
-  };
+  const body = await parseJsonBody<MoveTaskBody>(request);
+  const { taskId, dueDate } = body ?? {};
 
   if (!taskId || !dueDate) {
-    return NextResponse.json(
-      { ok: false, error: "Missing taskId or dueDate" },
-      { status: 400 }
-    );
+    return ApiErrors.badRequest("Missing taskId or dueDate");
   }
 
   // Verify task exists and belongs to user (RLS enforces this)
@@ -55,10 +61,7 @@ export async function POST(req: Request) {
     .single();
 
   if (fetchError || !existing) {
-    return NextResponse.json(
-      { ok: false, error: "Task not found" },
-      { status: 404 }
-    );
+    return ApiErrors.notFound("Task not found");
   }
 
   // Update the due date
@@ -70,11 +73,8 @@ export async function POST(req: Request) {
     .single();
 
   if (updateError) {
-    return NextResponse.json(
-      { ok: false, error: updateError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(updateError.message);
   }
 
-  return NextResponse.json({ ok: true, task: updated });
-}
+  return successResponse({ task: updated });
+});

@@ -5,30 +5,48 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import {
+  withAuth,
+  parseJsonBody,
+  ApiErrors,
+  successResponse,
+} from "@/app/lib/auth-middleware";
+import { getLocalDateString } from "@/app/lib/gamification";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+/**
+ * Request body for PATCH /api/profile
+ */
+type ProfileUpdateBody = {
+  /** XP amount to add to total */
+  xp_to_add?: number;
+  /** Whether to update the daily streak */
+  update_streak?: boolean;
+};
+
+// -----------------------------------------------------------------------------
+// GET /api/profile
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/profile
  *
  * Fetches the authenticated user's gamification profile.
  * Creates a new profile with defaults if none exists.
+ *
+ * @authentication Required
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {UserProfile} profile - User's gamification profile
+ *
+ * @throws {401} Not authenticated
+ * @throws {500} Database error
  */
-export async function GET() {
-  const supabase = await createSupabaseServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
-  }
-
+export const GET = withAuth(async ({ user, supabase }) => {
   // Try to fetch existing profile
   const { data: profile, error: fetchError } = await supabase
     .from("user_profiles")
@@ -36,7 +54,7 @@ export async function GET() {
     .eq("user_id", user.id)
     .single();
 
-  // If profile doesn't exist, create one
+  // If profile doesn't exist (PGRST116 = no rows returned), create one
   if (fetchError?.code === "PGRST116") {
     const { data: newProfile, error: createError } = await supabase
       .from("user_profiles")
@@ -52,24 +70,23 @@ export async function GET() {
       .single();
 
     if (createError) {
-      return NextResponse.json(
-        { ok: false, error: createError.message },
-        { status: 500 }
-      );
+      return ApiErrors.serverError(createError.message);
     }
 
-    return NextResponse.json({ ok: true, profile: newProfile });
+    return successResponse({ profile: newProfile });
   }
 
+  // Handle other database errors
   if (fetchError) {
-    return NextResponse.json(
-      { ok: false, error: fetchError.message },
-      { status: 500 }
-    );
+    return ApiErrors.serverError(fetchError.message);
   }
 
-  return NextResponse.json({ ok: true, profile });
-}
+  return successResponse({ profile });
+});
+
+// -----------------------------------------------------------------------------
+// PATCH /api/profile
+// -----------------------------------------------------------------------------
 
 /**
  * PATCH /api/profile
@@ -77,115 +94,99 @@ export async function GET() {
  * Updates the user's gamification profile.
  * Used after task completion to award XP and update streaks.
  *
- * Request body:
- * - xp_to_add?: number - XP to add to total
- * - update_streak?: boolean - Whether to update streak
+ * @authentication Required
+ *
+ * @body {number} [xp_to_add] - XP to add to total
+ * @body {boolean} [update_streak] - Whether to update streak
+ *
+ * @returns {Object} Response object
+ * @returns {boolean} ok - Success indicator
+ * @returns {UserProfile} profile - Updated profile
+ * @returns {number} [xpGained] - XP added this request
+ * @returns {boolean} [leveledUp] - True if user leveled up
+ *
+ * @throws {401} Not authenticated
+ * @throws {404} Profile not found
+ * @throws {500} Database error
  */
-export async function PATCH(req: Request) {
-  const supabase = await createSupabaseServerClient();
+export const PATCH = withAuth(async ({ user, supabase, request }) => {
+  // Parse request body
+  const body = await parseJsonBody<ProfileUpdateBody>(request);
+  const xp_to_add = body?.xp_to_add;
+  const update_streak = body?.update_streak;
 
-  // Verify authentication
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  // Fetch current profile
+  const { data: currentProfile, error: fetchError } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
 
-  if (authError || !user) {
-    return NextResponse.json(
-      { ok: false, error: "Not authenticated" },
-      { status: 401 }
-    );
+  if (fetchError) {
+    return ApiErrors.notFound("Profile not found");
   }
 
-  try {
-    const body = await req.json();
-    const { xp_to_add, update_streak } = body as {
-      xp_to_add?: number;
-      update_streak?: boolean;
-    };
+  // Build updates object
+  const today = getLocalDateString();
+  const updates: Record<string, unknown> = {};
 
-    // Fetch current profile
-    const { data: currentProfile, error: fetchError } = await supabase
+  // Calculate new XP and level if XP is being added
+  if (xp_to_add && xp_to_add > 0) {
+    const newXpTotal = currentProfile.xp_total + xp_to_add;
+    // Level formula: level = floor(0.5 + sqrt(0.25 + xp/50))
+    const newLevel = Math.floor(0.5 + Math.sqrt(0.25 + newXpTotal / 50));
+
+    updates.xp_total = newXpTotal;
+    updates.level = newLevel;
+  }
+
+  // Update streak if requested
+  if (update_streak) {
+    const lastActive = currentProfile.last_active_date;
+
+    // Only update if not already active today
+    if (lastActive !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getLocalDateString(yesterday);
+
+      // Calculate new streak
+      const newStreak =
+        lastActive === yesterdayStr
+          ? currentProfile.current_streak + 1 // Consecutive day
+          : 1; // Streak broken, start fresh
+
+      updates.current_streak = newStreak;
+      updates.last_active_date = today;
+
+      // Update longest streak if this is a new record
+      if (newStreak > currentProfile.longest_streak) {
+        updates.longest_streak = newStreak;
+      }
+    }
+  }
+
+  // Apply updates if any changes
+  if (Object.keys(updates).length > 0) {
+    const { data: updatedProfile, error: updateError } = await supabase
       .from("user_profiles")
-      .select("*")
+      .update(updates)
       .eq("user_id", user.id)
+      .select()
       .single();
 
-    if (fetchError) {
-      return NextResponse.json(
-        { ok: false, error: "Profile not found" },
-        { status: 404 }
-      );
+    if (updateError) {
+      return ApiErrors.serverError(updateError.message);
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const updates: Record<string, unknown> = {};
-
-    // Calculate new XP and level
-    if (xp_to_add && xp_to_add > 0) {
-      const newXpTotal = currentProfile.xp_total + xp_to_add;
-      const newLevel = Math.floor(0.5 + Math.sqrt(0.25 + newXpTotal / 50));
-
-      updates.xp_total = newXpTotal;
-      updates.level = newLevel;
-    }
-
-    // Update streak
-    if (update_streak) {
-      const lastActive = currentProfile.last_active_date;
-
-      if (lastActive !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-        let newStreak: number;
-
-        if (lastActive === yesterdayStr) {
-          // Consecutive day, increment streak
-          newStreak = currentProfile.current_streak + 1;
-        } else {
-          // Streak broken, start at 1
-          newStreak = 1;
-        }
-
-        updates.current_streak = newStreak;
-        updates.last_active_date = today;
-
-        // Update longest streak if needed
-        if (newStreak > currentProfile.longest_streak) {
-          updates.longest_streak = newStreak;
-        }
-      }
-    }
-
-    // Apply updates if any
-    if (Object.keys(updates).length > 0) {
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from("user_profiles")
-        .update(updates)
-        .eq("user_id", user.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        return NextResponse.json(
-          { ok: false, error: updateError.message },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        ok: true,
-        profile: updatedProfile,
-        xpGained: xp_to_add,
-        leveledUp: updatedProfile.level > currentProfile.level,
-      });
-    }
-
-    return NextResponse.json({ ok: true, profile: currentProfile });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({
+      ok: true,
+      profile: updatedProfile,
+      xpGained: xp_to_add,
+      leveledUp: updatedProfile.level > currentProfile.level,
+    });
   }
-}
+
+  // No changes needed
+  return successResponse({ profile: currentProfile });
+});

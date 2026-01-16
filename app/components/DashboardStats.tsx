@@ -7,14 +7,15 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import StatCard from "./StatCard";
-import type { Task, Quest, UserProfile, HabitWithStatus } from "@/app/lib/types";
+import type { Task, Quest, HabitWithStatus } from "@/app/lib/types";
+import { useProfile } from "./ProfileProvider";
 
 type Props = {
   date: string;
 };
 
 export default function DashboardStats({ date }: Props) {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { profile, loading: profileLoading } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
@@ -22,26 +23,23 @@ export default function DashboardStats({ date }: Props) {
 
   const loadStats = useCallback(async () => {
     try {
-      const [profileRes, tasksRes, questsRes, habitsRes] = await Promise.all([
-        fetch("/api/profile"),
+      const [tasksRes, questsRes, habitsRes] = await Promise.all([
         fetch(`/api/tasks/for-today?date=${date}`),
         fetch("/api/quests"),
         fetch(`/api/habits?date=${date}`),
       ]);
 
-      const [profileData, tasksData, questsData, habitsData] = await Promise.all([
-        profileRes.json(),
+      const [tasksData, questsData, habitsData] = await Promise.all([
         tasksRes.json(),
         questsRes.json(),
         habitsRes.json(),
       ]);
 
-      if (profileData.ok) setProfile(profileData.profile);
       if (tasksData.ok) setTasks(tasksData.tasks);
       if (questsData.ok) setQuests(questsData.quests);
       if (habitsData.ok) setHabits(habitsData.habits);
-    } catch (e) {
-      console.error("Failed to load stats", e);
+    } catch {
+      // Silent fail - stats will show defaults
     } finally {
       setLoading(false);
     }
@@ -49,14 +47,6 @@ export default function DashboardStats({ date }: Props) {
 
   useEffect(() => {
     loadStats();
-
-    // Listen for updates from other components
-    const handleUpdate = () => loadStats();
-    window.addEventListener("profile-updated", handleUpdate);
-
-    return () => {
-      window.removeEventListener("profile-updated", handleUpdate);
-    };
   }, [loadStats]);
 
   // Pre-compute tasks by quest for O(1) lookups instead of O(N×M)
@@ -83,7 +73,7 @@ export default function DashboardStats({ date }: Props) {
   const completedHabits = useMemo(() => habits.filter((h) => h.completedToday).length, [habits]);
   const totalHabits = habits.length;
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[1, 2, 3, 4, 5].map((i) => (
