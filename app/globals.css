@@ -5,7 +5,9 @@
    Inspired by anime.js: dramatic dark theme with high-contrast accents
    ============================================================================= */
 
-:root {
+/* Dark theme (default) */
+:root,
+:root.dark {
   /* Base colors - true black with dramatic contrast */
   --bg-base: #000000;
   --bg-elevated: #0a0a0a;
@@ -36,6 +38,40 @@
   /* Legacy - for Tailwind compatibility */
   --background: #000000;
   --foreground: #ffffff;
+}
+
+/* Light theme - Soft peach/cream palette */
+:root.light {
+  /* Base colors - soft warm cream tones */
+  --bg-base: #f5e9ca;              /* Light cream/vanilla */
+  --bg-elevated: #faf3e0;          /* Lighter cream */
+  --bg-card: #edd5a4;              /* Light tan/wheat */
+  --bg-hover: #f6bd89;             /* Warm peach/apricot */
+
+  /* Text colors - warm browns */
+  --text-primary: #3d2e1c;         /* Dark warm brown */
+  --text-secondary: #5c4a32;       /* Medium brown */
+  --text-muted: #8a7355;           /* Light brown */
+
+  /* Accent colors - warm complementary tones */
+  --accent-primary: #c76f3b;        /* Burnt sienna */
+  --accent-highlight: #f6bd89;      /* Peach */
+  --accent-success: #6b8e5a;        /* Sage green */
+  --accent-streak: #d4854a;         /* Warm amber */
+
+  /* Priority colors */
+  --priority-high: #b85a3a;         /* Terracotta */
+  --priority-medium: #c9884d;       /* Amber */
+  --priority-low: #8a7355;          /* Warm gray-brown */
+
+  /* Borders and lines */
+  --border-subtle: rgba(93, 74, 50, 0.10);
+  --border-default: rgba(93, 74, 50, 0.15);
+  --border-accent: rgba(199, 111, 59, 0.30);
+
+  /* Legacy - for Tailwind compatibility */
+  --background: #f5e9ca;
+  --foreground: #3d2e1c;
 }
 
 @theme inline {
@@ -75,7 +111,7 @@ body {
   opacity: 0.4;
 }
 
-/* Glow layer - red accent glows at corners */
+/* Glow layer - red accent glows at corners (dark mode) */
 .intentionality-bg::after {
   content: "";
   position: absolute;
@@ -88,6 +124,24 @@ body {
     /* Vignette for depth */
     radial-gradient(1400px circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
   opacity: 1;
+}
+
+/* Light mode background adjustments - soft peach/cream tones */
+:root.light .intentionality-bg::before {
+  background-image:
+    linear-gradient(to right, rgba(93, 74, 50, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(93, 74, 50, 0.05) 1px, transparent 1px);
+  opacity: 0.2;
+}
+
+:root.light .intentionality-bg::after {
+  background:
+    /* Top-left soft peach glow */
+    radial-gradient(600px circle at 10% 10%, rgba(246, 189, 137, 0.15), transparent 50%),
+    /* Bottom-right warm tan glow */
+    radial-gradient(800px circle at 90% 90%, rgba(237, 213, 164, 0.12), transparent 50%),
+    /* Subtle warm vignette */
+    radial-gradient(1400px circle at 50% 50%, transparent 50%, rgba(93, 74, 50, 0.04) 100%);
 }
 
 /* =============================================================================
@@ -157,5 +211,22 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-glow {
     animation: none;
+  }
+}
+
+/* =============================================================================
+   MOBILE SAFE AREA
+   Support for notched phones (iPhone X+, etc.)
+   ============================================================================= */
+
+/* Safe area padding for bottom navigation */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Ensure proper viewport handling on iOS */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

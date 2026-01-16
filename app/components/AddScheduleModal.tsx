@@ -180,7 +180,7 @@ export default function AddScheduleModal({
             transition={{ duration: 0.1 }}
             className={cn(
               "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-full max-w-md p-6 rounded-lg",
+              "w-full max-w-md p-4 sm:p-6 rounded-lg mx-4 sm:mx-0",
               "bg-[var(--bg-card)] border border-[var(--border-default)]",
               "max-h-[90vh] overflow-y-auto"
             )}
@@ -222,8 +222,8 @@ export default function AddScheduleModal({
                 />
               </div>
 
-              {/* Time Range */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Time Range - stacks on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
                     Start Time
@@ -267,7 +267,7 @@ export default function AddScheduleModal({
                 <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
                   Days
                 </label>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {DAYS.map((day) => (
                     <button
                       key={day.value}
@@ -275,7 +275,7 @@ export default function AddScheduleModal({
                       onClick={() => toggleDay(day.value)}
                       title={day.label}
                       className={cn(
-                        "flex-1 h-10 rounded text-sm font-medium transition-all",
+                        "flex-1 min-w-[40px] h-10 rounded text-sm font-medium transition-all",
                         daysOfWeek.includes(day.value)
                           ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
@@ -328,8 +328,8 @@ export default function AddScheduleModal({
                 />
               </div>
 
-              {/* Date Range (optional) */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Date Range (optional) - stacks on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
                     Start Date (Optional)

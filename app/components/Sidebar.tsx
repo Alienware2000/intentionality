@@ -8,12 +8,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Target } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import { useProfile } from "./ProfileProvider";
+import { useTheme } from "./ThemeProvider";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -23,6 +24,9 @@ const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "This Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 // -----------------------------------------------------------------------------
@@ -37,6 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, loading } = useProfile();
+  const { theme, toggleTheme } = useTheme();
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
@@ -45,7 +50,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="h-screen w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex flex-col">
+    <aside className="hidden md:flex h-screen w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex-col">
       {/* Header */}
       <div className="p-6 pb-4">
         <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
@@ -113,8 +118,20 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Sign Out */}
-      <div className="p-6 pt-0">
+      {/* Theme Toggle & Sign Out */}
+      <div className="p-6 pt-0 space-y-1">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+            "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+            "hover:bg-[var(--bg-hover)] transition-colors duration-150"
+          )}
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          <span className="text-sm">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
         <button
           type="button"
           onClick={handleSignOut}

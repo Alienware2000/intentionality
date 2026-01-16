@@ -102,13 +102,13 @@ export default function FocusLauncher() {
                 <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
                   Duration
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {DURATION_PRESETS.map((preset, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedPreset(i)}
                       className={cn(
-                        "px-3 py-2 rounded text-sm font-medium transition-all",
+                        "px-3 py-2.5 sm:py-2 rounded text-sm font-medium transition-all",
                         selectedPreset === i
                           ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
