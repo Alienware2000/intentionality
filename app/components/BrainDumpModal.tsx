@@ -103,7 +103,7 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={cn(
               "fixed top-[10%] sm:top-[20%] left-1/2 -translate-x-1/2 z-50",
-              "w-full max-w-lg p-4 sm:p-6 rounded-lg mx-4 sm:mx-0",
+              "w-[calc(100%-32px)] sm:w-full max-w-lg p-4 sm:p-6 rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-default)]",
               "shadow-2xl shadow-black/50",
               "max-h-[85vh] overflow-y-auto"

@@ -50,7 +50,7 @@ function XpGainAnimation({ xp, onComplete }: { xp: number; onComplete: () => voi
       exit={{ opacity: 0, y: -60, scale: 0.8 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
       onAnimationComplete={onComplete}
-      className="fixed bottom-24 right-8 z-50 pointer-events-none"
+      className="fixed bottom-24 right-4 sm:right-8 z-50 pointer-events-none"
     >
       <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent-primary)] shadow-lg">
         <Zap size={18} className="text-white" />
@@ -99,7 +99,7 @@ function LevelUpAnimation({ level, onComplete }: { level: number; onComplete: ()
           <p className="text-lg font-bold tracking-widest uppercase text-[var(--text-muted)]">
             Level Up!
           </p>
-          <p className="text-6xl font-mono font-bold text-[var(--accent-highlight)] mt-2">
+          <p className="text-4xl sm:text-6xl font-mono font-bold text-[var(--accent-highlight)] mt-2">
             LVL {level}
           </p>
         </div>
@@ -124,7 +124,7 @@ function StreakMilestoneAnimation({ streak, onComplete }: { streak: number; onCo
       exit={{ opacity: 0, x: 100 }}
       transition={{ type: "spring", duration: 0.5 }}
       onAnimationComplete={() => setTimeout(onComplete, 2000)}
-      className="fixed top-24 right-8 z-50"
+      className="fixed top-20 right-4 sm:top-24 sm:right-8 z-50"
     >
       <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--bg-card)] border border-[var(--accent-streak)] shadow-lg">
         <div className="p-2 rounded-full bg-[var(--accent-streak)]/20">
@@ -155,7 +155,7 @@ function QuestCompleteAnimation({ questName, onComplete }: { questName: string; 
       exit={{ opacity: 0, y: -50 }}
       transition={{ type: "spring", duration: 0.5 }}
       onAnimationComplete={() => setTimeout(onComplete, 3000)}
-      className="fixed top-24 left-1/2 -translate-x-1/2 z-50"
+      className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-50"
     >
       <div className="flex items-center gap-3 px-6 py-4 rounded-lg bg-[var(--bg-card)] border border-[var(--accent-success)] shadow-lg">
         <div className="p-2 rounded-full bg-[var(--accent-success)]/20">

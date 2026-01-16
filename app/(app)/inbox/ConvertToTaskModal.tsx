@@ -110,7 +110,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
             transition={{ duration: 0.1 }}
             className={cn(
               "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-full max-w-md p-6 rounded-lg",
+              "w-[calc(100%-32px)] sm:w-full max-w-md p-4 sm:p-6 rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-default)]"
             )}
             onKeyDown={handleKeyDown}
