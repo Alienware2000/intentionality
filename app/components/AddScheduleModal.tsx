@@ -156,7 +156,8 @@ export default function AddScheduleModal({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") onClose();
-    if (e.key === "Enter" && e.metaKey) handleSave();
+    // Support both Cmd+Enter (Mac) and Ctrl+Enter (Windows/Linux)
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
   }
 
   return (

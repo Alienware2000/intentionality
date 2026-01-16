@@ -279,15 +279,44 @@ export default function CanvasConnectionCard() {
             className="border-b border-[var(--border-subtle)] overflow-hidden"
           >
             <div className="p-4 space-y-4">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Enter your Canvas instance URL and a Personal Access Token.
-                You can generate a token in Canvas under{" "}
-                <span className="text-[var(--text-primary)]">
-                  Account → Settings → Approved Integrations
-                </span>.
-              </p>
-
+              {/* Step-by-step instructions */}
               <div className="space-y-3">
+                <h4 className="text-sm font-medium text-[var(--text-primary)]">
+                  How to get your Access Token:
+                </h4>
+                <ol className="text-sm text-[var(--text-secondary)] space-y-2 list-decimal list-inside">
+                  <li>Log into your Canvas account</li>
+                  <li>Click your <span className="text-[var(--text-primary)]">profile picture</span> → <span className="text-[var(--text-primary)]">Settings</span></li>
+                  <li>Scroll to <span className="text-[var(--text-primary)]">&quot;Approved Integrations&quot;</span> section</li>
+                  <li>Click <span className="text-[var(--text-primary)]">&quot;+ New Access Token&quot;</span></li>
+                  <li>Enter a purpose (e.g., &quot;Intentionality&quot;) and click <span className="text-[var(--text-primary)]">&quot;Generate Token&quot;</span></li>
+                  <li>Copy the token immediately (it won&apos;t be shown again!)</li>
+                </ol>
+
+                {instanceUrl.trim() && (
+                  <a
+                    href={`https://${instanceUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}/profile/settings`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-[var(--accent-primary)] hover:underline"
+                  >
+                    Open Canvas Settings
+                    <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
+
+              {/* Warning about CAS/SSO */}
+              <div className="p-3 rounded bg-[var(--bg-hover)] border border-[var(--border-subtle)]">
+                <p className="text-xs text-[var(--text-muted)]">
+                  <span className="font-medium text-[var(--text-secondary)]">Note:</span>{" "}
+                  Some schools using CAS/SSO authentication may have disabled API access tokens.
+                  If you can&apos;t find the &quot;New Access Token&quot; button or get authentication errors,
+                  contact your school&apos;s IT department to check if Canvas API access is enabled.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-2">
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
                     Canvas URL
@@ -305,6 +334,9 @@ export default function CanvasConnectionCard() {
                       "transition-colors"
                     )}
                   />
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Just the domain, e.g., &quot;canvas.university.edu&quot; (no https://)
+                  </p>
                 </div>
 
                 <div>
@@ -313,21 +345,24 @@ export default function CanvasConnectionCard() {
                   </label>
                   <input
                     type="password"
-                    placeholder="Your personal access token"
+                    placeholder="Paste your token here"
                     value={accessToken}
                     onChange={(e) => setAccessToken(e.target.value)}
                     className={cn(
-                      "w-full px-3 py-2 rounded",
+                      "w-full px-3 py-2 rounded font-mono text-sm",
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
                       "transition-colors"
                     )}
                   />
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Starts with a number, looks like: 1234~AbCdEfGhIjKlMnOp...
+                  </p>
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end pt-2">
                 <button
                   onClick={() => setShowConnectForm(false)}
                   className={cn(

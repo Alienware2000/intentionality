@@ -10,6 +10,7 @@ A gamified student productivity dashboard ("Personal OS") built with Next.js and
 - **Styling**: Tailwind CSS with CSS custom properties
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
+- **Charts**: Recharts (analytics visualizations)
 
 ## Project Structure
 
@@ -17,39 +18,60 @@ A gamified student productivity dashboard ("Personal OS") built with Next.js and
 app/
 ├── (app)/                    # Authenticated app routes
 │   ├── page.tsx              # Dashboard (Command Center)
-│   ├── layout.tsx            # App layout with ProfileProvider + FocusProvider
+│   ├── layout.tsx            # App layout with providers
+│   ├── analytics/            # Analytics dashboard
+│   │   └── AnalyticsClient.tsx
+│   ├── inbox/                # Brain dump inbox
+│   │   └── InboxClient.tsx
 │   ├── quests/               # Quests management
-│   │   └── QuestsClient.tsx  # Quest CRUD UI
+│   │   └── QuestsClient.tsx
+│   ├── settings/             # Settings & integrations
+│   │   └── SettingsClient.tsx
 │   └── week/                 # Weekly view
-│       └── WeekClient.tsx    # Week calendar UI
+│       └── WeekClient.tsx
 ├── (auth)/auth/              # Authentication pages
-├── api/                      # API routes (16 endpoints)
-│   ├── profile/              # User gamification profile
-│   ├── quests/               # Quest CRUD
-│   ├── tasks/                # Task CRUD
-│   │   ├── route.ts          # GET/POST/PATCH/DELETE
-│   │   ├── toggle/           # Toggle completion
-│   │   ├── move/             # Change due date
-│   │   ├── range/            # Date range query
-│   │   └── for-today/        # Today + overdue
-│   ├── habits/               # Daily habits
-│   │   ├── route.ts          # CRUD
-│   │   └── complete/         # Toggle completion
-│   ├── schedule/             # Recurring schedule blocks
-│   │   ├── route.ts          # CRUD
-│   │   ├── complete/         # Toggle completion
-│   │   └── completions/      # Get completions by date
+├── api/                      # API routes
+│   ├── analytics/            # Aggregated stats for charts
+│   ├── brain-dump/           # Brain dump CRUD
+│   ├── day-timeline/         # Combined day view data
 │   ├── focus/                # Pomodoro focus sessions
 │   │   ├── route.ts          # GET/POST
 │   │   ├── complete/         # Finish session (awards XP)
 │   │   └── abandon/          # Cancel session
-│   └── day-timeline/         # Combined day view data
+│   ├── habits/               # Daily habits
+│   │   ├── route.ts          # CRUD
+│   │   └── complete/         # Toggle completion
+│   ├── integrations/
+│   │   └── canvas/           # Canvas LMS integration
+│   │       ├── route.ts      # Connection management
+│   │       ├── courses/      # Course selection
+│   │       └── sync/         # Sync assignments to tasks
+│   ├── profile/              # User gamification profile
+│   ├── quests/               # Quest CRUD
+│   ├── schedule/             # Recurring schedule blocks
+│   │   ├── route.ts          # CRUD
+│   │   ├── complete/         # Toggle completion
+│   │   └── completions/      # Get completions by date
+│   └── tasks/                # Task CRUD
+│       ├── route.ts          # GET/POST/PATCH/DELETE
+│       ├── toggle/           # Toggle completion
+│       ├── move/             # Change due date
+│       ├── range/            # Date range query
+│       └── for-today/        # Today + overdue
 ├── components/               # UI components
-│   ├── ProfileProvider.tsx   # Profile state context
-│   ├── FocusProvider.tsx     # Focus session context
-│   ├── Sidebar.tsx           # Navigation with XP bar
+│   ├── BrainDumpModal.tsx    # Quick capture modal (Ctrl+K)
+│   ├── BrainDumpProvider.tsx # Global keyboard shortcut
+│   ├── CelebrationOverlay.tsx # XP/level-up animations
 │   ├── DayTimeline.tsx       # Unified day view (tasks + schedule)
+│   ├── FocusProvider.tsx     # Focus session context
 │   ├── HabitsClient.tsx      # Habits management
+│   ├── ProfileProvider.tsx   # Profile state context
+│   ├── QuickActions.tsx      # Dashboard quick action buttons
+│   ├── Sidebar.tsx           # Navigation with XP bar
+│   ├── ThemeProvider.tsx     # Dark/light mode context
+│   ├── charts/               # Analytics chart components
+│   │   ├── XpChart.tsx       # XP history area chart
+│   │   └── ActivityHeatmap.tsx # GitHub-style activity grid
 │   └── ...                   # Other components
 └── lib/
     ├── supabase/             # Supabase client (server + browser)
@@ -124,17 +146,72 @@ import { PRIORITY_BORDER_COLORS, PRIORITY_LABELS } from "@/app/lib/constants";
 Use shared formatters from `lib/date-utils.ts`:
 
 ```typescript
-import { formatTime, formatCountdown, getLocalDateString } from "@/app/lib/date-utils";
+import { formatTime, formatCountdown, getTodayISO, formatDisplayDate } from "@/app/lib/date-utils";
 
-formatTime("14:30")       // "2:30 PM"
-formatCountdown(90)       // "01:30"
-getLocalDateString()      // "2024-01-15"
+formatTime("14:30")           // "2:30 PM"
+formatCountdown(90)           // "01:30"
+getTodayISO()                 // "2025-01-16"
+formatDisplayDate("2025-01-16") // "Thursday, January 16, 2025"
+```
+
+### Brain Dump System
+
+Quick capture via `Ctrl+K` / `Cmd+K` with global provider:
+
+```typescript
+import { useBrainDump } from "@/app/components/BrainDumpProvider";
+
+function MyComponent() {
+  const { openBrainDump, isOpen } = useBrainDump();
+
+  return <button onClick={openBrainDump}>Quick Capture</button>;
+}
+```
+
+Brain dump entries are stored in `brain_dump_entries` and can be viewed/converted to tasks in `/inbox`.
+
+### Theme System
+
+Dark/light mode toggle via `ThemeProvider`:
+
+```typescript
+import { useTheme } from "@/app/components/ThemeProvider";
+
+function MyComponent() {
+  const { theme, toggleTheme } = useTheme();
+
+  return <button onClick={toggleTheme}>{theme === "dark" ? "🌙" : "☀️"}</button>;
+}
+```
+
+Theme persists to localStorage and respects system preference on first load.
+
+### Celebration System
+
+XP gains and level-ups trigger celebratory animations via `CelebrationProvider`:
+
+```typescript
+import { useCelebration } from "@/app/components/CelebrationOverlay";
+
+function MyComponent() {
+  const { triggerXp, triggerLevelUp, triggerStreak } = useCelebration();
+
+  // After completing a task:
+  triggerXp(25);
+
+  // On level up:
+  triggerLevelUp(5);
+
+  // On streak milestone:
+  triggerStreak(7);
+}
 ```
 
 ## Design System
 
-Anime.js-inspired dark theme with dramatic contrast:
+Anime.js-inspired dark theme (default) with soft peach/cream light theme:
 
+**Dark Theme:**
 ```css
 --bg-base: #000000           /* Pure black background */
 --bg-card: #111111           /* Card backgrounds */
@@ -142,16 +219,31 @@ Anime.js-inspired dark theme with dramatic contrast:
 --accent-highlight: #ebffa5  /* Lime - achievements */
 --accent-success: #22c55e    /* Green - completions */
 --accent-streak: #f97316     /* Orange - streaks */
---priority-high: #ef4444     /* Red */
---priority-medium: #eab308   /* Yellow */
---priority-low: #6b7280      /* Grey */
+```
+
+**Light Theme:**
+```css
+--bg-base: #f5e9ca           /* Light cream/vanilla */
+--bg-card: #edd5a4           /* Light tan/wheat */
+--accent-primary: #c76f3b    /* Burnt sienna */
+--accent-highlight: #f6bd89  /* Peach */
+--accent-success: #6b8e5a    /* Sage green */
+--accent-streak: #d4854a     /* Warm amber */
+```
+
+**Priority Colors:**
+```css
+--priority-high: #ef4444     /* Red (dark) / #b85a3a (light) */
+--priority-medium: #eab308   /* Yellow (dark) / #c9884d (light) */
+--priority-low: #525252      /* Grey (dark) / #8a7355 (light) */
 ```
 
 **Design patterns:**
-- Uppercase headers with red gradient underlines
-- Priority indicated by left border color (red/yellow/grey)
+- Uppercase headers with accent gradient underlines
+- Priority indicated by left border color
 - Monospace font for numbers, dates, XP values
 - Minimal borders, high contrast
+- Mobile-first responsive design
 
 ## Gamification
 
@@ -183,6 +275,41 @@ All tables use RLS policies scoped to authenticated user.
 | `schedule_blocks` | Recurring calendar blocks |
 | `schedule_block_completions` | Block completions by date |
 | `focus_sessions` | Pomodoro timer sessions |
+| `brain_dump_entries` | Quick capture inbox entries |
+| `canvas_connections` | Canvas LMS OAuth credentials |
+| `synced_assignments` | Canvas assignment sync tracking |
+
+## Key Features
+
+### Dashboard (Command Center)
+- Overview stats with icons (habits, tasks, XP, streak, quests)
+- Quick actions bar (Brain Dump, Inbox, Analytics links)
+- Focus session launcher with XP preview
+- Daily habits management
+- Today's timeline (tasks + schedule blocks)
+
+### Brain Dump (`/inbox`)
+- Quick capture modal via `Ctrl+K` / `Cmd+K`
+- Inbox page to view captured thoughts
+- Convert entries to tasks with quest assignment
+
+### Analytics (`/analytics`)
+- XP history line chart (30 days)
+- GitHub-style activity heatmap
+- Completion rate stats
+- Focus session trends
+
+### Canvas Integration (`/settings`)
+- Connect to Canvas LMS instance
+- Select courses to sync
+- Auto-import assignments as tasks
+- Creates quests per course
+
+### Theme Toggle
+- Dark mode (default): Dramatic black with red accents
+- Light mode: Soft peach/cream palette
+- Toggle in sidebar
+- System preference detection
 
 ## Commands
 

@@ -67,10 +67,12 @@ export const GET = withAuth(async ({ supabase, request }) => {
             .eq("due_date", date)
             .order("created_at", { ascending: true }),
 
-      // Fetch all schedule blocks
+      // Fetch schedule blocks active on this date
       supabase
         .from("schedule_blocks")
         .select("*")
+        .or(`start_date.is.null,start_date.lte.${date}`)
+        .or(`end_date.is.null,end_date.gte.${date}`)
         .order("start_time", { ascending: true }),
 
       // Fetch completions for this date

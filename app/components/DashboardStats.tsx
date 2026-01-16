@@ -2,10 +2,11 @@
 
 // =============================================================================
 // DASHBOARD STATS COMPONENT
-// Displays key stats: tasks today, XP, streak, quests.
+// Displays key stats with icons: habits, tasks, XP, streak, quests.
 // =============================================================================
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { Heart, CheckCircle, Zap, Flame, Target } from "lucide-react";
 import StatCard from "./StatCard";
 import type { Task, Quest, HabitWithStatus } from "@/app/lib/types";
 import { useProfile } from "./ProfileProvider";
@@ -91,23 +92,35 @@ export default function DashboardStats({ date }: Props) {
       <StatCard
         value={`${completedHabits}/${totalHabits}`}
         label="habits today"
+        icon={Heart}
         accent
+        accentColor="primary"
       />
       <StatCard
         value={`${completedToday}/${totalToday}`}
         label="tasks today"
+        icon={CheckCircle}
+        accent
+        accentColor="success"
       />
       <StatCard
         value={profile?.xp_total ?? 0}
         label="total XP"
+        icon={Zap}
+        accent
+        accentColor="highlight"
       />
       <StatCard
         value={profile?.current_streak ?? 0}
         label="day streak"
+        icon={Flame}
+        accent
+        accentColor="streak"
       />
       <StatCard
         value={`${completedQuests}/${quests.length}`}
         label="quests done"
+        icon={Target}
       />
     </div>
   );

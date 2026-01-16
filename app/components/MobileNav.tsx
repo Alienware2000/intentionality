@@ -4,6 +4,7 @@
 // MOBILE NAVIGATION COMPONENT
 // Bottom navigation bar for mobile devices with hamburger menu.
 // Fixed to bottom on mobile, hidden on desktop (md+).
+// Includes floating action button for Brain Dump quick capture.
 // =============================================================================
 
 import { useState } from "react";
@@ -20,10 +21,12 @@ import {
   LogOut,
   Sun,
   Moon,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
+import { useBrainDump } from "./BrainDumpProvider";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
@@ -48,6 +51,7 @@ export default function MobileNav() {
   const router = useRouter();
   const { profile, loading } = useProfile();
   const { theme, toggleTheme } = useTheme();
+  const { openBrainDump } = useBrainDump();
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleSignOut() {
@@ -59,6 +63,23 @@ export default function MobileNav() {
 
   return (
     <>
+      {/* Floating Action Button - Brain Dump (mobile only) */}
+      <button
+        onClick={openBrainDump}
+        className={cn(
+          "fixed right-4 bottom-20 z-40 md:hidden",
+          "w-12 h-12 rounded-full",
+          "bg-[var(--accent-primary)] text-white",
+          "flex items-center justify-center",
+          "shadow-lg hover:shadow-xl",
+          "transition-all duration-200",
+          "active:scale-95"
+        )}
+        aria-label="Quick capture"
+      >
+        <Brain size={22} />
+      </button>
+
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[var(--bg-card)] border-t border-[var(--border-default)] pb-safe">
         <div className="flex items-center justify-around h-16">
