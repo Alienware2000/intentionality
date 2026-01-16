@@ -7,7 +7,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import StatCard from "./StatCard";
-import type { Task, Quest, UserProfile } from "@/app/lib/types";
+import type { Task, Quest, UserProfile, HabitWithStatus } from "@/app/lib/types";
 
 type Props = {
   date: string;
@@ -17,25 +17,29 @@ export default function DashboardStats({ date }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
+  const [habits, setHabits] = useState<HabitWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadStats = useCallback(async () => {
     try {
-      const [profileRes, tasksRes, questsRes] = await Promise.all([
+      const [profileRes, tasksRes, questsRes, habitsRes] = await Promise.all([
         fetch("/api/profile"),
         fetch(`/api/tasks/for-today?date=${date}`),
         fetch("/api/quests"),
+        fetch(`/api/habits?date=${date}`),
       ]);
 
-      const [profileData, tasksData, questsData] = await Promise.all([
+      const [profileData, tasksData, questsData, habitsData] = await Promise.all([
         profileRes.json(),
         tasksRes.json(),
         questsRes.json(),
+        habitsRes.json(),
       ]);
 
       if (profileData.ok) setProfile(profileData.profile);
       if (tasksData.ok) setTasks(tasksData.tasks);
       if (questsData.ok) setQuests(questsData.quests);
+      if (habitsData.ok) setHabits(habitsData.habits);
     } catch (e) {
       console.error("Failed to load stats", e);
     } finally {
@@ -76,13 +80,16 @@ export default function DashboardStats({ date }: Props) {
   const completedToday = todayTasks.filter((t) => t.completed).length;
   const totalToday = todayTasks.length;
 
+  const completedHabits = useMemo(() => habits.filter((h) => h.completedToday).length, [habits]);
+  const totalHabits = habits.length;
+
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-20 animate-pulse bg-[var(--bg-card)] rounded-lg"
+            className="h-16 animate-pulse bg-[var(--bg-card)] rounded-lg"
           />
         ))}
       </div>
@@ -90,11 +97,15 @@ export default function DashboardStats({ date }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <StatCard
+        value={`${completedHabits}/${totalHabits}`}
+        label="habits today"
+        accent
+      />
       <StatCard
         value={`${completedToday}/${totalToday}`}
         label="tasks today"
-        accent
       />
       <StatCard
         value={profile?.xp_total ?? 0}
