@@ -10,7 +10,7 @@ Your personal operating system for academic success. Intentionality combines que
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?logo=tailwind-css)
 
 ---
-
+---
 ## Table of Contents
 
 - [Features](#features)
