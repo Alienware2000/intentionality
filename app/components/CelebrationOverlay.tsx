@@ -143,7 +143,7 @@ function LevelUpAnimation({ level, onComplete }: { level: number; onComplete: ()
               "0 0 20px rgba(235, 255, 165, 0.3)",
             ],
           }}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 2, repeat: 3 }}
           className="p-6 rounded-full bg-[var(--accent-highlight)]/20"
         >
           <Trophy size={64} className="text-[var(--accent-highlight)]" />
@@ -277,7 +277,7 @@ function AchievementAnimation({
               `0 0 20px ${colors.glow.replace("0.6", "0.3")}`,
             ],
           }}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 2, repeat: 3 }}
           className={`p-6 rounded-full ${colors.bg} border-2 ${colors.border}`}
         >
           <Award size={isGold ? 72 : 56} className={colors.text} />
@@ -414,7 +414,7 @@ function PerfectDayAnimation({ onComplete }: { onComplete: () => void }) {
               "0 0 20px rgba(250, 204, 21, 0.3)",
             ],
           }}
-          transition={{ duration: 1.5, repeat: Infinity }}
+          transition={{ duration: 1.5, repeat: 3 }}
           className="p-6 rounded-full bg-yellow-400/20"
         >
           <Crown size={64} className="text-yellow-400" />

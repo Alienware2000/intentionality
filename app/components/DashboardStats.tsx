@@ -13,9 +13,10 @@ import { useProfile } from "./ProfileProvider";
 
 type Props = {
   date: string;
+  refreshTrigger?: number;
 };
 
-export default function DashboardStats({ date }: Props) {
+export default function DashboardStats({ date, refreshTrigger }: Props) {
   const { profile, loading: profileLoading } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
@@ -48,7 +49,7 @@ export default function DashboardStats({ date }: Props) {
 
   useEffect(() => {
     loadStats();
-  }, [loadStats]);
+  }, [loadStats, refreshTrigger]);
 
   // Pre-compute tasks by quest for O(1) lookups instead of O(N×M)
   const tasksByQuest = useMemo(() => {

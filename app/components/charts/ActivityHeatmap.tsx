@@ -5,7 +5,7 @@
 // GitHub-style activity grid showing daily activity levels.
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/app/lib/cn";
 
 type Props = {
@@ -56,35 +56,39 @@ export default function ActivityHeatmap({ data }: Props) {
     });
   }
 
-  // Group data by weeks for display
-  const weeks: Array<Array<{ date: string; count: number }>> = [];
-  let currentWeek: Array<{ date: string; count: number }> = [];
+  // Group data by weeks for display (memoized to prevent recalc on each render)
+  const weeks = useMemo(() => {
+    const result: Array<Array<{ date: string; count: number }>> = [];
+    let currentWeek: Array<{ date: string; count: number }> = [];
 
-  for (const day of data) {
-    const dayOfWeek = new Date(day.date).getDay();
+    for (const day of data) {
+      const dayOfWeek = new Date(day.date).getDay();
 
-    // Start new week on Sunday (day 0)
-    if (dayOfWeek === 0 && currentWeek.length > 0) {
-      weeks.push(currentWeek);
-      currentWeek = [];
+      // Start new week on Sunday (day 0)
+      if (dayOfWeek === 0 && currentWeek.length > 0) {
+        result.push(currentWeek);
+        currentWeek = [];
+      }
+
+      currentWeek.push(day);
     }
 
-    currentWeek.push(day);
-  }
-
-  // Push last week if it has data
-  if (currentWeek.length > 0) {
-    weeks.push(currentWeek);
-  }
-
-  // Pad first week with empty cells if needed
-  if (weeks.length > 0) {
-    const firstDayOfWeek = new Date(weeks[0][0].date).getDay();
-    if (firstDayOfWeek > 0) {
-      const padding = Array(firstDayOfWeek).fill({ date: "", count: -1 });
-      weeks[0] = [...padding, ...weeks[0]];
+    // Push last week if it has data
+    if (currentWeek.length > 0) {
+      result.push(currentWeek);
     }
-  }
+
+    // Pad first week with empty cells if needed
+    if (result.length > 0) {
+      const firstDayOfWeek = new Date(result[0][0].date).getDay();
+      if (firstDayOfWeek > 0) {
+        const padding = Array(firstDayOfWeek).fill({ date: "", count: -1 });
+        result[0] = [...padding, ...result[0]];
+      }
+    }
+
+    return result;
+  }, [data]);
 
   return (
     <div className="space-y-4">

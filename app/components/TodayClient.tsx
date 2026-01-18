@@ -12,14 +12,16 @@ import DayTimeline from "./DayTimeline";
 
 type Props = {
   date: ISODateString;
+  onTaskAction?: () => void;
 };
 
 type QuestsResponse = { ok: true; quests: Quest[] };
 
-export default function TodayClient({ date }: Props) {
+export default function TodayClient({ date, onTaskAction }: Props) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadQuests = useCallback(async () => {
     try {
@@ -34,7 +36,12 @@ export default function TodayClient({ date }: Props) {
 
   useEffect(() => {
     loadQuests();
-  }, [loadQuests]);
+  }, [loadQuests, refreshKey]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+    onTaskAction?.();
+  }, [onTaskAction]);
 
   if (loading) {
     return (
@@ -61,6 +68,7 @@ export default function TodayClient({ date }: Props) {
       showOverdue={true}
       showAddTask={true}
       quests={quests}
+      onRefresh={handleRefresh}
     />
   );
 }
