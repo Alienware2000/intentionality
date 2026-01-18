@@ -335,3 +335,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 4. **No Console Logs**: Use error states for user-facing errors
 5. **Shared Utilities**: Import from `lib/` rather than duplicating
 6. **JSDoc Tags**: `@future` marks code reserved for planned features
+
+## Development Log
+
+After completing features or fixing bugs, update `DEVLOG.md`:
+- Add entry to "Daily Log" section with date
+- Include: what changed, files modified, lessons learned
+- Keep Feature Summaries section updated for key systems

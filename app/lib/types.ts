@@ -64,6 +64,7 @@ export type Task = {
   xp_value: number;
   created_at: string;
   deleted_at: string | null;  // Soft delete timestamp
+  default_work_duration: number | null;  // Minutes (1-180) for focus sessions
   quest?: Quest;
 };
 

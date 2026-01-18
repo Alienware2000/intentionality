@@ -18,6 +18,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Play,
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
@@ -27,6 +28,7 @@ import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
 import { useCelebration } from "./CelebrationOverlay";
+import { useFocus } from "./FocusProvider";
 import { useToast } from "./Toast";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
@@ -53,6 +55,7 @@ export default function DayTimeline({
 }: Props) {
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
+  const { session: activeSession, startSession } = useFocus();
   const { showToast } = useToast();
 
   const {
@@ -182,7 +185,7 @@ export default function DayTimeline({
 
   async function handleEditTask(
     taskId: string,
-    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null }
+    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null; default_work_duration?: number | null }
   ) {
     try {
       await fetchApi("/api/tasks", {
@@ -280,6 +283,8 @@ export default function DayTimeline({
               onMoveToday={handleMoveToday}
               onEdit={setEditingTask}
               onDelete={setDeletingTaskId}
+              onStartFocus={startSession}
+              hasActiveSession={!!activeSession}
               compact={compact}
             />
           ))}
@@ -297,6 +302,8 @@ export default function DayTimeline({
                 onToggle={toggleTask}
                 onEdit={setEditingTask}
                 onDelete={setDeletingTaskId}
+                onStartFocus={startSession}
+                hasActiveSession={!!activeSession}
                 compact={compact}
               />
             ) : (
@@ -327,6 +334,8 @@ export default function DayTimeline({
               onToggle={toggleTask}
               onEdit={setEditingTask}
               onDelete={setDeletingTaskId}
+              onStartFocus={startSession}
+              hasActiveSession={!!activeSession}
               compact={compact}
             />
           ))}
@@ -484,15 +493,31 @@ function ScheduledTaskItem({
   onToggle,
   onEdit,
   onDelete,
+  onStartFocus,
+  hasActiveSession,
   compact,
 }: {
   task: Task;
   onToggle: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
+  hasActiveSession: boolean;
   compact: boolean;
 }) {
   const isCompleted = task.completed;
+  const focusDuration = task.default_work_duration ?? 25;
+  const canStartFocus = !isCompleted && !hasActiveSession;
+
+  function handleStartFocus(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!canStartFocus) return;
+    onStartFocus({
+      workDuration: focusDuration,
+      taskId: task.id,
+      title: task.title,
+    });
+  }
 
   return (
     <motion.div
@@ -541,6 +566,24 @@ function ScheduledTaskItem({
         {task.title}
       </span>
 
+      {/* Focus button - only show for incomplete tasks */}
+      {!isCompleted && (
+        <button
+          onClick={handleStartFocus}
+          disabled={hasActiveSession}
+          aria-label={`Start focus (${focusDuration}m)`}
+          title={hasActiveSession ? "Focus session in progress" : `Start focus (${focusDuration}m)`}
+          className={cn(
+            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
+          )}
+        >
+          <Play size={14} className="ml-0.5" />
+        </button>
+      )}
+
       {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
       <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
@@ -582,15 +625,31 @@ function UnscheduledTaskItem({
   onToggle,
   onEdit,
   onDelete,
+  onStartFocus,
+  hasActiveSession,
   compact,
 }: {
   task: Task;
   onToggle: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
+  hasActiveSession: boolean;
   compact: boolean;
 }) {
   const isCompleted = task.completed;
+  const focusDuration = task.default_work_duration ?? 25;
+  const canStartFocus = !isCompleted && !hasActiveSession;
+
+  function handleStartFocus(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!canStartFocus) return;
+    onStartFocus({
+      workDuration: focusDuration,
+      taskId: task.id,
+      title: task.title,
+    });
+  }
 
   return (
     <motion.div
@@ -629,6 +688,24 @@ function UnscheduledTaskItem({
       >
         {task.title}
       </span>
+
+      {/* Focus button - only show for incomplete tasks */}
+      {!isCompleted && (
+        <button
+          onClick={handleStartFocus}
+          disabled={hasActiveSession}
+          aria-label={`Start focus (${focusDuration}m)`}
+          title={hasActiveSession ? "Focus session in progress" : `Start focus (${focusDuration}m)`}
+          className={cn(
+            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
+          )}
+        >
+          <Play size={14} className="ml-0.5" />
+        </button>
+      )}
 
       {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
       <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -750,6 +827,8 @@ function OverdueTaskItem({
   onMoveToday,
   onEdit,
   onDelete,
+  onStartFocus,
+  hasActiveSession,
   compact,
 }: {
   task: Task;
@@ -757,8 +836,21 @@ function OverdueTaskItem({
   onMoveToday: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
+  hasActiveSession: boolean;
   compact: boolean;
 }) {
+  const focusDuration = task.default_work_duration ?? 25;
+
+  function handleStartFocus() {
+    if (hasActiveSession) return;
+    onStartFocus({
+      workDuration: focusDuration,
+      taskId: task.id,
+      title: task.title,
+    });
+  }
+
   return (
     <div
       className={cn(
@@ -773,6 +865,22 @@ function OverdueTaskItem({
         )}>
           {task.title}
         </span>
+
+        {/* Focus button */}
+        <button
+          onClick={handleStartFocus}
+          disabled={hasActiveSession}
+          aria-label={`Start focus (${focusDuration}m)`}
+          title={hasActiveSession ? "Focus session in progress" : `Start focus (${focusDuration}m)`}
+          className={cn(
+            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
+            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
+          )}
+        >
+          <Play size={14} className="ml-0.5" />
+        </button>
 
         {/* Edit/Delete buttons - always visible on mobile, hover on desktop */}
         <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
