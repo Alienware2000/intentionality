@@ -25,6 +25,9 @@
 *.pem
 SECURITY_AUDIT.md
 
+# Personal development log (not tracked)
+DEVLOG.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
