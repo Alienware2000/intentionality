@@ -32,12 +32,71 @@ export default function FocusTimer() {
 
   const xpToEarn = getFocusXp(session.work_duration);
   const isBreak = mode === "break";
+  const isCompleted = mode === "completed";
 
   // Calculate progress percentage
   const totalSeconds = isBreak
     ? session.break_duration * 60
     : session.work_duration * 60;
   const progress = ((totalSeconds - timeRemaining) / totalSeconds) * 100;
+
+  // Completion screen UI
+  if (isCompleted) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="rounded-lg p-4 border bg-[var(--accent-highlight)]/10 border-[var(--accent-highlight)]/30"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Check size={20} className="text-[var(--accent-highlight)]" />
+          <span className="text-sm font-bold uppercase tracking-wide text-[var(--accent-highlight)]">
+            Session Complete!
+          </span>
+        </div>
+
+        {/* Session title */}
+        {session.title && (
+          <p className="text-sm text-[var(--text-secondary)] mb-3 text-center truncate">
+            {session.title}
+          </p>
+        )}
+
+        {/* XP earned display */}
+        <div className="text-center mb-4">
+          <div className="flex items-center justify-center gap-2">
+            <Zap size={24} className="text-[var(--accent-highlight)]" />
+            <span className="text-3xl font-mono font-bold text-[var(--accent-highlight)]">
+              +{xpToEarn} XP
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {session.work_duration} min focus session
+          </p>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={completeSession}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent-highlight)] hover:bg-[var(--accent-highlight)]/80 transition-colors text-black font-medium"
+          >
+            <Zap size={16} />
+            Claim XP
+          </button>
+          <button
+            onClick={abandonSession}
+            className="p-2 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] transition-colors"
+            title="Discard session"
+          >
+            <X size={18} className="text-[var(--text-muted)]" />
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

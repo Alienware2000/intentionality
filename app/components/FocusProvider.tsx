@@ -18,7 +18,7 @@ import type { FocusSession } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
 
-type FocusMode = "work" | "break" | "idle";
+type FocusMode = "work" | "break" | "completed" | "idle";
 
 type FocusState = {
   session: FocusSession | null;
@@ -71,13 +71,34 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           const now = Date.now();
           const elapsedSeconds = Math.floor((now - startedAt) / 1000);
           const totalWorkSeconds = session.work_duration * 60;
-          const remaining = Math.max(0, totalWorkSeconds - elapsedSeconds);
+          const totalBreakSeconds = session.break_duration * 60;
+
+          let mode: FocusMode;
+          let remaining: number;
+          let isRunning: boolean;
+
+          if (elapsedSeconds >= totalWorkSeconds + totalBreakSeconds) {
+            // Both work and break have elapsed → completed mode
+            mode = "completed";
+            remaining = 0;
+            isRunning = false;
+          } else if (elapsedSeconds >= totalWorkSeconds) {
+            // Work done, in break period
+            mode = "break";
+            remaining = Math.max(0, totalWorkSeconds + totalBreakSeconds - elapsedSeconds);
+            isRunning = remaining > 0;
+          } else {
+            // Still in work period
+            mode = "work";
+            remaining = totalWorkSeconds - elapsedSeconds;
+            isRunning = remaining > 0;
+          }
 
           setState({
             session,
             timeRemaining: remaining,
-            isRunning: remaining > 0,
-            mode: remaining > 0 ? "work" : "break",
+            isRunning,
+            mode,
             error: null,
           });
         }
@@ -106,11 +127,11 @@ export function FocusProvider({ children }: { children: ReactNode }) {
                 isRunning: breakSeconds > 0,
               };
             } else {
-              // Break finished, go idle
+              // Break finished, show completion screen
               return {
                 ...prev,
                 timeRemaining: 0,
-                mode: "idle",
+                mode: "completed",
                 isRunning: false,
               };
             }
@@ -235,7 +256,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({
       ...prev,
       timeRemaining: 0,
-      mode: "idle",
+      mode: "completed",
       isRunning: false,
     }));
   }, [state.mode]);
