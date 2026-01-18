@@ -37,7 +37,7 @@ Organize tasks under high-level goals (quests). Track progress, prioritize work,
 Earn XP for completing tasks, maintain streaks, level up, and celebrate achievements with animated overlays.
 
 ### Pomodoro Focus Timer
-Timed work sessions with configurable durations. Earn XP for focused work (0.6 XP per minute).
+Timed work sessions with flexible durations (5-90 min presets or custom). Earn XP for focused work with bonus rewards for longer sessions.
 
 ### Brain Dump
 Quick capture via `Ctrl+K` / `Cmd+K`. Capture thoughts instantly and process them later from your inbox.
@@ -273,10 +273,15 @@ function QuickActions() {
 
 ### Focus Timer (Pomodoro)
 
-- Configurable durations: 15, 25, 45, 60, 90 minutes
-- XP calculation: `Math.round(minutes * 0.6)` (e.g., 25 min = 15 XP)
+- **Preset durations:** 5, 10, 15, 25, 45, 60, 90 minutes
+- **Custom duration:** 1-180 min work time, 0-60 min break time
+- **Task-specific focus:** Start a focus session directly from any task
+- **XP calculation:** Base rate of 0.6 XP per minute + milestone bonuses:
+  - 30+ minutes: +5 XP bonus
+  - 60+ minutes: +10 XP bonus
+  - 90+ minutes: +15 XP bonus
 - Abandon without penalty, complete to earn XP
-- Work mode only (break timer coming soon)
+- Work → Break → Claim XP flow
 
 ### Habits System
 
