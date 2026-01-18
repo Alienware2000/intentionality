@@ -469,3 +469,269 @@ export type AutoSyncState = {
   googleCalendar: IntegrationSyncStatus;
   isAnySyncing: boolean;
 };
+
+// =============================================================================
+// GAMIFICATION V2 TYPES
+// =============================================================================
+
+/** Achievement categories */
+export type AchievementCategory = 'streak' | 'tasks' | 'focus' | 'quests' | 'habits' | 'special';
+
+/** Achievement tiers */
+export type AchievementTier = 'bronze' | 'silver' | 'gold';
+
+/** Level title tiers */
+export type LevelTitle =
+  | 'Novice'
+  | 'Apprentice'
+  | 'Scholar'
+  | 'Adept'
+  | 'Expert'
+  | 'Master'
+  | 'Grandmaster'
+  | 'Legend'
+  | 'Mythic'
+  | 'Transcendent'
+  | 'Ascended';
+
+/**
+ * Achievement definition from database.
+ */
+export type Achievement = {
+  id: Id;
+  key: string;
+  category: AchievementCategory;
+  name: string;
+  description: string;
+  icon_name: string;
+  bronze_threshold: number;
+  bronze_xp: number;
+  silver_threshold: number;
+  silver_xp: number;
+  gold_threshold: number;
+  gold_xp: number;
+  stat_key: string;
+  sort_order: number;
+};
+
+/**
+ * User's progress on a specific achievement.
+ */
+export type UserAchievement = {
+  id: Id;
+  user_id: string;
+  achievement_id: Id;
+  current_tier: AchievementTier | null;
+  bronze_unlocked_at: string | null;
+  silver_unlocked_at: string | null;
+  gold_unlocked_at: string | null;
+  progress_value: number;
+  achievement?: Achievement;
+};
+
+/**
+ * Achievement with user progress for display.
+ */
+export type AchievementWithProgress = Achievement & {
+  userProgress: UserAchievement | null;
+};
+
+/**
+ * Daily challenge template from database.
+ */
+export type DailyChallengeTemplate = {
+  id: Id;
+  key: string;
+  name: string;
+  description: string;
+  challenge_type: 'tasks' | 'focus' | 'habits' | 'high_priority';
+  target_value: number;
+  xp_reward: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+};
+
+/**
+ * User's assigned daily challenge.
+ */
+export type UserDailyChallenge = {
+  id: Id;
+  user_id: string;
+  template_id: Id;
+  challenge_date: ISODateString;
+  progress: number;
+  completed: boolean;
+  completed_at: string | null;
+  xp_awarded: number;
+  template?: DailyChallengeTemplate;
+};
+
+/**
+ * Weekly challenge template from database.
+ */
+export type WeeklyChallengeTemplate = {
+  id: Id;
+  key: string;
+  name: string;
+  description: string;
+  challenge_type: 'tasks' | 'focus' | 'habits' | 'streak' | 'daily_challenges';
+  target_value: number;
+  xp_reward: number;
+};
+
+/**
+ * User's assigned weekly challenge.
+ */
+export type UserWeeklyChallenge = {
+  id: Id;
+  user_id: string;
+  template_id: Id;
+  week_start: ISODateString;
+  progress: number;
+  completed: boolean;
+  completed_at: string | null;
+  xp_awarded: number;
+  template?: WeeklyChallengeTemplate;
+};
+
+/**
+ * User's streak freeze inventory.
+ */
+export type UserStreakFreezes = {
+  id: Id;
+  user_id: string;
+  available_freezes: number;
+  last_freeze_earned: ISODateString | null;
+  last_freeze_used: ISODateString | null;
+};
+
+/**
+ * User's daily activity log entry.
+ */
+export type UserActivityLog = {
+  id: Id;
+  user_id: string;
+  activity_date: ISODateString;
+  xp_earned: number;
+  tasks_completed: number;
+  focus_minutes: number;
+  habits_completed: number;
+  streak_maintained: boolean;
+  freeze_used: boolean;
+};
+
+/**
+ * Extended user profile with gamification v2 stats.
+ */
+export type UserProfileV2 = UserProfile & {
+  lifetime_tasks_completed: number;
+  lifetime_high_priority_completed: number;
+  lifetime_habits_completed: number;
+  lifetime_quests_completed: number;
+  lifetime_focus_minutes: number;
+  lifetime_perfect_weeks: number;
+  lifetime_brain_dumps_processed: number;
+  lifetime_early_bird_tasks: number;
+  lifetime_night_owl_tasks: number;
+  lifetime_long_focus_sessions: number;
+  lifetime_streak_recoveries: number;
+  achievements_unlocked: number;
+  permanent_xp_bonus: number;
+  title: LevelTitle;
+};
+
+/**
+ * Streak multiplier info for XP bonuses.
+ */
+export type StreakMultiplier = {
+  multiplier: number;
+  bonusPercent: number;
+  nextMilestone: number | null;
+  nextMultiplier: number | null;
+};
+
+/**
+ * Full gamification profile response.
+ */
+export type GamificationProfile = {
+  profile: UserProfileV2;
+  levelProgress: {
+    currentLevel: number;
+    currentLevelXp: number;
+    nextLevelXp: number;
+    progress: number;
+    title: LevelTitle;
+    nextTitle: LevelTitle | null;
+  };
+  streakInfo: {
+    currentStreak: number;
+    longestStreak: number;
+    multiplier: StreakMultiplier;
+    freezesAvailable: number;
+    lastActiveDate: ISODateString | null;
+  };
+  achievementsSummary: {
+    unlocked: number;
+    total: number;
+    recentUnlocks: AchievementWithProgress[];
+  };
+  dailyChallenges: UserDailyChallenge[];
+  weeklyChallenge: UserWeeklyChallenge | null;
+};
+
+/**
+ * XP breakdown showing base and bonuses.
+ */
+export type XpBreakdown = {
+  baseXp: number;
+  streakMultiplier: number;
+  streakBonus: number;
+  permanentBonus: number;
+  totalXp: number;
+};
+
+/**
+ * Result from an action that awards XP.
+ */
+export type XpAwardResult = {
+  xpBreakdown: XpBreakdown;
+  newXpTotal: number;
+  newLevel: number | null;
+  leveledUp: boolean;
+  newStreak: number;
+  streakMilestone: number | null;
+  achievementsUnlocked: AchievementWithProgress[];
+  challengesCompleted: {
+    daily: UserDailyChallenge[];
+    weekly: UserWeeklyChallenge | null;
+  };
+  bonusXp: {
+    dailySweep: boolean;
+    perfectDay: boolean;
+    firstAction: boolean;
+  };
+};
+
+/**
+ * Celebration event types for animations.
+ */
+export type CelebrationEventType =
+  | 'xp'
+  | 'level-up'
+  | 'streak'
+  | 'achievement-bronze'
+  | 'achievement-silver'
+  | 'achievement-gold'
+  | 'challenge-complete'
+  | 'daily-sweep'
+  | 'streak-milestone'
+  | 'perfect-day';
+
+/**
+ * Celebration event for triggering animations.
+ */
+export type CelebrationEvent = {
+  type: CelebrationEventType;
+  value?: number;
+  achievement?: AchievementWithProgress;
+  challenge?: UserDailyChallenge | UserWeeklyChallenge;
+};

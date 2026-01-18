@@ -1,6 +1,7 @@
 // =============================================================================
 // FOCUS SESSION COMPLETE API ROUTE
 // Completes an active focus session and awards XP.
+// Integrates with gamification v2 for achievements, challenges, and bonuses.
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -9,11 +10,8 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import {
-  getFocusTotalXp,
-  getLevelFromXp,
-  getLocalDateString,
-} from "@/app/lib/gamification";
+import { getFocusTotalXp } from "@/app/lib/gamification";
+import { awardXp } from "@/app/lib/gamification-actions";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -32,18 +30,13 @@ type CompleteFocusSessionBody = {
  * POST /api/focus/complete
  *
  * Completes the active focus session and awards XP.
- * Updates user profile with XP, level, streak, and focus statistics.
+ * Uses gamification v2 system for streak bonuses, achievements, and challenges.
  *
  * @authentication Required
  *
  * @body {string} sessionId - UUID of the focus session (required)
  *
- * @returns {Object} Response object
- * @returns {boolean} ok - Success indicator
- * @returns {number} xpGained - XP awarded for the session
- * @returns {number} [newLevel] - New level (if leveled up)
- * @returns {number} newXpTotal - Total XP after completion
- * @returns {number} focusMinutesAdded - Minutes added to total
+ * @returns {Object} Response object with gamification data
  *
  * @throws {401} Not authenticated
  * @throws {400} Missing sessionId or session not active
@@ -74,16 +67,17 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Session is not active");
   }
 
-  // Calculate XP based on work duration (includes milestone bonus)
-  const xpGained = getFocusTotalXp(session.work_duration);
+  // Calculate base XP based on work duration (includes milestone bonus)
+  const baseXp = getFocusTotalXp(session.work_duration);
+  const isLongSession = session.work_duration >= 60;
 
-  // Update the session
+  // Update the session status
   const { error: updateError } = await supabase
     .from("focus_sessions")
     .update({
       status: "completed",
       completed_at: new Date().toISOString(),
-      xp_awarded: xpGained,
+      xp_awarded: baseXp,
     })
     .eq("id", sessionId);
 
@@ -91,64 +85,44 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(updateError.message);
   }
 
-  // Update user profile with XP and focus stats
+  // Use gamification v2 system to award XP
+  const result = await awardXp({
+    supabase,
+    userId: user.id,
+    baseXp,
+    actionType: "focus",
+    focusMinutes: session.work_duration,
+    isLongFocusSession: isLongSession,
+  });
+
+  // Also update focus-specific stats in profile
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("*")
+    .select("total_focus_minutes, focus_sessions_completed")
     .eq("user_id", user.id)
     .single();
 
   if (profile) {
-    const newXpTotal = profile.xp_total + xpGained;
-    const newLevel = getLevelFromXp(newXpTotal);
-    const leveledUp = newLevel > profile.level;
-
-    // Update streak
-    const today = getLocalDateString();
-    let globalStreak = profile.current_streak;
-    let globalLongestStreak = profile.longest_streak;
-
-    if (profile.last_active_date !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = getLocalDateString(yesterday);
-
-      globalStreak =
-        profile.last_active_date === yesterdayStr
-          ? profile.current_streak + 1
-          : 1;
-
-      if (globalStreak > globalLongestStreak) {
-        globalLongestStreak = globalStreak;
-      }
-    }
-
     await supabase
       .from("user_profiles")
       .update({
-        xp_total: newXpTotal,
-        level: newLevel,
-        current_streak: globalStreak,
-        longest_streak: globalLongestStreak,
-        last_active_date: today,
-        total_focus_minutes: profile.total_focus_minutes + session.work_duration,
-        focus_sessions_completed: profile.focus_sessions_completed + 1,
+        total_focus_minutes: (profile.total_focus_minutes ?? 0) + session.work_duration,
+        focus_sessions_completed: (profile.focus_sessions_completed ?? 0) + 1,
       })
       .eq("user_id", user.id);
-
-    return NextResponse.json({
-      ok: true,
-      xpGained,
-      newLevel: leveledUp ? newLevel : undefined,
-      newXpTotal,
-      focusMinutesAdded: session.work_duration,
-    });
   }
 
   return NextResponse.json({
     ok: true,
-    xpGained,
-    newXpTotal: 0,
+    xpGained: result.xpBreakdown.totalXp,
+    xpBreakdown: result.xpBreakdown,
+    newLevel: result.leveledUp ? result.newLevel : undefined,
+    newXpTotal: result.newXpTotal,
     focusMinutesAdded: session.work_duration,
+    newStreak: result.newStreak,
+    streakMilestone: result.streakMilestone,
+    achievementsUnlocked: result.achievementsUnlocked,
+    challengesCompleted: result.challengesCompleted,
+    bonusXp: result.bonusXp,
   });
 });

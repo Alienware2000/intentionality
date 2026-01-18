@@ -6,7 +6,7 @@
 // Used by both Today and Week views for consistent behavior.
 // =============================================================================
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ISODateString, Task, TimelineItem, DayTimelineResponse } from "../types";
 import { fetchApi, getErrorMessage } from "../api";
 
@@ -18,6 +18,8 @@ type ToggleResult = {
   xpGained?: number;
   xpLost?: number;
   newLevel?: number;
+  leveledUp?: boolean;
+  levelDecreased?: boolean;
   newStreak?: number;
   newXpTotal?: number;
 };
@@ -68,6 +70,15 @@ export function useDayTimeline(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs to track current state for synchronous access (avoids stale closures)
+  const scheduledItemsRef = useRef<TimelineItem[]>([]);
+  const unscheduledTasksRef = useRef<Task[]>([]);
+  const overdueTasksRef = useRef<Task[]>([]);
+
+  // In-flight toggle tracking to prevent duplicate API calls
+  const inFlightToggles = useRef<Set<string>>(new Set());
+  const inFlightBlockToggles = useRef<Set<string>>(new Set());
+
   const refresh = useCallback(async () => {
     try {
       setError(null);
@@ -88,6 +99,11 @@ export function useDayTimeline(
     setLoading(true);
     refresh();
   }, [refresh]);
+
+  // Keep refs in sync with state
+  useEffect(() => { scheduledItemsRef.current = scheduledItems; }, [scheduledItems]);
+  useEffect(() => { unscheduledTasksRef.current = unscheduledTasks; }, [unscheduledTasks]);
+  useEffect(() => { overdueTasksRef.current = overdueTasks; }, [overdueTasks]);
 
   // Helper to update task state across all arrays
   const updateTaskInState = useCallback(
@@ -118,35 +134,49 @@ export function useDayTimeline(
     []
   );
 
-  // Find task in any of the arrays
+  // Find task in any of the arrays (uses refs to avoid stale closures)
   const findTask = useCallback(
     (taskId: string): Task | undefined => {
       // Check scheduled items
-      for (const item of scheduledItems) {
+      for (const item of scheduledItemsRef.current) {
         if (item.type === "task" && item.data.id === taskId) {
           return item.data;
         }
       }
       // Check unscheduled tasks
-      const unscheduled = unscheduledTasks.find((t) => t.id === taskId);
+      const unscheduled = unscheduledTasksRef.current.find((t) => t.id === taskId);
       if (unscheduled) return unscheduled;
       // Check overdue tasks
-      return overdueTasks.find((t) => t.id === taskId);
+      return overdueTasksRef.current.find((t) => t.id === taskId);
     },
-    [scheduledItems, unscheduledTasks, overdueTasks]
+    [] // No dependencies - reads from refs
   );
 
   const toggleTask = useCallback(
     async (taskId: string) => {
+      // Guard against duplicate in-flight toggles
+      if (inFlightToggles.current.has(taskId)) {
+        return;
+      }
+
       // 1. Find task and capture previous state
       const task = findTask(taskId);
       if (!task) return;
       const wasCompleted = task.completed;
+      const isCompleting = !wasCompleted;
+
+      // Mark as in-flight
+      inFlightToggles.current.add(taskId);
 
       // 2. Optimistic update - immediate
-      updateTaskInState(taskId, !wasCompleted);
+      updateTaskInState(taskId, isCompleting);
 
-      // 3. API call in background
+      // 3. Show XP animation IMMEDIATELY (before API call) for instant feedback
+      if (isCompleting && task.xp_value) {
+        options?.onTaskToggle?.({ xpGained: task.xp_value });
+      }
+
+      // 4. API call in background
       try {
         const result = await fetchApi<{ ok: true } & ToggleResult>("/api/tasks/toggle", {
           method: "POST",
@@ -154,17 +184,24 @@ export function useDayTimeline(
           body: JSON.stringify({ taskId }),
         });
 
-        // Notify profile update
-        options?.onProfileUpdate?.();
+        // 5. Handle level-up/streak (these need API response)
+        if (result.leveledUp && result.newLevel) {
+          options?.onTaskToggle?.({ leveledUp: true, newLevel: result.newLevel });
+        }
+        if (result.newStreak) {
+          options?.onTaskToggle?.({ newStreak: result.newStreak });
+        }
 
-        // Notify celebration callback with XP/level info
-        options?.onTaskToggle?.(result);
+        // 6. Update profile after API completes
+        options?.onProfileUpdate?.();
 
         // No refresh() call - state is already correct
       } catch (e) {
-        // 4. Rollback on error
+        // 7. Rollback on error
         updateTaskInState(taskId, wasCompleted);
         setError(getErrorMessage(e));
+      } finally {
+        inFlightToggles.current.delete(taskId);
       }
     },
     [findTask, updateTaskInState, options]
@@ -184,24 +221,32 @@ export function useDayTimeline(
     []
   );
 
-  // Find schedule block completion status
+  // Find schedule block completion status (uses refs to avoid stale closures)
   const findScheduleBlockCompleted = useCallback(
     (blockId: string): boolean | undefined => {
-      for (const item of scheduledItems) {
+      for (const item of scheduledItemsRef.current) {
         if (item.type === "schedule_block" && item.data.id === blockId) {
           return item.completed;
         }
       }
       return undefined;
     },
-    [scheduledItems]
+    [] // No dependencies - reads from refs
   );
 
   const toggleScheduleBlock = useCallback(
     async (blockId: string) => {
+      // Guard against duplicate in-flight toggles
+      if (inFlightBlockToggles.current.has(blockId)) {
+        return;
+      }
+
       // 1. Find block and capture previous state
       const wasCompleted = findScheduleBlockCompleted(blockId);
       if (wasCompleted === undefined) return;
+
+      // Mark as in-flight
+      inFlightBlockToggles.current.add(blockId);
 
       // 2. Optimistic update - immediate
       updateScheduleBlockInState(blockId, !wasCompleted);
@@ -222,6 +267,8 @@ export function useDayTimeline(
         // 4. Rollback on error
         updateScheduleBlockInState(blockId, wasCompleted);
         setError(getErrorMessage(e));
+      } finally {
+        inFlightBlockToggles.current.delete(blockId);
       }
     },
     [date, findScheduleBlockCompleted, updateScheduleBlockInState, options]

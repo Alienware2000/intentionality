@@ -6,7 +6,7 @@
 // Used by both Today and Week views for consistent display.
 // =============================================================================
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -68,6 +68,24 @@ export default function DayTimeline({
   const { session: activeSession, startSession } = useFocus();
   const { showToast } = useToast();
 
+  // Memoize callbacks to prevent unnecessary recreations
+  const handleTaskToggle = useCallback(
+    (result: { xpGained?: number; leveledUp?: boolean; newLevel?: number; newStreak?: number }) => {
+      if (result.xpGained) showXpGain(result.xpGained);
+      if (result.leveledUp && result.newLevel) showLevelUp(result.newLevel);
+      if (result.newStreak) showStreakMilestone(result.newStreak);
+    },
+    [showXpGain, showLevelUp, showStreakMilestone]
+  );
+
+  const timelineOptions = useMemo(
+    () => ({
+      onProfileUpdate: refreshProfile,
+      onTaskToggle: handleTaskToggle,
+    }),
+    [refreshProfile, handleTaskToggle]
+  );
+
   const {
     scheduledItems: rawScheduledItems,
     unscheduledTasks,
@@ -77,23 +95,7 @@ export default function DayTimeline({
     refresh,
     toggleTask,
     toggleScheduleBlock,
-  } = useDayTimeline(date, {
-    onProfileUpdate: refreshProfile,
-    onTaskToggle: (result) => {
-      // Show XP gain animation
-      if (result.xpGained) {
-        showXpGain(result.xpGained);
-      }
-      // Show level up celebration
-      if (result.newLevel) {
-        showLevelUp(result.newLevel);
-      }
-      // Show streak milestone
-      if (result.newStreak) {
-        showStreakMilestone(result.newStreak);
-      }
-    },
-  });
+  } = useDayTimeline(date, timelineOptions);
 
   // Filter schedule blocks to only show imminent ones (within 45 min window)
   // unless showAllBlocks is true
