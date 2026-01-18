@@ -5,6 +5,7 @@
 // Displays a single habit with completion status, streak, and actions.
 // =============================================================================
 
+import { memo } from "react";
 import { Check, Pencil, Trash2, Flame } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
@@ -17,7 +18,7 @@ type Props = {
   onDelete?: (habitId: string) => void;
 };
 
-export default function HabitCard({
+function HabitCard({
   habit,
   onToggle,
   onEdit,
@@ -128,3 +129,5 @@ export default function HabitCard({
     </div>
   );
 }
+
+export default memo(HabitCard);

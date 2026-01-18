@@ -6,7 +6,7 @@
 // Used by both Today and Week views for consistent display.
 // =============================================================================
 
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -640,7 +640,7 @@ function TaskFocusPopoverContent({
   );
 }
 
-function ScheduledTaskItem({
+const ScheduledTaskItem = memo(function ScheduledTaskItem({
   task,
   onToggle,
   onEdit,
@@ -778,9 +778,9 @@ function ScheduledTaskItem({
       </span>
     </motion.div>
   );
-}
+});
 
-function UnscheduledTaskItem({
+const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
   task,
   onToggle,
   onEdit,
@@ -909,9 +909,9 @@ function UnscheduledTaskItem({
       </span>
     </motion.div>
   );
-}
+});
 
-function ScheduleBlockItem({
+const ScheduleBlockItem = memo(function ScheduleBlockItem({
   block,
   completed,
   onToggle,
@@ -987,9 +987,9 @@ function ScheduleBlockItem({
       </div>
     </div>
   );
-}
+});
 
-function OverdueTaskItem({
+const OverdueTaskItem = memo(function OverdueTaskItem({
   task,
   onToggle,
   onMoveToday,
@@ -1113,4 +1113,4 @@ function OverdueTaskItem({
       </div>
     </div>
   );
-}
+});

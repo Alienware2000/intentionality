@@ -6,6 +6,7 @@
 // Uses recharts for rendering.
 // =============================================================================
 
+import { useMemo } from "react";
 import {
   XAxis,
   YAxis,
@@ -48,15 +49,17 @@ function CustomTooltip({
 }
 
 export default function XpChart({ data }: Props) {
-  // Calculate cumulative XP for area chart effect
-  const cumulativeData = data.reduce<Array<{ date: string; xp: number; cumulative: number }>>(
-    (acc, d) => {
-      const prevCumulative = acc.length > 0 ? acc[acc.length - 1].cumulative : 0;
-      acc.push({ ...d, cumulative: prevCumulative + d.xp });
-      return acc;
-    },
-    []
-  );
+  // Calculate cumulative XP for area chart effect (memoized to prevent recalc on each render)
+  const cumulativeData = useMemo(() => {
+    return data.reduce<Array<{ date: string; xp: number; cumulative: number }>>(
+      (acc, d) => {
+        const prevCumulative = acc.length > 0 ? acc[acc.length - 1].cumulative : 0;
+        acc.push({ ...d, cumulative: prevCumulative + d.xp });
+        return acc;
+      },
+      []
+    );
+  }, [data]);
 
   return (
     <div className="h-48 sm:h-64">

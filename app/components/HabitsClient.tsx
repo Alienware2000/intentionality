@@ -17,11 +17,12 @@ import ConfirmModal from "./ConfirmModal";
 
 type Props = {
   date: ISODateString;
+  onHabitToggle?: () => void;
 };
 
 type HabitsResponse = { ok: true; habits: HabitWithStatus[] };
 
-export default function HabitsClient({ date }: Props) {
+export default function HabitsClient({ date, onHabitToggle }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
@@ -117,6 +118,7 @@ export default function HabitsClient({ date }: Props) {
       }
 
       refreshProfile();
+      onHabitToggle?.();
     } catch {
       // 4. Rollback on error
       setHabits((prev) =>
