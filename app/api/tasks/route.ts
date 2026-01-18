@@ -26,6 +26,7 @@ type CreateTaskBody = {
   quest_id?: string;
   priority?: Priority;
   scheduled_time?: string | null;
+  default_work_duration?: number | null;  // Minutes (1-180) for focus sessions
 };
 
 /** Request body for PATCH /api/tasks */
@@ -35,6 +36,7 @@ type UpdateTaskBody = {
   due_date?: string;
   priority?: Priority;
   scheduled_time?: string | null;
+  default_work_duration?: number | null;  // Minutes (1-180) for focus sessions
 };
 
 /** Request body for DELETE /api/tasks */
@@ -124,10 +126,18 @@ export const POST = withAuth(async ({ supabase, request }) => {
     quest_id,
     priority = "medium",
     scheduled_time,
+    default_work_duration,
   } = body ?? {};
 
   if (!title || !due_date || !quest_id) {
     return ApiErrors.badRequest("Missing title, due_date, or quest_id");
+  }
+
+  // Validate default_work_duration range if provided
+  if (default_work_duration !== undefined && default_work_duration !== null) {
+    if (default_work_duration < 1 || default_work_duration > 180) {
+      return ApiErrors.badRequest("default_work_duration must be between 1 and 180 minutes");
+    }
   }
 
   // Calculate XP value based on priority
@@ -156,6 +166,7 @@ export const POST = withAuth(async ({ supabase, request }) => {
       xp_value,
       completed: false,
       scheduled_time: scheduled_time || null,
+      default_work_duration: default_work_duration ?? null,
     })
     .select("*, quest:quests(*)")
     .single();
@@ -174,7 +185,7 @@ export const POST = withAuth(async ({ supabase, request }) => {
 /**
  * PATCH /api/tasks
  *
- * Updates a task's title, due_date, priority, or scheduled_time.
+ * Updates a task's title, due_date, priority, scheduled_time, or default_work_duration.
  * At least one field to update is required.
  * If priority changes, xp_value is recalculated.
  *
@@ -185,6 +196,7 @@ export const POST = withAuth(async ({ supabase, request }) => {
  * @body {string} [due_date] - New date (YYYY-MM-DD)
  * @body {Priority} [priority] - New priority
  * @body {string|null} [scheduled_time] - New time (HH:MM) or null
+ * @body {number|null} [default_work_duration] - Focus duration (1-180 minutes) or null
  *
  * @returns {Object} Response object
  * @returns {boolean} ok - Success indicator
@@ -196,14 +208,21 @@ export const POST = withAuth(async ({ supabase, request }) => {
  */
 export const PATCH = withAuth(async ({ supabase, request }) => {
   const body = await parseJsonBody<UpdateTaskBody>(request);
-  const { taskId, title, due_date, priority, scheduled_time } = body ?? {};
+  const { taskId, title, due_date, priority, scheduled_time, default_work_duration } = body ?? {};
 
   if (!taskId) {
     return ApiErrors.badRequest("Missing taskId");
   }
 
-  if (!title && !due_date && !priority && scheduled_time === undefined) {
+  if (!title && !due_date && !priority && scheduled_time === undefined && default_work_duration === undefined) {
     return ApiErrors.badRequest("No fields to update");
+  }
+
+  // Validate default_work_duration range if provided (null is valid to clear)
+  if (default_work_duration !== undefined && default_work_duration !== null) {
+    if (default_work_duration < 1 || default_work_duration > 180) {
+      return ApiErrors.badRequest("default_work_duration must be between 1 and 180 minutes");
+    }
   }
 
   // Build update object
@@ -216,6 +235,9 @@ export const PATCH = withAuth(async ({ supabase, request }) => {
   }
   if (scheduled_time !== undefined) {
     updates.scheduled_time = scheduled_time || null;
+  }
+  if (default_work_duration !== undefined) {
+    updates.default_work_duration = default_work_duration;
   }
 
   const { data: task, error: updateError } = await supabase

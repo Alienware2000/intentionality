@@ -16,7 +16,7 @@ type Props = {
   task: Task | null;
   onSave: (
     taskId: string,
-    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null }
+    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null; default_work_duration?: number | null }
   ) => Promise<void>;
   onClose: () => void;
 };
@@ -32,6 +32,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [defaultFocusDuration, setDefaultFocusDuration] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   // Sync state when task changes
@@ -41,6 +42,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
       setDueDate(task.due_date);
       setPriority(task.priority);
       setScheduledTime(task.scheduled_time ?? "");
+      setDefaultFocusDuration(task.default_work_duration?.toString() ?? "");
     }
   }, [task]);
 
@@ -48,11 +50,17 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
     if (!task || !title.trim()) return;
     setSaving(true);
     try {
+      // Parse focus duration (null if empty, number if valid)
+      const parsedDuration = defaultFocusDuration.trim()
+        ? parseInt(defaultFocusDuration, 10)
+        : null;
+
       await onSave(task.id, {
         title: title.trim(),
         due_date: dueDate,
         priority,
         scheduled_time: scheduledTime || null,
+        default_work_duration: parsedDuration,
       });
       onClose();
     } finally {
@@ -196,6 +204,42 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
                       {opt.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Default Focus Duration */}
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                  Default Focus Duration (Optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={180}
+                    placeholder="25"
+                    value={defaultFocusDuration}
+                    onChange={(e) => setDefaultFocusDuration(e.target.value)}
+                    className={cn(
+                      "flex-1 px-3 py-2 rounded",
+                      "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                      "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+                      "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "transition-colors",
+                      "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    )}
+                  />
+                  <span className="text-sm text-[var(--text-muted)]">minutes</span>
+                  {defaultFocusDuration && (
+                    <button
+                      type="button"
+                      onClick={() => setDefaultFocusDuration("")}
+                      aria-label="Clear focus duration"
+                      className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
