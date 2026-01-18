@@ -9,11 +9,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { useFocus } from "./FocusProvider";
-import { getFocusXp } from "@/app/lib/gamification";
+import { getFocusTotalXp, getFocusMilestoneBonus } from "@/app/lib/gamification";
 import { cn } from "@/app/lib/cn";
 import FocusTimer from "./FocusTimer";
 
 const DURATION_PRESETS = [
+  { work: 5, break: 1, label: "5 min" },
+  { work: 10, break: 2, label: "10 min" },
+  { work: 15, break: 3, label: "15 min" },
   { work: 25, break: 5, label: "25 min" },
   { work: 45, break: 10, label: "45 min" },
   { work: 60, break: 15, label: "60 min" },
@@ -23,18 +26,41 @@ const DURATION_PRESETS = [
 export default function FocusLauncher() {
   const { session, mode, startSession, error } = useFocus();
   const [showOptions, setShowOptions] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState(0);
+  const [selectedPreset, setSelectedPreset] = useState(3); // Default to 25 min
   const [customTitle, setCustomTitle] = useState("");
   const [starting, setStarting] = useState(false);
+  const [isCustom, setIsCustom] = useState(false);
+  const [customWork, setCustomWork] = useState(25);
+  const [customBreak, setCustomBreak] = useState(5);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const hasActiveSession = session && mode !== "idle";
 
+  function validateCustomDuration(): boolean {
+    if (customWork < 1 || customWork > 180) {
+      setValidationError("Work duration must be 1-180 minutes");
+      return false;
+    }
+    if (customBreak < 0 || customBreak > 60) {
+      setValidationError("Break duration must be 0-60 minutes");
+      return false;
+    }
+    setValidationError(null);
+    return true;
+  }
+
   async function handleStart() {
+    if (isCustom && !validateCustomDuration()) {
+      return;
+    }
+
     setStarting(true);
-    const preset = DURATION_PRESETS[selectedPreset];
+    const workDuration = isCustom ? customWork : DURATION_PRESETS[selectedPreset].work;
+    const breakDuration = isCustom ? customBreak : DURATION_PRESETS[selectedPreset].break;
+
     await startSession({
-      workDuration: preset.work,
-      breakDuration: preset.break,
+      workDuration,
+      breakDuration,
       title: customTitle.trim() || undefined,
     });
     setStarting(false);
@@ -47,8 +73,11 @@ export default function FocusLauncher() {
     return <FocusTimer />;
   }
 
-  const selectedDuration = DURATION_PRESETS[selectedPreset];
-  const xpPreview = getFocusXp(selectedDuration.work);
+  const workMinutes = isCustom ? customWork : DURATION_PRESETS[selectedPreset].work;
+  const breakMinutes = isCustom ? customBreak : DURATION_PRESETS[selectedPreset].break;
+  const xpPreview = getFocusTotalXp(workMinutes);
+  const milestoneBonus = getFocusMilestoneBonus(workMinutes);
+  const displayLabel = isCustom ? `${customWork} min` : DURATION_PRESETS[selectedPreset].label;
 
   return (
     <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] overflow-hidden">
@@ -69,7 +98,7 @@ export default function FocusLauncher() {
               Start Focus Session
             </h3>
             <p className="text-xs text-[var(--text-muted)]">
-              {selectedDuration.label} • {selectedDuration.break}m break
+              {displayLabel} • {breakMinutes}m break
             </p>
           </div>
         </div>
@@ -106,10 +135,14 @@ export default function FocusLauncher() {
                   {DURATION_PRESETS.map((preset, i) => (
                     <button
                       key={i}
-                      onClick={() => setSelectedPreset(i)}
+                      onClick={() => {
+                        setSelectedPreset(i);
+                        setIsCustom(false);
+                        setValidationError(null);
+                      }}
                       className={cn(
                         "px-3 py-2.5 sm:py-2 rounded text-sm font-medium transition-all",
-                        selectedPreset === i
+                        !isCustom && selectedPreset === i
                           ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
                       )}
@@ -117,8 +150,77 @@ export default function FocusLauncher() {
                       {preset.label}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setIsCustom(true);
+                      setValidationError(null);
+                    }}
+                    className={cn(
+                      "px-3 py-2.5 sm:py-2 rounded text-sm font-medium transition-all",
+                      isCustom
+                        ? "bg-[var(--accent-primary)] text-white"
+                        : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
+                    )}
+                  >
+                    Custom
+                  </button>
                 </div>
               </div>
+
+              {/* Custom duration inputs */}
+              {isCustom && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                      Work (1-180 min)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={180}
+                      value={customWork}
+                      onChange={(e) => {
+                        setCustomWork(parseInt(e.target.value) || 1);
+                        setValidationError(null);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 rounded text-sm font-mono",
+                        "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                        "text-[var(--text-primary)]",
+                        "focus:outline-none focus:border-[var(--accent-primary)]"
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                      Break (0-60 min)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={60}
+                      value={customBreak}
+                      onChange={(e) => {
+                        setCustomBreak(parseInt(e.target.value) || 0);
+                        setValidationError(null);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 rounded text-sm font-mono",
+                        "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
+                        "text-[var(--text-primary)]",
+                        "focus:outline-none focus:border-[var(--accent-primary)]"
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Milestone bonus preview */}
+              {milestoneBonus > 0 && (
+                <div className="text-xs text-[var(--accent-highlight)] bg-[var(--accent-highlight)]/10 rounded px-3 py-2">
+                  🎯 Includes +{milestoneBonus} XP milestone bonus for {workMinutes}+ min focus!
+                </div>
+              )}
 
               {/* Optional title */}
               <div>
@@ -140,8 +242,8 @@ export default function FocusLauncher() {
               </div>
 
               {/* Error */}
-              {error && (
-                <p className="text-sm text-[var(--accent-primary)]">{error}</p>
+              {(error || validationError) && (
+                <p className="text-sm text-[var(--accent-primary)]">{validationError || error}</p>
               )}
 
               {/* Start button */}
@@ -156,7 +258,7 @@ export default function FocusLauncher() {
                 )}
               >
                 <Play size={18} />
-                {starting ? "Starting..." : `Start ${selectedDuration.label} Focus`}
+                {starting ? "Starting..." : `Start ${displayLabel} Focus`}
               </button>
             </div>
           </motion.div>

@@ -10,7 +10,7 @@ import {
   ApiErrors,
 } from "@/app/lib/auth-middleware";
 import {
-  getFocusXp,
+  getFocusTotalXp,
   getLevelFromXp,
   getLocalDateString,
 } from "@/app/lib/gamification";
@@ -74,8 +74,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Session is not active");
   }
 
-  // Calculate XP based on work duration
-  const xpGained = getFocusXp(session.work_duration);
+  // Calculate XP based on work duration (includes milestone bonus)
+  const xpGained = getFocusTotalXp(session.work_duration);
 
   // Update the session
   const { error: updateError } = await supabase

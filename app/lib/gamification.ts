@@ -113,3 +113,44 @@ export function calculateStreak(
 export function getFocusXp(minutes: number): number {
   return Math.round(minutes * 0.6);
 }
+
+/**
+ * Milestone bonuses for longer focus sessions.
+ * Rewards sustained focus with extra XP at certain thresholds.
+ */
+export const FOCUS_MILESTONES = [
+  { threshold: 30, bonus: 5 },
+  { threshold: 60, bonus: 10 },
+  { threshold: 90, bonus: 15 },
+] as const;
+
+/**
+ * Get the milestone bonus XP for a focus session duration.
+ * Returns the highest applicable bonus (bonuses don't stack).
+ */
+export function getFocusMilestoneBonus(minutes: number): number {
+  let bonus = 0;
+  for (const milestone of FOCUS_MILESTONES) {
+    if (minutes >= milestone.threshold) bonus = milestone.bonus;
+  }
+  return bonus;
+}
+
+/**
+ * Get the next milestone that can be reached from the current duration.
+ * Returns null if all milestones have been reached.
+ */
+export function getNextFocusMilestone(minutes: number) {
+  for (const m of FOCUS_MILESTONES) {
+    if (minutes < m.threshold) return m;
+  }
+  return null;
+}
+
+/**
+ * Calculate total XP for a focus session including milestone bonus.
+ * Total = base XP (0.6/min) + milestone bonus
+ */
+export function getFocusTotalXp(minutes: number): number {
+  return getFocusXp(minutes) + getFocusMilestoneBonus(minutes);
+}

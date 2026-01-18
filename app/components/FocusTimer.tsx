@@ -8,7 +8,7 @@
 import { motion } from "framer-motion";
 import { Play, Pause, X, SkipForward, Check, Zap, Coffee } from "lucide-react";
 import { useFocus } from "./FocusProvider";
-import { getFocusXp } from "@/app/lib/gamification";
+import { getFocusTotalXp, getFocusMilestoneBonus } from "@/app/lib/gamification";
 import { formatCountdown } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
 
@@ -30,7 +30,8 @@ export default function FocusTimer() {
     return null;
   }
 
-  const xpToEarn = getFocusXp(session.work_duration);
+  const xpToEarn = getFocusTotalXp(session.work_duration);
+  const milestoneBonus = getFocusMilestoneBonus(session.work_duration);
   const isBreak = mode === "break";
   const isCompleted = mode === "completed";
 
@@ -74,6 +75,11 @@ export default function FocusTimer() {
           </div>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             {session.work_duration} min focus session
+            {milestoneBonus > 0 && (
+              <span className="text-[var(--accent-highlight)]">
+                {" "}• includes +{milestoneBonus} milestone bonus!
+              </span>
+            )}
           </p>
         </div>
 
