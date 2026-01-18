@@ -89,8 +89,64 @@ export function useDayTimeline(
     refresh();
   }, [refresh]);
 
+  // Helper to update task state across all arrays
+  const updateTaskInState = useCallback(
+    (taskId: string, completed: boolean) => {
+      // Update in scheduledItems
+      setScheduledItems((prev) =>
+        prev.map((item) =>
+          item.type === "task" && item.data.id === taskId
+            ? { ...item, data: { ...item.data, completed } }
+            : item
+        )
+      );
+
+      // Update in unscheduledTasks
+      setUnscheduledTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId ? { ...task, completed } : task
+        )
+      );
+
+      // Update in overdueTasks
+      setOverdueTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId ? { ...task, completed } : task
+        )
+      );
+    },
+    []
+  );
+
+  // Find task in any of the arrays
+  const findTask = useCallback(
+    (taskId: string): Task | undefined => {
+      // Check scheduled items
+      for (const item of scheduledItems) {
+        if (item.type === "task" && item.data.id === taskId) {
+          return item.data;
+        }
+      }
+      // Check unscheduled tasks
+      const unscheduled = unscheduledTasks.find((t) => t.id === taskId);
+      if (unscheduled) return unscheduled;
+      // Check overdue tasks
+      return overdueTasks.find((t) => t.id === taskId);
+    },
+    [scheduledItems, unscheduledTasks, overdueTasks]
+  );
+
   const toggleTask = useCallback(
     async (taskId: string) => {
+      // 1. Find task and capture previous state
+      const task = findTask(taskId);
+      if (!task) return;
+      const wasCompleted = task.completed;
+
+      // 2. Optimistic update - immediate
+      updateTaskInState(taskId, !wasCompleted);
+
+      // 3. API call in background
       try {
         const result = await fetchApi<{ ok: true } & ToggleResult>("/api/tasks/toggle", {
           method: "POST",
@@ -104,17 +160,53 @@ export function useDayTimeline(
         // Notify celebration callback with XP/level info
         options?.onTaskToggle?.(result);
 
-        // Refresh data
-        await refresh();
+        // No refresh() call - state is already correct
       } catch (e) {
+        // 4. Rollback on error
+        updateTaskInState(taskId, wasCompleted);
         setError(getErrorMessage(e));
       }
     },
-    [refresh, options]
+    [findTask, updateTaskInState, options]
+  );
+
+  // Helper to update schedule block completion state
+  const updateScheduleBlockInState = useCallback(
+    (blockId: string, completed: boolean) => {
+      setScheduledItems((prev) =>
+        prev.map((item) =>
+          item.type === "schedule_block" && item.data.id === blockId
+            ? { ...item, completed }
+            : item
+        )
+      );
+    },
+    []
+  );
+
+  // Find schedule block completion status
+  const findScheduleBlockCompleted = useCallback(
+    (blockId: string): boolean | undefined => {
+      for (const item of scheduledItems) {
+        if (item.type === "schedule_block" && item.data.id === blockId) {
+          return item.completed;
+        }
+      }
+      return undefined;
+    },
+    [scheduledItems]
   );
 
   const toggleScheduleBlock = useCallback(
     async (blockId: string) => {
+      // 1. Find block and capture previous state
+      const wasCompleted = findScheduleBlockCompleted(blockId);
+      if (wasCompleted === undefined) return;
+
+      // 2. Optimistic update - immediate
+      updateScheduleBlockInState(blockId, !wasCompleted);
+
+      // 3. API call in background
       try {
         await fetchApi("/api/schedule/complete", {
           method: "POST",
@@ -125,13 +217,14 @@ export function useDayTimeline(
         // Notify profile update
         options?.onProfileUpdate?.();
 
-        // Refresh data
-        await refresh();
+        // No refresh() call - state is already correct
       } catch (e) {
+        // 4. Rollback on error
+        updateScheduleBlockInState(blockId, wasCompleted);
         setError(getErrorMessage(e));
       }
     },
-    [date, refresh, options]
+    [date, findScheduleBlockCompleted, updateScheduleBlockInState, options]
   );
 
   return {

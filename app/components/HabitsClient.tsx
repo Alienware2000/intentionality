@@ -63,19 +63,71 @@ export default function HabitsClient({ date }: Props) {
   }, [habits]);
 
   async function handleToggle(habitId: Id) {
-    const res = await fetch("/api/habits/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ habitId, date }),
-    });
+    // 1. Find habit and capture previous state
+    const habit = habits.find((h) => h.id === habitId);
+    if (!habit) return;
+    const wasCompleted = habit.completedToday;
+    const previousStreak = habit.current_streak;
 
-    if (!res.ok) {
+    // 2. Optimistic update - immediate
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.id === habitId
+          ? {
+              ...h,
+              completedToday: !wasCompleted,
+              // Optimistically adjust streak: +1 if completing, -1 if uncompleting (min 0)
+              current_streak: wasCompleted
+                ? Math.max(0, h.current_streak - 1)
+                : h.current_streak + 1,
+            }
+          : h
+      )
+    );
+
+    // 3. API call in background
+    try {
+      const res = await fetch("/api/habits/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ habitId, date }),
+      });
+
+      if (!res.ok) {
+        // Rollback on HTTP error
+        setHabits((prev) =>
+          prev.map((h) =>
+            h.id === habitId
+              ? { ...h, completedToday: wasCompleted, current_streak: previousStreak }
+              : h
+          )
+        );
+        setError("Failed to toggle habit");
+        return;
+      }
+
+      // Reconcile streak with server response
+      const data = await res.json();
+      if (data.newStreak !== undefined) {
+        setHabits((prev) =>
+          prev.map((h) =>
+            h.id === habitId ? { ...h, current_streak: data.newStreak } : h
+          )
+        );
+      }
+
+      refreshProfile();
+    } catch {
+      // 4. Rollback on error
+      setHabits((prev) =>
+        prev.map((h) =>
+          h.id === habitId
+            ? { ...h, completedToday: wasCompleted, current_streak: previousStreak }
+            : h
+        )
+      );
       setError("Failed to toggle habit");
-      return;
     }
-
-    await refreshHabits();
-    refreshProfile();
   }
 
   async function handleAdd() {
