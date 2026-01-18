@@ -12,6 +12,7 @@ import { Trash2, CheckCircle, Clock, Brain, Plus, ArrowRight } from "lucide-reac
 import type { BrainDumpEntry, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import { useBrainDump } from "@/app/components/BrainDumpProvider";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ConvertToTaskModal from "./ConvertToTaskModal";
 
@@ -25,6 +26,7 @@ export default function InboxClient() {
   const [error, setError] = useState<string | null>(null);
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [convertingEntry, setConvertingEntry] = useState<BrainDumpEntry | null>(null);
+  const { openBrainDump } = useBrainDump();
 
   const loadData = useCallback(async () => {
     try {
@@ -120,12 +122,25 @@ export default function InboxClient() {
           <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
             Inbox is empty
           </h3>
-          <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
-            Press{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-secondary)] font-mono text-xs">
+          <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto mb-6">
+            Capture thoughts quickly and process them later.
+          </p>
+          <button
+            onClick={openBrainDump}
+            className={cn(
+              "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
+              "bg-[var(--accent-primary)] text-white font-medium",
+              "hover:opacity-90 transition-opacity"
+            )}
+          >
+            <Brain size={16} />
+            Capture a thought
+          </button>
+          <p className="hidden md:block text-xs text-[var(--text-muted)] mt-3">
+            or press{" "}
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-secondary)] font-mono">
               Ctrl+K
-            </kbd>{" "}
-            to capture a thought and it will appear here for processing.
+            </kbd>
           </p>
         </div>
       ) : (
@@ -137,6 +152,24 @@ export default function InboxClient() {
             </span>
             <span>unprocessed {entries.length === 1 ? "entry" : "entries"}</span>
           </div>
+
+          {/* Capture action bar */}
+          <button
+            onClick={openBrainDump}
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-3 rounded-lg",
+              "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+              "hover:border-[var(--border-default)] transition-colors group"
+            )}
+          >
+            <div className="flex items-center gap-2 text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)]">
+              <Brain size={16} />
+              <span className="text-sm">Capture a thought</span>
+            </div>
+            <kbd className="hidden md:inline-flex px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[10px] font-mono text-[var(--text-muted)]">
+              Ctrl+K
+            </kbd>
+          </button>
 
           {/* Entries List */}
           <AnimatePresence mode="popLayout">
