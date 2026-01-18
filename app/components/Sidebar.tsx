@@ -15,6 +15,7 @@ import StreakBadge from "./StreakBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
+import { getTitleForLevel } from "@/app/lib/gamification";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -64,17 +65,24 @@ export default function Sidebar() {
         {loading ? (
           <div className="h-16 animate-pulse bg-[var(--bg-card)] rounded-lg" />
         ) : profile ? (
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-mono font-bold text-[var(--text-primary)]">
-                LVL {profile.level}
-              </span>
-              <span className="text-xs font-mono text-[var(--text-muted)]">
-                {profile.xp_total} XP
-              </span>
+          <Link href="/analytics" className="block group">
+            <div className="space-y-3 p-3 -mx-3 rounded-lg transition-colors group-hover:bg-[var(--bg-hover)]">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-2xl font-mono font-bold text-[var(--text-primary)]">
+                    LVL {profile.level}
+                  </span>
+                  <span className="ml-2 text-xs text-[var(--accent-highlight)]">
+                    {getTitleForLevel(profile.level)}
+                  </span>
+                </div>
+                <span className="text-xs font-mono text-[var(--text-muted)]">
+                  {profile.xp_total.toLocaleString()} XP
+                </span>
+              </div>
+              <XpBar totalXp={profile.xp_total} showLevel={false} size="sm" />
             </div>
-            <XpBar totalXp={profile.xp_total} showLevel={false} size="sm" />
-          </div>
+          </Link>
         ) : null}
       </div>
 

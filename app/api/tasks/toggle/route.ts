@@ -2,6 +2,7 @@
 // TASK TOGGLE API ROUTE
 // Toggles the completed status of a task.
 // Awards XP when completing, deducts when uncompleting.
+// Integrates with gamification v2 for achievements, challenges, and bonuses.
 // RLS ensures users can only toggle their own tasks.
 // =============================================================================
 
@@ -11,7 +12,8 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXp, getLocalDateString } from "@/app/lib/gamification";
+import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
+import { awardXp } from "@/app/lib/gamification-actions";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -30,20 +32,14 @@ type ToggleTaskBody = {
  * POST /api/tasks/toggle
  *
  * Toggles the completed status of a task.
- * When completing a task, awards XP and updates streak.
- * When uncompleting, deducts XP.
+ * When completing: awards XP with streak multipliers, updates stats, checks achievements.
+ * When uncompleting: deducts XP.
  *
  * @authentication Required
  *
  * @body {string} taskId - UUID of the task to toggle (required)
  *
- * @returns {Object} Response object
- * @returns {boolean} ok - Success indicator
- * @returns {number} [xpGained] - XP gained (when completing)
- * @returns {number} [xpLost] - XP lost (when uncompleting)
- * @returns {number} [newLevel] - New level (if leveled up)
- * @returns {number} [newStreak] - Current streak (when completing)
- * @returns {number} newXpTotal - Total XP after toggle
+ * @returns {Object} Response object with gamification data
  *
  * @throws {401} Not authenticated
  * @throws {400} Missing taskId
@@ -75,7 +71,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   const isCompleting = !existing.completed;
   const now = new Date().toISOString();
-  const today = getLocalDateString();
+  const completionHour = new Date().getHours();
 
   // Toggle the completed status
   const { error: updateError } = await supabase
@@ -90,82 +86,93 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(updateError.message);
   }
 
-  // Fetch current profile
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!profile) {
-    return NextResponse.json({ ok: true });
-  }
-
   const xpAmount = existing.xp_value ?? 10;
+  const isHighPriority = existing.priority === "high";
 
   if (isCompleting) {
-    // Award XP and update streak
-    const newXpTotal = profile.xp_total + xpAmount;
-    const newLevel = getLevelFromXp(newXpTotal);
-    const leveledUp = newLevel > profile.level;
-
-    // Calculate streak
-    let newStreak = profile.current_streak;
-    let newLongestStreak = profile.longest_streak;
-
-    if (profile.last_active_date !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = getLocalDateString(yesterday);
-
-      // Increment streak if active yesterday, otherwise reset to 1
-      newStreak =
-        profile.last_active_date === yesterdayStr
-          ? profile.current_streak + 1
-          : 1;
-
-      // Update longest streak if new record
-      if (newStreak > newLongestStreak) {
-        newLongestStreak = newStreak;
-      }
-    }
-
-    await supabase
-      .from("user_profiles")
-      .update({
-        xp_total: newXpTotal,
-        level: newLevel,
-        current_streak: newStreak,
-        longest_streak: newLongestStreak,
-        last_active_date: today,
-      })
-      .eq("user_id", user.id);
+    // Use gamification v2 system to award XP
+    const result = await awardXp({
+      supabase,
+      userId: user.id,
+      baseXp: xpAmount,
+      actionType: "task",
+      isHighPriority,
+      completionHour,
+    });
 
     return NextResponse.json({
       ok: true,
-      xpGained: xpAmount,
-      newLevel: leveledUp ? newLevel : undefined,
-      newStreak,
-      newXpTotal,
+      xpGained: result.xpBreakdown.totalXp,
+      xpBreakdown: result.xpBreakdown,
+      leveledUp: result.leveledUp,
+      newLevel: result.leveledUp ? result.newLevel : undefined,
+      newStreak: result.newStreak,
+      newXpTotal: result.newXpTotal,
+      streakMilestone: result.streakMilestone,
+      achievementsUnlocked: result.achievementsUnlocked,
+      challengesCompleted: result.challengesCompleted,
+      bonusXp: result.bonusXp,
     });
   } else {
     // Deduct XP when unchecking
-    const newXpTotal = Math.max(0, profile.xp_total - xpAmount);
-    const newLevel = getLevelFromXp(newXpTotal);
-
-    await supabase
+    const { data: profile } = await supabase
       .from("user_profiles")
-      .update({
+      .select("xp_total, level, lifetime_tasks_completed, lifetime_high_priority_completed")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile) {
+      const newXpTotal = Math.max(0, profile.xp_total - xpAmount);
+      const newLevel = getLevelFromXpV2(newXpTotal);
+
+      // Decrement lifetime stats
+      const updates: Record<string, number> = {
         xp_total: newXpTotal,
         level: newLevel,
-      })
-      .eq("user_id", user.id);
+        lifetime_tasks_completed: Math.max(0, (profile.lifetime_tasks_completed ?? 0) - 1),
+      };
 
-    return NextResponse.json({
-      ok: true,
-      xpLost: xpAmount,
-      newXpTotal,
-      newLevel,
-    });
+      if (isHighPriority) {
+        updates.lifetime_high_priority_completed = Math.max(
+          0,
+          (profile.lifetime_high_priority_completed ?? 0) - 1
+        );
+      }
+
+      await supabase
+        .from("user_profiles")
+        .update(updates)
+        .eq("user_id", user.id);
+
+      // Update activity log
+      const today = getLocalDateString();
+      const { data: activityLog } = await supabase
+        .from("user_activity_log")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("activity_date", today)
+        .single();
+
+      if (activityLog) {
+        await supabase
+          .from("user_activity_log")
+          .update({
+            xp_earned: Math.max(0, activityLog.xp_earned - xpAmount),
+            tasks_completed: Math.max(0, activityLog.tasks_completed - 1),
+          })
+          .eq("id", activityLog.id);
+      }
+
+      const levelDecreased = newLevel < profile.level;
+      return NextResponse.json({
+        ok: true,
+        xpLost: xpAmount,
+        newXpTotal,
+        newLevel: levelDecreased ? newLevel : undefined,
+        levelDecreased,
+      });
+    }
+
+    return NextResponse.json({ ok: true });
   }
 });

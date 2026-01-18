@@ -2,7 +2,7 @@
 // HABIT COMPLETE API ROUTE
 // Toggles the completion status of a habit for a specific date.
 // Awards XP when completing, deducts when uncompleting.
-// Updates per-habit streak.
+// Integrates with gamification v2 for achievements, challenges, and bonuses.
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -12,7 +12,8 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXp, getLocalDateString } from "@/app/lib/gamification";
+import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
+import { awardXp } from "@/app/lib/gamification-actions";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -30,9 +31,6 @@ type CompleteHabitBody = {
 
 /**
  * Get the previous day's date string from a given date.
- *
- * @param dateStr - Date string in YYYY-MM-DD format
- * @returns Previous day in YYYY-MM-DD format
  */
 function getYesterdayFromDate(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
@@ -42,19 +40,12 @@ function getYesterdayFromDate(dateStr: string): string {
 
 /**
  * Recalculate the streak for a habit based on completions.
- * Counts consecutive days backwards from the given date.
- *
- * @param supabase - Supabase client
- * @param habitId - UUID of the habit
- * @param fromDate - Date to calculate streak from
- * @returns Number of consecutive days
  */
 async function recalculateStreak(
   supabase: SupabaseClient,
   habitId: string,
   fromDate: string
 ): Promise<number> {
-  // Fetch all completions ordered by date descending
   const { data: completions } = await supabase
     .from("habit_completions")
     .select("completed_date")
@@ -65,7 +56,6 @@ async function recalculateStreak(
     return 0;
   }
 
-  // Count consecutive days
   let streak = 1;
   let currentDate = fromDate;
 
@@ -90,26 +80,8 @@ async function recalculateStreak(
  * POST /api/habits/complete
  *
  * Toggles habit completion for a specific date.
- * When completing: inserts completion record, updates habit streak, awards XP.
- * When uncompleting: removes completion, recalculates streak, deducts XP.
- *
- * @authentication Required
- *
- * @body {string} habitId - UUID of the habit (required)
- * @body {string} date - Date in YYYY-MM-DD format (required)
- *
- * @returns {Object} Response object
- * @returns {boolean} ok - Success indicator
- * @returns {number} [xpGained] - XP gained (when completing)
- * @returns {number} [xpLost] - XP lost (when uncompleting)
- * @returns {number} newStreak - The habit's new streak
- * @returns {number} [newLevel] - New level (if leveled up)
- * @returns {number} newXpTotal - Total XP after toggle
- *
- * @throws {401} Not authenticated
- * @throws {400} Missing habitId or date
- * @throws {404} Habit not found
- * @throws {500} Database error
+ * When completing: awards XP with bonuses, updates streaks, checks achievements.
+ * When uncompleting: removes completion, deducts XP.
  */
 export const POST = withAuth(async ({ user, supabase, request }) => {
   const body = await parseJsonBody<CompleteHabitBody>(request);
@@ -176,59 +148,28 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       })
       .eq("id", habitId);
 
-    // Award XP to user profile
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    // Use gamification v2 system to award XP
+    const result = await awardXp({
+      supabase,
+      userId: user.id,
+      baseXp: habit.xp_value,
+      actionType: "habit",
+    });
 
-    if (profile) {
-      const newXpTotal = profile.xp_total + habit.xp_value;
-      const newLevel = getLevelFromXp(newXpTotal);
-      const leveledUp = newLevel > profile.level;
-
-      // Also update global streak
-      const today = getLocalDateString();
-      let globalStreak = profile.current_streak;
-      let globalLongestStreak = profile.longest_streak;
-
-      if (profile.last_active_date !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = getLocalDateString(yesterday);
-
-        globalStreak =
-          profile.last_active_date === yesterdayStr
-            ? profile.current_streak + 1
-            : 1;
-
-        if (globalStreak > globalLongestStreak) {
-          globalLongestStreak = globalStreak;
-        }
-      }
-
-      await supabase
-        .from("user_profiles")
-        .update({
-          xp_total: newXpTotal,
-          level: newLevel,
-          current_streak: globalStreak,
-          longest_streak: globalLongestStreak,
-          last_active_date: today,
-        })
-        .eq("user_id", user.id);
-
-      return NextResponse.json({
-        ok: true,
-        xpGained: habit.xp_value,
-        newStreak,
-        newLevel: leveledUp ? newLevel : undefined,
-        newXpTotal,
-      });
-    }
-
-    return NextResponse.json({ ok: true, newStreak, newXpTotal: 0 });
+    return NextResponse.json({
+      ok: true,
+      xpGained: result.xpBreakdown.totalXp,
+      xpBreakdown: result.xpBreakdown,
+      leveledUp: result.leveledUp,
+      newStreak,
+      newLevel: result.leveledUp ? result.newLevel : undefined,
+      newXpTotal: result.newXpTotal,
+      globalStreak: result.newStreak,
+      streakMilestone: result.streakMilestone,
+      achievementsUnlocked: result.achievementsUnlocked,
+      challengesCompleted: result.challengesCompleted,
+      bonusXp: result.bonusXp,
+    });
   } else {
     // --- UNCOMPLETING HABIT ---
 
@@ -243,7 +184,6 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     // Handle streak recalculation if this was the last completion
     let newStreak = habit.current_streak;
     if (habit.last_completed_date === date) {
-      // Find previous completion to restore last_completed_date
       const { data: prevCompletion } = await supabase
         .from("habit_completions")
         .select("completed_date")
@@ -253,7 +193,6 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
         .single();
 
       if (prevCompletion) {
-        // Recalculate streak from previous completion
         newStreak = await recalculateStreak(
           supabase,
           habitId,
@@ -267,7 +206,6 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
           })
           .eq("id", habitId);
       } else {
-        // No completions left
         newStreak = 0;
         await supabase
           .from("habits")
@@ -282,28 +220,50 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     // Deduct XP from profile
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("xp_total, level")
+      .select("xp_total, level, lifetime_habits_completed")
       .eq("user_id", user.id)
       .single();
 
     if (profile) {
       const newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
-      const newLevel = getLevelFromXp(newXpTotal);
+      const newLevel = getLevelFromXpV2(newXpTotal);
 
       await supabase
         .from("user_profiles")
         .update({
           xp_total: newXpTotal,
           level: newLevel,
+          lifetime_habits_completed: Math.max(0, (profile.lifetime_habits_completed ?? 0) - 1),
         })
         .eq("user_id", user.id);
 
+      // Update activity log
+      const today = getLocalDateString();
+      const { data: activityLog } = await supabase
+        .from("user_activity_log")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("activity_date", today)
+        .single();
+
+      if (activityLog) {
+        await supabase
+          .from("user_activity_log")
+          .update({
+            xp_earned: Math.max(0, activityLog.xp_earned - xpToDeduct),
+            habits_completed: Math.max(0, activityLog.habits_completed - 1),
+          })
+          .eq("id", activityLog.id);
+      }
+
+      const levelDecreased = newLevel < profile.level;
       return NextResponse.json({
         ok: true,
         xpLost: xpToDeduct,
         newStreak,
         newXpTotal,
-        newLevel,
+        newLevel: levelDecreased ? newLevel : undefined,
+        levelDecreased,
       });
     }
 

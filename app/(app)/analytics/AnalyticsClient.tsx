@@ -2,7 +2,7 @@
 
 // =============================================================================
 // ANALYTICS CLIENT COMPONENT
-// Main analytics dashboard with stats and charts.
+// Main analytics dashboard with stats, charts, and gamification features.
 // =============================================================================
 
 import { useEffect, useState, useCallback } from "react";
@@ -11,6 +11,12 @@ import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import XpChart from "@/app/components/charts/XpChart";
 import ActivityHeatmap from "@/app/components/charts/ActivityHeatmap";
+import {
+  DailyChallengesSection,
+  WeeklyChallengeCard,
+  AchievementGrid,
+} from "@/app/components/gamification";
+import type { GamificationProfile, AchievementWithProgress } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -37,6 +43,18 @@ type AnalyticsData = {
     days: number;
     startDate: string;
     endDate: string;
+  };
+};
+
+type AchievementsResponse = {
+  ok: true;
+  achievements: AchievementWithProgress[];
+  summary: {
+    total: number;
+    unlocked: number;
+    bronze: number;
+    silver: number;
+    gold: number;
   };
 };
 
@@ -88,6 +106,9 @@ function StatCard({ label, value, subValue, icon, accent = "primary" }: StatCard
 
 export default function AnalyticsClient() {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [profile, setProfile] = useState<GamificationProfile | null>(null);
+  const [achievements, setAchievements] = useState<AchievementWithProgress[]>([]);
+  const [achievementSummary, setAchievementSummary] = useState<AchievementsResponse["summary"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState(30);
@@ -95,8 +116,16 @@ export default function AnalyticsClient() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchApi<AnalyticsData>(`/api/analytics?days=${days}`);
-      setData(result);
+      const [analyticsResult, profileResult, achievementsResult] = await Promise.all([
+        fetchApi<AnalyticsData>(`/api/analytics?days=${days}`),
+        fetchApi<GamificationProfile>("/api/gamification/profile"),
+        fetchApi<AchievementsResponse>("/api/achievements"),
+      ]);
+
+      setData(analyticsResult);
+      setProfile(profileResult);
+      setAchievements(achievementsResult.achievements);
+      setAchievementSummary(achievementsResult.summary);
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
@@ -234,6 +263,39 @@ export default function AnalyticsClient() {
           Activity Heatmap
         </h3>
         <ActivityHeatmap data={activityHeatmap} />
+      </div>
+
+      {/* Challenges Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+          <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
+            Daily Challenges
+          </h3>
+          {profile && (
+            <DailyChallengesSection
+              challenges={profile.dailyChallenges}
+              onRefresh={loadData}
+            />
+          )}
+        </div>
+
+        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+          <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
+            Weekly Challenge
+          </h3>
+          {profile && <WeeklyChallengeCard challenge={profile.weeklyChallenge} />}
+        </div>
+      </div>
+
+      {/* Achievements - full width */}
+      <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+        <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
+          Achievements
+        </h3>
+        <AchievementGrid
+          achievements={achievements}
+          summary={achievementSummary ?? undefined}
+        />
       </div>
     </div>
   );
