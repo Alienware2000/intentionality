@@ -136,7 +136,7 @@ export default function MobileNav() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 z-50 md:hidden"
+              className="fixed inset-0 modal-backdrop z-50 md:hidden"
               onClick={() => setMenuOpen(false)}
             />
 
@@ -169,7 +169,7 @@ export default function MobileNav() {
               {/* Profile Section */}
               <div className="p-4 border-b border-[var(--border-default)]">
                 {loading ? (
-                  <div className="h-20 animate-pulse bg-[var(--bg-card)] rounded-lg" />
+                  <div className="h-20 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
                 ) : profile ? (
                   <div className="space-y-3">
                     <div className="flex items-baseline justify-between">

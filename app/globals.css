@@ -35,43 +35,83 @@
   --border-default: rgba(255, 255, 255, 0.12);
   --border-accent: rgba(239, 68, 68, 0.4);
 
+  /* Heatmap & Skeleton */
+  --heatmap-empty: #1a1a1a;
+  --skeleton-bg: #1a1a1a;
+
+  /* Achievement Tiers */
+  --tier-bronze-text: #f59e0b;
+  --tier-bronze-glow: rgba(217, 119, 6, 0.6);
+  --tier-silver-text: #94a3b8;
+  --tier-silver-glow: rgba(148, 163, 184, 0.6);
+  --tier-gold-text: #fbbf24;
+  --tier-gold-glow: rgba(250, 204, 21, 0.6);
+
+  /* Modal Backdrops */
+  --backdrop-color: rgba(0, 0, 0, 0.80);
+  --backdrop-heavy: rgba(0, 0, 0, 0.90);
+
+  /* Level-up glow */
+  --levelup-glow: rgba(235, 255, 165, 0.5);
+  --levelup-glow-soft: rgba(235, 255, 165, 0.3);
+
   /* Legacy - for Tailwind compatibility */
   --background: #000000;
   --foreground: #ffffff;
 }
 
-/* Light theme - Soft peach/cream palette */
+/* Light theme - Modern clean palette (inspired by Notion, Linear, GitHub) */
 :root.light {
-  /* Base colors - soft warm cream tones */
-  --bg-base: #f5e9ca;              /* Light cream/vanilla */
-  --bg-elevated: #faf3e0;          /* Lighter cream */
-  --bg-card: #edd5a4;              /* Light tan/wheat */
-  --bg-hover: #f6bd89;             /* Warm peach/apricot */
+  /* Base colors - clean off-white/white */
+  --bg-base: #fafafa;              /* Off-white background */
+  --bg-elevated: #ffffff;          /* Pure white for elevated surfaces */
+  --bg-card: #ffffff;              /* White cards */
+  --bg-hover: #f3f4f6;             /* gray-100 for hover states */
 
-  /* Text colors - warm browns */
-  --text-primary: #3d2e1c;         /* Dark warm brown */
-  --text-secondary: #5c4a32;       /* Medium brown */
-  --text-muted: #8a7355;           /* Light brown */
+  /* Text colors - cool gray hierarchy (WCAG AAA compliant) */
+  --text-primary: #111827;         /* gray-900 - 15.8:1 contrast */
+  --text-secondary: #374151;       /* gray-700 - 9.7:1 contrast */
+  --text-muted: #6b7280;           /* gray-500 - 5.4:1 contrast */
 
-  /* Accent colors - warm complementary tones */
-  --accent-primary: #c76f3b;        /* Burnt sienna */
-  --accent-highlight: #f6bd89;      /* Peach */
-  --accent-success: #6b8e5a;        /* Sage green */
-  --accent-streak: #d4854a;         /* Warm amber */
+  /* Accent colors - blue primary for professional feel */
+  --accent-primary: #2563eb;        /* blue-600 */
+  --accent-highlight: #fef08a;      /* yellow-200 */
+  --accent-success: #16a34a;        /* green-600 */
+  --accent-streak: #ea580c;         /* orange-600 */
 
   /* Priority colors */
-  --priority-high: #b85a3a;         /* Terracotta */
-  --priority-medium: #c9884d;       /* Amber */
-  --priority-low: #8a7355;          /* Warm gray-brown */
+  --priority-high: #dc2626;         /* red-600 */
+  --priority-medium: #ca8a04;       /* yellow-600 */
+  --priority-low: #6b7280;          /* gray-500 */
 
-  /* Borders and lines */
-  --border-subtle: rgba(93, 74, 50, 0.10);
-  --border-default: rgba(93, 74, 50, 0.15);
-  --border-accent: rgba(199, 111, 59, 0.30);
+  /* Borders and lines - stronger for visibility */
+  --border-subtle: rgba(0, 0, 0, 0.12);
+  --border-default: rgba(0, 0, 0, 0.20);
+  --border-accent: rgba(37, 99, 235, 0.30);
+
+  /* Heatmap & Skeleton - visible gray */
+  --heatmap-empty: #e5e7eb;
+  --skeleton-bg: #e5e7eb;
+
+  /* Achievement Tiers - darker for contrast */
+  --tier-bronze-text: #b45309;
+  --tier-bronze-glow: rgba(180, 83, 9, 0.4);
+  --tier-silver-text: #475569;
+  --tier-silver-glow: rgba(71, 85, 105, 0.4);
+  --tier-gold-text: #b45309;
+  --tier-gold-glow: rgba(180, 83, 9, 0.4);
+
+  /* Modal Backdrops - lighter */
+  --backdrop-color: rgba(0, 0, 0, 0.50);
+  --backdrop-heavy: rgba(0, 0, 0, 0.60);
+
+  /* Level-up glow - blue tinted */
+  --levelup-glow: rgba(37, 99, 235, 0.35);
+  --levelup-glow-soft: rgba(37, 99, 235, 0.15);
 
   /* Legacy - for Tailwind compatibility */
-  --background: #f5e9ca;
-  --foreground: #3d2e1c;
+  --background: #fafafa;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -126,27 +166,36 @@ body {
   opacity: 1;
 }
 
-/* Light mode background adjustments - soft peach/cream tones */
+/* Light mode background adjustments - subtle cool tones */
 :root.light .intentionality-bg::before {
   background-image:
-    linear-gradient(to right, rgba(93, 74, 50, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(93, 74, 50, 0.05) 1px, transparent 1px);
-  opacity: 0.2;
+    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  opacity: 0.3;
 }
 
 :root.light .intentionality-bg::after {
   background:
-    /* Top-left soft peach glow */
-    radial-gradient(600px circle at 10% 10%, rgba(246, 189, 137, 0.15), transparent 50%),
-    /* Bottom-right warm tan glow */
-    radial-gradient(800px circle at 90% 90%, rgba(237, 213, 164, 0.12), transparent 50%),
-    /* Subtle warm vignette */
-    radial-gradient(1400px circle at 50% 50%, transparent 50%, rgba(93, 74, 50, 0.04) 100%);
+    /* Top-left subtle blue glow */
+    radial-gradient(600px circle at 10% 10%, rgba(37, 99, 235, 0.04), transparent 50%),
+    /* Bottom-right subtle accent glow */
+    radial-gradient(800px circle at 90% 90%, rgba(37, 99, 235, 0.02), transparent 50%),
+    /* Very subtle vignette */
+    radial-gradient(1400px circle at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.02) 100%);
 }
 
 /* =============================================================================
    UTILITY CLASSES
    ============================================================================= */
+
+/* Theme-aware color scheme for native date/time inputs */
+.theme-color-scheme {
+  color-scheme: dark;
+}
+
+:root.light .theme-color-scheme {
+  color-scheme: light;
+}
 
 /* Monospace text for numbers and stats */
 .font-mono-stats {
@@ -154,19 +203,32 @@ body {
   font-feature-settings: "tnum" on, "lnum" on;
 }
 
-/* Red glow effect for important elements */
+/* Red glow effect for important elements (dark mode) */
 .glow-red {
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
 }
 
-/* Orange glow for streaks */
+/* Orange glow for streaks (dark mode) */
 .glow-orange {
   box-shadow: 0 0 15px rgba(249, 115, 22, 0.4);
 }
 
-/* Lime highlight glow */
+/* Lime highlight glow (dark mode) */
 .glow-highlight {
   box-shadow: 0 0 20px rgba(235, 255, 165, 0.4);
+}
+
+/* Light mode glow variants - softer, more subtle */
+:root.light .glow-red {
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.15);
+}
+
+:root.light .glow-orange {
+  box-shadow: 0 0 12px rgba(234, 88, 12, 0.2);
+}
+
+:root.light .glow-highlight {
+  box-shadow: 0 0 16px rgba(202, 138, 4, 0.2);
 }
 
 /* Thin divider line */
@@ -212,6 +274,29 @@ body {
   .animate-pulse-glow {
     animation: none;
   }
+}
+
+/* Light mode pulse-glow animation - blue tinted */
+@keyframes pulse-glow-light {
+  0%, 100% {
+    box-shadow: 0 0 12px var(--levelup-glow-soft);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--levelup-glow);
+  }
+}
+
+:root.light .animate-pulse-glow {
+  animation: pulse-glow-light 2s ease-in-out infinite;
+}
+
+/* Modal backdrop utilities */
+.modal-backdrop {
+  background-color: var(--backdrop-color);
+}
+
+.modal-backdrop-heavy {
+  background-color: var(--backdrop-heavy);
 }
 
 /* =============================================================================

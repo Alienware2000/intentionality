@@ -32,7 +32,7 @@ export default function ActivityHeatmap({ data }: Props) {
   function getColor(level: number): string {
     switch (level) {
       case 0:
-        return "bg-[var(--bg-elevated)]";
+        return "bg-[var(--heatmap-empty)]";
       case 1:
         return "bg-[var(--accent-success)]/20";
       case 2:
@@ -42,7 +42,7 @@ export default function ActivityHeatmap({ data }: Props) {
       case 4:
         return "bg-[var(--accent-success)]";
       default:
-        return "bg-[var(--bg-elevated)]";
+        return "bg-[var(--heatmap-empty)]";
     }
   }
 

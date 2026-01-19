@@ -234,6 +234,19 @@ export function useDayTimeline(
     [] // No dependencies - reads from refs
   );
 
+  // Find schedule block xp_value (uses refs to avoid stale closures)
+  const findScheduleBlockXpValue = useCallback(
+    (blockId: string): number | undefined => {
+      for (const item of scheduledItemsRef.current) {
+        if (item.type === "schedule_block" && item.data.id === blockId) {
+          return item.data.xp_value ?? 10; // Default to 10 XP
+        }
+      }
+      return undefined;
+    },
+    [] // No dependencies - reads from refs
+  );
+
   const toggleScheduleBlock = useCallback(
     async (blockId: string) => {
       // Guard against duplicate in-flight toggles
@@ -244,34 +257,46 @@ export function useDayTimeline(
       // 1. Find block and capture previous state
       const wasCompleted = findScheduleBlockCompleted(blockId);
       if (wasCompleted === undefined) return;
+      const isCompleting = !wasCompleted;
+      const xpValue = findScheduleBlockXpValue(blockId);
 
       // Mark as in-flight
       inFlightBlockToggles.current.add(blockId);
 
       // 2. Optimistic update - immediate
-      updateScheduleBlockInState(blockId, !wasCompleted);
+      updateScheduleBlockInState(blockId, isCompleting);
 
-      // 3. API call in background
+      // 3. Show XP animation IMMEDIATELY (before API call) for instant feedback
+      if (isCompleting && xpValue) {
+        options?.onTaskToggle?.({ xpGained: xpValue });
+      }
+
+      // 4. API call in background
       try {
-        await fetchApi("/api/schedule/complete", {
+        const result = await fetchApi<{ ok: true } & ToggleResult>("/api/schedule/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ blockId, date }),
         });
 
-        // Notify profile update
+        // 5. Handle level-up (needs API response)
+        if (result.leveledUp && result.newLevel) {
+          options?.onTaskToggle?.({ leveledUp: true, newLevel: result.newLevel });
+        }
+
+        // 6. Notify profile update
         options?.onProfileUpdate?.();
 
         // No refresh() call - state is already correct
       } catch (e) {
-        // 4. Rollback on error
+        // 7. Rollback on error
         updateScheduleBlockInState(blockId, wasCompleted);
         setError(getErrorMessage(e));
       } finally {
         inFlightBlockToggles.current.delete(blockId);
       }
     },
-    [date, findScheduleBlockCompleted, updateScheduleBlockInState, options]
+    [date, findScheduleBlockCompleted, findScheduleBlockXpValue, updateScheduleBlockInState, options]
   );
 
   return {

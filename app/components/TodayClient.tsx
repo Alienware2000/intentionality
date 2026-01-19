@@ -49,7 +49,7 @@ export default function TodayClient({ date, onTaskAction }: Props) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-14 animate-pulse bg-[var(--bg-card)] rounded-lg"
+            className="h-14 animate-pulse bg-[var(--skeleton-bg)] rounded-lg"
           />
         ))}
       </div>

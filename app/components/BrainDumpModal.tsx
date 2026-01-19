@@ -5,14 +5,17 @@
 // Quick capture modal for thoughts and ideas.
 // Triggered via Ctrl+K / Cmd+K keyboard shortcut.
 // anime.js inspired: minimal dark theme with dramatic focus.
+// Now includes NLP parsing preview for smart task creation.
 // =============================================================================
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Brain, Zap } from "lucide-react";
+import { X, Brain, Zap, Calendar, Flag, Clock, Sparkles } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
-import type { BrainDumpEntry } from "@/app/lib/types";
+import { parseTaskInput } from "@/app/lib/nlp-parser";
+import { useOnboarding } from "./OnboardingProvider";
+import type { BrainDumpEntry, ParsedTaskInput } from "@/app/lib/types";
 
 type Props = {
   isOpen: boolean;
@@ -25,6 +28,16 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { markStepComplete } = useOnboarding();
+
+  // Parse content for smart preview
+  const parsed: ParsedTaskInput | null = useMemo(() => {
+    if (!content.trim() || content.trim().length < 3) return null;
+    return parseTaskInput(content);
+  }, [content]);
+
+  // Check if we detected any smart parsing
+  const hasSmartParsing = parsed && (parsed.due_date || parsed.priority || parsed.scheduled_time);
 
   // Focus textarea when modal opens
   useEffect(() => {
@@ -62,6 +75,8 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
       );
 
       onCapture?.(result.entry);
+      // Mark onboarding step complete
+      markStepComplete("brain_dump");
       onClose();
     } catch (e) {
       setError(getErrorMessage(e));
@@ -91,7 +106,7 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 z-50 backdrop-blur-sm"
+            className="fixed inset-0 modal-backdrop-heavy z-50 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -140,7 +155,7 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="What's on your mind? Tasks, ideas, reminders..."
+                placeholder="What's on your mind? Try: 'Call mom tomorrow high priority' or 'Finish report by Friday at 3pm'"
                 rows={5}
                 className={cn(
                   "w-full px-4 py-3 rounded-lg resize-none",
@@ -151,6 +166,69 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                 )}
               />
             </div>
+
+            {/* Smart Parsing Preview */}
+            <AnimatePresence>
+              {hasSmartParsing && parsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 p-3 rounded-lg bg-[var(--accent-highlight)]/5 border border-[var(--accent-highlight)]/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles size={12} className="text-[var(--accent-highlight)]" />
+                      <span className="text-xs font-medium text-[var(--accent-highlight)]">
+                        Smart parsing detected
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {/* Parsed title */}
+                      <p className="text-sm text-[var(--text-primary)]">
+                        {parsed.title || "(no title)"}
+                      </p>
+                      {/* Parsed attributes */}
+                      <div className="flex flex-wrap gap-2">
+                        {parsed.due_date && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-card)] text-xs text-[var(--text-secondary)]">
+                            <Calendar size={10} />
+                            {new Date(parsed.due_date).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        )}
+                        {parsed.scheduled_time && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-card)] text-xs text-[var(--text-secondary)]">
+                            <Clock size={10} />
+                            {(() => {
+                              const [hours, minutes] = parsed.scheduled_time.split(":").map(Number);
+                              const period = hours >= 12 ? "PM" : "AM";
+                              const displayHours = hours % 12 || 12;
+                              return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
+                            })()}
+                          </span>
+                        )}
+                        {parsed.priority && (
+                          <span className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs",
+                            parsed.priority === "high" && "bg-[var(--priority-high)]/10 text-[var(--priority-high)]",
+                            parsed.priority === "medium" && "bg-[var(--priority-medium)]/10 text-[var(--priority-medium)]",
+                            parsed.priority === "low" && "bg-[var(--priority-low)]/10 text-[var(--priority-low)]"
+                          )}>
+                            <Flag size={10} />
+                            {parsed.priority}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Error message */}
             {error && (

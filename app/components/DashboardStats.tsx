@@ -81,7 +81,7 @@ export default function DashboardStats({ date, refreshTrigger }: Props) {
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-16 animate-pulse bg-[var(--bg-card)] rounded-lg"
+            className="h-16 animate-pulse bg-[var(--skeleton-bg)] rounded-lg"
           />
         ))}
       </div>

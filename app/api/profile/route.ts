@@ -11,7 +11,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { getLocalDateString } from "@/app/lib/gamification";
+import { getLocalDateString, getLevelFromXpV2 } from "@/app/lib/gamification";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -81,6 +81,19 @@ export const GET = withAuth(async ({ user, supabase }) => {
     return ApiErrors.serverError(fetchError.message);
   }
 
+  // Verify level matches XP total - auto-fix if out of sync
+  const calculatedLevel = getLevelFromXpV2(profile.xp_total);
+  if (calculatedLevel !== profile.level) {
+    const { error: fixError } = await supabase
+      .from("user_profiles")
+      .update({ level: calculatedLevel })
+      .eq("user_id", user.id);
+
+    if (!fixError) {
+      profile.level = calculatedLevel;
+    }
+  }
+
   return successResponse({ profile });
 });
 
@@ -133,8 +146,7 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
   // Calculate new XP and level if XP is being added
   if (xp_to_add && xp_to_add > 0) {
     const newXpTotal = currentProfile.xp_total + xp_to_add;
-    // Level formula: level = floor(0.5 + sqrt(0.25 + xp/50))
-    const newLevel = Math.floor(0.5 + Math.sqrt(0.25 + newXpTotal / 50));
+    const newLevel = getLevelFromXpV2(newXpTotal);
 
     updates.xp_total = newXpTotal;
     updates.level = newLevel;

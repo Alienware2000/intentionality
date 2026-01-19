@@ -3,7 +3,7 @@
 // =============================================================================
 // XP CHART COMPONENT
 // Line chart showing XP earned over time.
-// Uses recharts for rendering.
+// Uses recharts for rendering. Theme-aware for dark/light modes.
 // =============================================================================
 
 import { useMemo } from "react";
@@ -15,6 +15,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { useTheme } from "@/app/components/ThemeProvider";
 
 type Props = {
   data: Array<{ date: string; xp: number }>;
@@ -49,6 +50,16 @@ function CustomTooltip({
 }
 
 export default function XpChart({ data }: Props) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  // Theme-aware colors
+  const colors = useMemo(() => ({
+    primary: isDark ? "#ef4444" : "#2563eb",       // red-500 (dark) / blue-600 (light)
+    tickFill: isDark ? "#525252" : "#6b7280",      // neutral-600 (dark) / gray-500 (light)
+    axisLine: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+  }), [isDark]);
+
   // Calculate cumulative XP for area chart effect (memoized to prevent recalc on each render)
   const cumulativeData = useMemo(() => {
     return data.reduce<Array<{ date: string; xp: number; cumulative: number }>>(
@@ -61,26 +72,29 @@ export default function XpChart({ data }: Props) {
     );
   }, [data]);
 
+  // Use unique gradient ID to avoid conflicts when theme changes
+  const gradientId = `xpGradient-${isDark ? "dark" : "light"}`;
+
   return (
     <div className="h-48 sm:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={cumulativeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={colors.primary} stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="date"
             tickFormatter={formatDate}
-            tick={{ fill: "#525252", fontSize: 10 }}
-            axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
+            tick={{ fill: colors.tickFill, fontSize: 10 }}
+            axisLine={{ stroke: colors.axisLine }}
             tickLine={false}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fill: "#525252", fontSize: 10 }}
+            tick={{ fill: colors.tickFill, fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             width={40}
@@ -89,9 +103,9 @@ export default function XpChart({ data }: Props) {
           <Area
             type="monotone"
             dataKey="cumulative"
-            stroke="#ef4444"
+            stroke={colors.primary}
             strokeWidth={2}
-            fill="url(#xpGradient)"
+            fill={`url(#${gradientId})`}
           />
         </AreaChart>
       </ResponsiveContainer>

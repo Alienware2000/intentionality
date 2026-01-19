@@ -16,7 +16,7 @@ import {
   checkAllHabitsChallenge,
   DAILY_SWEEP_BONUS,
 } from "@/app/lib/challenges";
-import { getLocalDateString, getStreakMultiplier, calculateXpWithBonuses } from "@/app/lib/gamification";
+import { getLocalDateString, calculateXpWithBonuses } from "@/app/lib/gamification";
 import { getWeekStartDate } from "@/app/lib/challenges";
 
 type ProgressBody = {

@@ -10,7 +10,7 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXp } from "@/app/lib/gamification";
+import { getLevelFromXpV2 } from "@/app/lib/gamification";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -93,7 +93,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
     if (profile) {
       const updatedXp = profile.xp_total + xpAmount;
-      const updatedLevel = getLevelFromXp(updatedXp);
+      const updatedLevel = getLevelFromXpV2(updatedXp);
       newXpTotal = updatedXp;
       newLevel = updatedLevel;
 

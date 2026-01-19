@@ -11,6 +11,7 @@ import type { ISODateString, Id, HabitWithStatus, Priority } from "@/app/lib/typ
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
+import { useOnboarding } from "./OnboardingProvider";
 import HabitCard from "./HabitCard";
 import EditHabitModal from "./EditHabitModal";
 import ConfirmModal from "./ConfirmModal";
@@ -34,6 +35,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
   const [deletingHabitId, setDeletingHabitId] = useState<Id | null>(null);
 
   const { refreshProfile } = useProfile();
+  const { markStepComplete } = useOnboarding();
 
   const refreshHabits = useCallback(async () => {
     setLoading(true);
@@ -147,6 +149,8 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
 
       setTitle("");
       await refreshHabits();
+      // Mark onboarding step complete
+      markStepComplete("create_habit");
     } catch (e) {
       setError(getErrorMessage(e));
     }
@@ -197,7 +201,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-12 animate-pulse bg-[var(--bg-card)] rounded-lg"
+            className="h-12 animate-pulse bg-[var(--skeleton-bg)] rounded-lg"
           />
         ))}
       </div>

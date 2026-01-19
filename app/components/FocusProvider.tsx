@@ -17,6 +17,8 @@ import {
 import type { FocusSession } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
+import { useCelebration } from "./CelebrationOverlay";
+import { getFocusTotalXp } from "@/app/lib/gamification";
 
 type FocusMode = "work" | "break" | "completed" | "idle";
 
@@ -59,6 +61,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { refreshProfile } = useProfile();
+  const { showXpGain, showLevelUp } = useCelebration();
 
   // Check for active session on mount
   useEffect(() => {
@@ -196,27 +199,41 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const completeSession = useCallback(async () => {
     if (!state.session) return;
 
-    try {
-      await fetchApi("/api/focus/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: state.session.id }),
-      });
+    // 1. Calculate expected XP BEFORE clearing session
+    const expectedXp = getFocusTotalXp(state.session.work_duration);
+    const sessionId = state.session.id;
 
-      setState({
-        session: null,
-        timeRemaining: 0,
-        isRunning: false,
-        mode: "idle",
-        error: null,
-      });
+    // 2. OPTIMISTIC UPDATE - Immediately clear session and show success
+    setState({
+      session: null,
+      timeRemaining: 0,
+      isRunning: false,
+      mode: "idle",
+      error: null,
+    });
 
-      // Refresh profile to update XP
-      refreshProfile();
-    } catch (e) {
-      setState((prev) => ({ ...prev, error: getErrorMessage(e) }));
-    }
-  }, [state.session, refreshProfile]);
+    // 3. Trigger XP animation IMMEDIATELY (doesn't wait for API)
+    showXpGain(expectedXp);
+
+    // 4. Fire API call in background (don't block on it)
+    fetchApi<{ ok: true; newLevel?: number }>("/api/focus/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then((result) => {
+        // Refresh profile in background to sync actual XP
+        refreshProfile();
+        // Trigger level-up animation if user leveled up
+        if (result.newLevel) {
+          showLevelUp(result.newLevel);
+        }
+      })
+      .catch((e) => {
+        // Log error but don't revert UI - session was completed
+        console.error("Failed to complete session:", getErrorMessage(e));
+      });
+  }, [state.session, refreshProfile, showXpGain, showLevelUp]);
 
   const abandonSession = useCallback(async () => {
     if (!state.session) return;

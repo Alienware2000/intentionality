@@ -4,10 +4,9 @@
 // =============================================================================
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import type { UserProfileV2, XpAwardResult, AchievementWithProgress } from "./types";
+import type { UserProfileV2, XpAwardResult } from "./types";
 import {
   getLevelFromXpV2,
-  getStreakMultiplier,
   getNewStreakMilestone,
   calculateXpWithBonuses,
   getLocalDateString,
@@ -118,21 +117,25 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   const permanentBonus = getPermanentXpBonus(typedProfile.level);
   const xpBreakdown = calculateXpWithBonuses(baseXp, newStreak, permanentBonus);
 
+  // Track additional bonuses without mutating xpBreakdown
+  let additionalXp = 0;
+
   // Add first action bonus
   let firstActionXp = 0;
   if (isFirstAction) {
     firstActionXp = FIRST_ACTION_BONUS;
-    xpBreakdown.totalXp += firstActionXp;
+    additionalXp += firstActionXp;
   }
 
   // Add streak milestone bonus
   if (streakMilestone) {
-    xpBreakdown.totalXp += streakMilestone.xpReward;
+    additionalXp += streakMilestone.xpReward;
   }
 
-  const newXpTotal = typedProfile.xp_total + xpBreakdown.totalXp;
+  // Calculate total XP earned this action (base breakdown + additional bonuses)
+  const actionTotalXp = xpBreakdown.totalXp + additionalXp;
+  const newXpTotal = typedProfile.xp_total + actionTotalXp;
   const newLevel = getLevelFromXpV2(newXpTotal);
-  const leveledUp = newLevel > typedProfile.level;
 
   const newLongestStreak = Math.max(newStreak, typedProfile.longest_streak);
 
@@ -181,19 +184,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
       (typedProfile.lifetime_streak_recoveries ?? 0) + 1;
   }
 
-  // Update profile
-  await supabase.from("user_profiles").update(profileUpdate).eq("user_id", userId);
-
-  // Update or create activity log
-  await upsertActivityLog(supabase, userId, today, {
-    xpEarned: xpBreakdown.totalXp,
-    tasksCompleted: actionType === "task" ? 1 : 0,
-    focusMinutes: actionType === "focus" ? focusMinutes : 0,
-    habitsCompleted: actionType === "habit" ? 1 : 0,
-    streakMaintained: true,
-  });
-
-  // Update challenge progress
+  // Update challenge progress first to check for bonuses
   const challengeType =
     actionType === "task"
       ? isHighPriority
@@ -213,15 +204,11 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     today
   );
 
-  // Award daily sweep bonus if achieved
+  // Calculate daily sweep bonus if achieved
   let sweepXp = 0;
   if (dailySweep) {
     const sweepBreakdown = calculateXpWithBonuses(DAILY_SWEEP_BONUS, newStreak, permanentBonus);
     sweepXp = sweepBreakdown.totalXp;
-    await supabase
-      .from("user_profiles")
-      .update({ xp_total: newXpTotal + sweepXp })
-      .eq("user_id", userId);
   }
 
   // Update weekly challenge
@@ -239,29 +226,37 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   if (isPerfectDay) {
     const perfectBreakdown = calculateXpWithBonuses(PERFECT_DAY_BONUS, newStreak, permanentBonus);
     perfectDayXp = perfectBreakdown.totalXp;
-    await supabase
-      .from("user_profiles")
-      .update({ xp_total: newXpTotal + sweepXp + perfectDayXp })
-      .eq("user_id", userId);
   }
 
-  // Check achievements
-  const updatedProfile = {
+  // Check achievements with projected profile state
+  const projectedXpTotal = newXpTotal + sweepXp + perfectDayXp;
+  const projectedProfile = {
     ...typedProfile,
     ...profileUpdate,
-    xp_total: newXpTotal + sweepXp + perfectDayXp,
+    xp_total: projectedXpTotal,
   } as UserProfileV2;
 
   const { unlocked: achievementsUnlocked, totalXpAwarded: achievementXp } =
-    await checkAllAchievements(supabase, userId, updatedProfile);
+    await checkAllAchievements(supabase, userId, projectedProfile);
 
-  // Award achievement XP
-  if (achievementXp > 0) {
-    await supabase
-      .from("user_profiles")
-      .update({ xp_total: newXpTotal + sweepXp + perfectDayXp + achievementXp })
-      .eq("user_id", userId);
-  }
+  // Calculate final XP total with all bonuses
+  const finalXpTotal = newXpTotal + sweepXp + perfectDayXp + achievementXp;
+  const finalLevel = getLevelFromXpV2(finalXpTotal);
+  const finalLeveledUp = finalLevel > typedProfile.level;
+
+  // Update profile with final values (single database update)
+  profileUpdate.xp_total = finalXpTotal;
+  profileUpdate.level = finalLevel;
+  await supabase.from("user_profiles").update(profileUpdate).eq("user_id", userId);
+
+  // Update or create activity log
+  await upsertActivityLog(supabase, userId, today, {
+    xpEarned: actionTotalXp + sweepXp + perfectDayXp + achievementXp,
+    tasksCompleted: actionType === "task" ? 1 : 0,
+    focusMinutes: actionType === "focus" ? focusMinutes : 0,
+    habitsCompleted: actionType === "habit" ? 1 : 0,
+    streakMaintained: true,
+  });
 
   // Check if user earned a streak freeze
   const { data: freezeData } = await supabase
@@ -284,9 +279,9 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
 
   return {
     xpBreakdown,
-    newXpTotal: newXpTotal + sweepXp + perfectDayXp + achievementXp,
-    newLevel: leveledUp ? newLevel : null,
-    leveledUp,
+    newXpTotal: finalXpTotal,
+    newLevel: finalLeveledUp ? finalLevel : null,
+    leveledUp: finalLeveledUp,
     newStreak,
     streakMilestone: streakMilestone?.days ?? null,
     achievementsUnlocked,

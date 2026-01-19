@@ -73,22 +73,22 @@ export function useCelebration() {
 
 const TIER_COLORS = {
   bronze: {
-    bg: "bg-amber-600/20",
-    border: "border-amber-600",
-    text: "text-amber-500",
-    glow: "rgba(217, 119, 6, 0.6)",
+    bg: "bg-[var(--tier-bronze-text)]/20",
+    border: "border-[var(--tier-bronze-text)]",
+    text: "text-[var(--tier-bronze-text)]",
+    glow: "var(--tier-bronze-glow)",
   },
   silver: {
-    bg: "bg-slate-400/20",
-    border: "border-slate-400",
-    text: "text-slate-300",
-    glow: "rgba(148, 163, 184, 0.6)",
+    bg: "bg-[var(--tier-silver-text)]/20",
+    border: "border-[var(--tier-silver-text)]",
+    text: "text-[var(--tier-silver-text)]",
+    glow: "var(--tier-silver-glow)",
   },
   gold: {
-    bg: "bg-yellow-500/20",
-    border: "border-yellow-400",
-    text: "text-yellow-400",
-    glow: "rgba(250, 204, 21, 0.6)",
+    bg: "bg-[var(--tier-gold-text)]/20",
+    border: "border-[var(--tier-gold-text)]",
+    text: "text-[var(--tier-gold-text)]",
+    glow: "var(--tier-gold-glow)",
   },
 };
 
@@ -125,7 +125,7 @@ function LevelUpAnimation({ level, onComplete }: { level: number; onComplete: ()
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop backdrop-blur-sm"
       onClick={onComplete}
     >
       <motion.div
@@ -138,9 +138,9 @@ function LevelUpAnimation({ level, onComplete }: { level: number; onComplete: ()
         <motion.div
           animate={{
             boxShadow: [
-              "0 0 20px rgba(235, 255, 165, 0.3)",
-              "0 0 60px rgba(235, 255, 165, 0.6)",
-              "0 0 20px rgba(235, 255, 165, 0.3)",
+              "0 0 20px var(--levelup-glow-soft)",
+              "0 0 60px var(--levelup-glow)",
+              "0 0 20px var(--levelup-glow-soft)",
             ],
           }}
           transition={{ duration: 2, repeat: 3 }}
@@ -258,7 +258,7 @@ function AchievementAnimation({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className={`fixed inset-0 z-50 flex items-center justify-center ${
-        isGold ? "bg-black/85" : "bg-black/70"
+        isGold ? "modal-backdrop-heavy" : "modal-backdrop"
       } backdrop-blur-sm`}
       onClick={onComplete}
     >
@@ -396,7 +396,7 @@ function PerfectDayAnimation({ onComplete }: { onComplete: () => void }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop backdrop-blur-sm"
       onClick={onComplete}
     >
       <motion.div
@@ -409,15 +409,15 @@ function PerfectDayAnimation({ onComplete }: { onComplete: () => void }) {
         <motion.div
           animate={{
             boxShadow: [
-              "0 0 20px rgba(250, 204, 21, 0.3)",
-              "0 0 80px rgba(250, 204, 21, 0.6)",
-              "0 0 20px rgba(250, 204, 21, 0.3)",
+              "0 0 20px var(--tier-gold-glow)",
+              "0 0 80px var(--tier-gold-glow)",
+              "0 0 20px var(--tier-gold-glow)",
             ],
           }}
           transition={{ duration: 1.5, repeat: 3 }}
-          className="p-6 rounded-full bg-yellow-400/20"
+          className="p-6 rounded-full bg-[var(--tier-gold-text)]/20"
         >
-          <Crown size={64} className="text-yellow-400" />
+          <Crown size={64} className="text-[var(--tier-gold-text)]" />
         </motion.div>
 
         <motion.div
@@ -427,16 +427,16 @@ function PerfectDayAnimation({ onComplete }: { onComplete: () => void }) {
           className="text-center"
         >
           <div className="flex items-center gap-2 justify-center">
-            <Sparkles size={24} className="text-yellow-400" />
-            <p className="text-2xl font-bold text-yellow-400">
+            <Sparkles size={24} className="text-[var(--tier-gold-text)]" />
+            <p className="text-2xl font-bold text-[var(--tier-gold-text)]">
               Perfect Day!
             </p>
-            <Sparkles size={24} className="text-yellow-400" />
+            <Sparkles size={24} className="text-[var(--tier-gold-text)]" />
           </div>
           <p className="text-sm text-[var(--text-muted)] mt-2">
             All habits completed + 3 tasks done
           </p>
-          <p className="text-xl font-mono font-bold text-yellow-400 mt-3">
+          <p className="text-xl font-mono font-bold text-[var(--tier-gold-text)] mt-3">
             +50 XP Bonus
           </p>
         </motion.div>

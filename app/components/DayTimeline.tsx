@@ -30,6 +30,7 @@ import { useProfile } from "./ProfileProvider";
 import { useCelebration } from "./CelebrationOverlay";
 import { useFocus } from "./FocusProvider";
 import { useToast } from "./Toast";
+import { useOnboarding } from "./OnboardingProvider";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
 
@@ -67,15 +68,20 @@ export default function DayTimeline({
   const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
   const { session: activeSession, startSession } = useFocus();
   const { showToast } = useToast();
+  const { markStepComplete } = useOnboarding();
 
   // Memoize callbacks to prevent unnecessary recreations
   const handleTaskToggle = useCallback(
     (result: { xpGained?: number; leveledUp?: boolean; newLevel?: number; newStreak?: number }) => {
-      if (result.xpGained) showXpGain(result.xpGained);
+      if (result.xpGained) {
+        showXpGain(result.xpGained);
+        // Mark onboarding step complete when task is completed (XP is gained)
+        markStepComplete("complete_task");
+      }
       if (result.leveledUp && result.newLevel) showLevelUp(result.newLevel);
       if (result.newStreak) showStreakMilestone(result.newStreak);
     },
-    [showXpGain, showLevelUp, showStreakMilestone]
+    [showXpGain, showLevelUp, showStreakMilestone, markStepComplete]
   );
 
   const timelineOptions = useMemo(
@@ -117,8 +123,23 @@ export default function DayTimeline({
 
       // For blocks, check if imminent
       const block = item.data;
-      const [startHour, startMin] = block.start_time.split(":").map(Number);
-      const [endHour, endMin] = block.end_time.split(":").map(Number);
+
+      // Validate time format before parsing
+      const startParts = block.start_time?.split(":");
+      const endParts = block.end_time?.split(":");
+      if (!startParts || startParts.length !== 2 || !endParts || endParts.length !== 2) {
+        // Show block if time format is invalid (fail open)
+        return true;
+      }
+
+      const [startHour, startMin] = startParts.map(Number);
+      const [endHour, endMin] = endParts.map(Number);
+
+      // Check for NaN values from invalid time strings
+      if (isNaN(startHour) || isNaN(startMin) || isNaN(endHour) || isNaN(endMin)) {
+        return true;
+      }
+
       const blockStartMinutes = startHour * 60 + startMin;
       const blockEndMinutes = endHour * 60 + endMin;
 
@@ -174,6 +195,8 @@ export default function DayTimeline({
       await refresh();
       onRefresh?.();
       refreshProfile();
+      // Mark onboarding step complete
+      markStepComplete("add_task");
     } catch (e) {
       setAddError(getErrorMessage(e));
     } finally {
@@ -260,7 +283,7 @@ export default function DayTimeline({
           <div
             key={i}
             className={cn(
-              "animate-pulse bg-[var(--bg-card)] rounded-lg",
+              "animate-pulse bg-[var(--skeleton-bg)] rounded-lg",
               compact ? "h-10" : "h-14"
             )}
           />
@@ -356,12 +379,43 @@ export default function DayTimeline({
 
       {/* Empty state */}
       {!hasItems && !hasOverdue && !showForm && (
-        <p className={cn(
-          "text-[var(--text-muted)] text-center",
-          compact ? "text-xs py-4" : "text-sm py-6"
+        <div className={cn(
+          "text-center rounded-lg border border-dashed border-[var(--border-subtle)]",
+          compact ? "py-4 px-3" : "py-8 px-6"
         )}>
-          No items scheduled
-        </p>
+          <div className={cn(
+            "mx-auto mb-2 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center",
+            compact ? "w-8 h-8" : "w-12 h-12"
+          )}>
+            <Zap size={compact ? 16 : 24} className="text-[var(--text-muted)]" />
+          </div>
+          <p className={cn(
+            "text-[var(--text-primary)] font-medium",
+            compact ? "text-xs mb-1" : "text-sm mb-2"
+          )}>
+            No tasks for today
+          </p>
+          <p className={cn(
+            "text-[var(--text-muted)]",
+            compact ? "text-xs" : "text-xs"
+          )}>
+            {quests.length > 0
+              ? "Add a task below to get started"
+              : "Create a Quest first, then add tasks"}
+          </p>
+          {quests.length === 0 && (
+            <a
+              href="/quests"
+              className={cn(
+                "inline-block mt-3 px-3 py-1.5 rounded-lg text-xs font-medium",
+                "bg-[var(--accent-primary)] text-white",
+                "hover:bg-[var(--accent-primary)]/80 transition-colors"
+              )}
+            >
+              Create Quest
+            </a>
+          )}
+        </div>
       )}
 
       {/* Add Task */}
@@ -410,7 +464,7 @@ export default function DayTimeline({
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
-                      "[color-scheme:dark]"
+                      "theme-color-scheme"
                     )}
                   />
                 </div>

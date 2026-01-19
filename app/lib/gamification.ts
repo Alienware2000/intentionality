@@ -15,6 +15,14 @@ export const XP_VALUES: Record<Priority, number> = {
 };
 
 /**
+ * XP values for planning features.
+ */
+export const PLANNING_XP = {
+  daily_review: 15,
+  weekly_planning: 25,
+} as const;
+
+/**
  * Maximum level in the system.
  */
 export const MAX_LEVEL = 50;
@@ -259,54 +267,6 @@ export function earnedStreakFreeze(
   );
 
   return daysSinceEarned >= 7;
-}
-
-// =============================================================================
-// LEGACY V1 FUNCTIONS (kept for backwards compatibility during migration)
-// =============================================================================
-
-/**
- * Calculate the XP required to reach a specific level.
- * Uses quadratic scaling: Level 2 = 100 XP, Level 3 = 300 XP, etc.
- * @deprecated Use getXpForLevelV2 for new level system
- */
-export function getXpForLevel(level: number): number {
-  return 50 * level * (level - 1);
-}
-
-/**
- * Calculate the user's level from their total XP.
- * @deprecated Use getLevelFromXpV2 for new level system
- */
-export function getLevelFromXp(xp: number): number {
-  return Math.floor(0.5 + Math.sqrt(0.25 + xp / 50));
-}
-
-/**
- * Calculate XP progress within the current level.
- * Returns an object with current XP in level, XP needed for next level, and percentage.
- * @deprecated Use getLevelProgressV2 for new level system
- */
-export function getLevelProgress(totalXp: number): {
-  currentLevel: number;
-  currentLevelXp: number;
-  nextLevelXp: number;
-  progress: number;
-} {
-  const currentLevel = getLevelFromXp(totalXp);
-  const xpForCurrentLevel = getXpForLevel(currentLevel);
-  const xpForNextLevel = getXpForLevel(currentLevel + 1);
-
-  const currentLevelXp = totalXp - xpForCurrentLevel;
-  const nextLevelXp = xpForNextLevel - xpForCurrentLevel;
-  const progress = Math.min((currentLevelXp / nextLevelXp) * 100, 100);
-
-  return {
-    currentLevel,
-    currentLevelXp,
-    nextLevelXp,
-    progress,
-  };
 }
 
 /**

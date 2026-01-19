@@ -8,7 +8,7 @@
 
 import { motion } from "framer-motion";
 import { cn } from "@/app/lib/cn";
-import { getLevelProgress } from "@/app/lib/gamification";
+import { getLevelProgressV2 as getLevelProgress } from "@/app/lib/gamification";
 
 type Props = {
   totalXp: number;

@@ -735,3 +735,155 @@ export type CelebrationEvent = {
   achievement?: AchievementWithProgress;
   challenge?: UserDailyChallenge | UserWeeklyChallenge;
 };
+
+// =============================================================================
+// ONBOARDING TYPES
+// =============================================================================
+
+/**
+ * Onboarding checklist step identifiers.
+ */
+export type OnboardingStep =
+  | 'create_quest'
+  | 'add_task'
+  | 'create_habit'
+  | 'complete_task'
+  | 'brain_dump'
+  | 'focus_session';
+
+/**
+ * User's onboarding progress stored in profile.
+ */
+export type OnboardingProgress = {
+  completed_steps: OnboardingStep[];
+  dismissed: boolean;
+  started_at: string;
+  completed_at: string | null;
+};
+
+// =============================================================================
+// PLANNING & REVIEW TYPES
+// =============================================================================
+
+/**
+ * Daily reflection/review entry.
+ */
+export type DailyReflection = {
+  id: Id;
+  user_id: string;
+  date: ISODateString;
+  wins: string[];
+  challenges: string[];
+  tomorrow_priorities: string[];
+  mood: number | null;         // 1-5 scale
+  energy: number | null;       // 1-5 scale
+  notes: string | null;
+  xp_awarded: number;
+  created_at: string;
+};
+
+/**
+ * Weekly planning entry.
+ */
+export type WeeklyPlan = {
+  id: Id;
+  user_id: string;
+  week_start: ISODateString;   // Monday of the week
+  goals: string[];             // 3-5 weekly goals
+  focus_areas: string[];
+  review_notes: string | null; // End of week reflection
+  xp_awarded: number;
+  created_at: string;
+};
+
+/**
+ * Response from daily review API.
+ */
+export type DailyReviewResponse = {
+  ok: true;
+  reflection: DailyReflection;
+  xpGained?: number;
+  newLevel?: number;
+  isNew: boolean;
+};
+
+/**
+ * Response from weekly plan API.
+ */
+export type WeeklyPlanResponse = {
+  ok: true;
+  plan: WeeklyPlan;
+  xpGained?: number;
+  newLevel?: number;
+  isNew: boolean;
+};
+
+/**
+ * Daily summary stats for review.
+ */
+export type DailySummary = {
+  date: ISODateString;
+  tasksCompleted: number;
+  tasksTotal: number;
+  habitsCompleted: number;
+  habitsTotal: number;
+  xpEarned: number;
+  focusMinutes: number;
+  streakMaintained: boolean;
+};
+
+/**
+ * Weekly summary stats for planning.
+ */
+export type WeeklySummary = {
+  weekStart: ISODateString;
+  weekEnd: ISODateString;
+  tasksCompleted: number;
+  questsProgressed: number;
+  xpEarned: number;
+  focusMinutes: number;
+  dailyReviewsCompleted: number;
+  averageMood: number | null;
+  averageEnergy: number | null;
+};
+
+// =============================================================================
+// SMART ASSISTANT TYPES
+// =============================================================================
+
+/**
+ * Recommendation types for the daily briefing.
+ */
+export type RecommendationType =
+  | 'urgent'           // High-priority overdue tasks
+  | 'streak_at_risk'   // Streak might be lost
+  | 'weekly_goal'      // Behind on weekly goals
+  | 'heavy_day'        // Too many tasks today
+  | 'quest_progress'   // Quest close to completion
+  | 'habit_reminder'   // Daily habits not done
+  | 'planning_needed'  // Weekly plan due
+  | 'review_reminder'; // Daily review reminder
+
+/**
+ * A single recommendation for the daily briefing.
+ */
+export type DailyRecommendation = {
+  type: RecommendationType;
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionHref?: string;
+  relatedId?: Id;   // Task, quest, or habit ID
+};
+
+/**
+ * Natural language parsed task input.
+ */
+export type ParsedTaskInput = {
+  title: string;
+  due_date: ISODateString | null;
+  priority: Priority | null;
+  scheduled_time: string | null;  // HH:MM format
+  confidence: number;             // 0-1 confidence score
+};

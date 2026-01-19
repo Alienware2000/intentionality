@@ -67,6 +67,12 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Session is not active");
   }
 
+  // Validate session duration (max 8 hours)
+  const MAX_SESSION_DURATION = 480;
+  if (session.work_duration <= 0 || session.work_duration > MAX_SESSION_DURATION) {
+    return ApiErrors.badRequest("Invalid session duration");
+  }
+
   // Calculate base XP based on work duration (includes milestone bonus)
   const baseXp = getFocusTotalXp(session.work_duration);
   const isLongSession = session.work_duration >= 60;

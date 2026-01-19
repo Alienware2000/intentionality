@@ -4,6 +4,7 @@
 // DASHBOARD CONTENT COMPONENT
 // Client wrapper for dashboard that coordinates state updates between
 // DashboardStats and TodayClient when tasks/habits are modified.
+// Includes onboarding checklist and daily briefing for new/returning users.
 // =============================================================================
 
 import { useState, useCallback } from "react";
@@ -11,6 +12,9 @@ import TodayClient from "./TodayClient";
 import HabitsClient from "./HabitsClient";
 import DashboardStats from "./DashboardStats";
 import FocusLauncher from "./FocusLauncher";
+import GettingStartedChecklist from "./GettingStartedChecklist";
+import DailyBriefing from "./DailyBriefing";
+import { useOnboarding } from "./OnboardingProvider";
 import type { ISODateString } from "@/app/lib/types";
 
 type Props = {
@@ -19,13 +23,24 @@ type Props = {
 
 export default function DashboardContent({ date }: Props) {
   const [statsTrigger, setStatsTrigger] = useState(0);
+  const { isOnboardingDone, loading: onboardingLoading } = useOnboarding();
 
   const refreshStats = useCallback(() => {
     setStatsTrigger((k) => k + 1);
   }, []);
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Onboarding Checklist - shows for new users until dismissed/completed */}
+      {!onboardingLoading && !isOnboardingDone && (
+        <GettingStartedChecklist />
+      )}
+
+      {/* Daily Briefing - shows after onboarding is done */}
+      {!onboardingLoading && isOnboardingDone && (
+        <DailyBriefing date={date} />
+      )}
+
       {/* Stats Section */}
       <section>
         <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
@@ -66,6 +81,6 @@ export default function DashboardContent({ date }: Props) {
         </div>
         <TodayClient date={date} onTaskAction={refreshStats} />
       </section>
-    </>
+    </div>
   );
 }

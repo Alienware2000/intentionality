@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
@@ -16,6 +16,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { getTitleForLevel } from "@/app/lib/gamification";
+import { XpBarTooltip, StreakTooltip } from "./HelpTooltip";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -26,6 +27,8 @@ const navItems = [
   { label: "Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
   { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "Plan", href: "/plan", icon: ClipboardList },
+  { label: "Review", href: "/review", icon: BookOpen },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
@@ -63,18 +66,19 @@ export default function Sidebar() {
       {/* User Profile Section */}
       <div className="px-6 pb-4">
         {loading ? (
-          <div className="h-16 animate-pulse bg-[var(--bg-card)] rounded-lg" />
+          <div className="h-16 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
         ) : profile ? (
           <Link href="/analytics" className="block group">
             <div className="space-y-3 p-3 -mx-3 rounded-lg transition-colors group-hover:bg-[var(--bg-hover)]">
               <div className="flex items-baseline justify-between">
-                <div>
+                <div className="flex items-center gap-1">
                   <span className="text-2xl font-mono font-bold text-[var(--text-primary)]">
                     LVL {profile.level}
                   </span>
-                  <span className="ml-2 text-xs text-[var(--accent-highlight)]">
+                  <span className="ml-1 text-xs text-[var(--accent-highlight)]">
                     {getTitleForLevel(profile.level)}
                   </span>
+                  <XpBarTooltip />
                 </div>
                 <span className="text-xs font-mono text-[var(--text-muted)]">
                   {profile.xp_total.toLocaleString()} XP
@@ -120,13 +124,14 @@ export default function Sidebar() {
       {/* Stats Section */}
       <div className="p-6 space-y-3">
         {profile && (
-          <>
+          <div className="flex items-center gap-2">
             <StreakBadge streak={profile.current_streak} size="sm" />
-          </>
+            <StreakTooltip />
+          </div>
         )}
       </div>
 
-      {/* Theme Toggle & Sign Out */}
+      {/* Theme Toggle, Help & Sign Out */}
       <div className="p-6 pt-0 space-y-1">
         <button
           type="button"
@@ -139,6 +144,22 @@ export default function Sidebar() {
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           <span className="text-sm">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            // Clear onboarding storage to re-show checklist
+            localStorage.removeItem("intentionality_onboarding_progress");
+            window.location.href = "/";
+          }}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+            "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+            "hover:bg-[var(--bg-hover)] transition-colors duration-150"
+          )}
+        >
+          <HelpCircle size={18} />
+          <span className="text-sm">Help & Guide</span>
         </button>
         <button
           type="button"

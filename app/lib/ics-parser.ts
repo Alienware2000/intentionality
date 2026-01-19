@@ -160,11 +160,8 @@ export async function fetchAndParseICS(url: string): Promise<ParseResult> {
       return { ok: false, error: `Failed to fetch calendar (HTTP ${response.status})` };
     }
 
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.includes("text/calendar") && !contentType.includes("text/plain")) {
-      // Some servers don't set correct content type, so just warn but continue
-      console.warn(`Unexpected content type: ${contentType}`);
-    }
+    // Note: Some servers don't set correct content type, but we continue parsing anyway
+    // as long as the content appears to be valid ICS
 
     const icsContent = await response.text();
 
@@ -303,9 +300,6 @@ function convertTimezoneToLocal(
   sourceTzid: string
 ): Date {
   try {
-    // Create an ISO string representing the datetime
-    const isoString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-
     // Create a temporary date to calculate the offset
     // First, get what this time would be if interpreted as UTC
     const utcDate = new Date(Date.UTC(year, month, day, hours, minutes, seconds));

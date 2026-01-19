@@ -9,6 +9,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { useFocus } from "./FocusProvider";
+import { useOnboarding } from "./OnboardingProvider";
 import { getFocusTotalXp, getFocusMilestoneBonus } from "@/app/lib/gamification";
 import { cn } from "@/app/lib/cn";
 import FocusTimer from "./FocusTimer";
@@ -25,6 +26,7 @@ const DURATION_PRESETS = [
 
 export default function FocusLauncher() {
   const { session, mode, startSession, error } = useFocus();
+  const { markStepComplete } = useOnboarding();
   const [showOptions, setShowOptions] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState(3); // Default to 25 min
   const [customTitle, setCustomTitle] = useState("");
@@ -63,6 +65,8 @@ export default function FocusLauncher() {
       breakDuration,
       title: customTitle.trim() || undefined,
     });
+    // Mark onboarding step complete
+    markStepComplete("focus_session");
     setStarting(false);
     setCustomTitle("");
     setShowOptions(false);

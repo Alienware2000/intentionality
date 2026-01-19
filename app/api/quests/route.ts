@@ -11,7 +11,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXp } from "@/app/lib/gamification";
+import { getLevelFromXpV2 } from "@/app/lib/gamification";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -252,7 +252,7 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
 
     if (profile) {
       newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
-      newLevel = getLevelFromXp(newXpTotal);
+      newLevel = getLevelFromXpV2(newXpTotal);
 
       await supabase
         .from("user_profiles")

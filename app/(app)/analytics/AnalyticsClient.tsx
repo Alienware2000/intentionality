@@ -151,11 +151,11 @@ export default function AnalyticsClient() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-24 animate-pulse bg-[var(--bg-card)] rounded-lg"
+              className="h-24 animate-pulse bg-[var(--skeleton-bg)] rounded-lg"
             />
           ))}
         </div>
-        <div className="h-64 animate-pulse bg-[var(--bg-card)] rounded-lg" />
+        <div className="h-64 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
       </div>
     );
   }

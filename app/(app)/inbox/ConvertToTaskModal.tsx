@@ -98,7 +98,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50"
+            className="fixed inset-0 modal-backdrop z-50"
             onClick={onClose}
           />
 
@@ -200,7 +200,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
                       "transition-colors",
-                      "[color-scheme:dark]"
+                      "theme-color-scheme"
                     )}
                   />
                 </div>

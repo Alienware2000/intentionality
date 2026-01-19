@@ -10,7 +10,7 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXp, getLocalDateString } from "@/app/lib/gamification";
+import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -110,7 +110,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
     if (profile) {
       const newXpTotal = profile.xp_total + xpValue;
-      const newLevel = getLevelFromXp(newXpTotal);
+      const newLevel = getLevelFromXpV2(newXpTotal);
       const leveledUp = newLevel > profile.level;
 
       // Also update global streak
@@ -147,12 +147,18 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       return NextResponse.json({
         ok: true,
         xpGained: xpValue,
+        leveledUp,
         newLevel: leveledUp ? newLevel : undefined,
         newXpTotal,
       });
     }
 
-    return NextResponse.json({ ok: true, xpGained: xpValue, newXpTotal: 0 });
+    return NextResponse.json({
+      ok: true,
+      xpGained: xpValue,
+      newLevel: undefined,
+      newXpTotal: 0,
+    });
   } else {
     // --- UNCOMPLETING BLOCK ---
 
@@ -173,7 +179,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
     if (profile) {
       const newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
-      const newLevel = getLevelFromXp(newXpTotal);
+      const newLevel = getLevelFromXpV2(newXpTotal);
 
       await supabase
         .from("user_profiles")
@@ -191,6 +197,11 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       });
     }
 
-    return NextResponse.json({ ok: true, xpLost: xpToDeduct, newXpTotal: 0 });
+    return NextResponse.json({
+      ok: true,
+      xpLost: xpToDeduct,
+      newXpTotal: 0,
+      newLevel: undefined,
+    });
   }
 });

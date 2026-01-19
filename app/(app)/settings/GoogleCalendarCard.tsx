@@ -206,7 +206,7 @@ export default function GoogleCalendarCard() {
 
   if (loading) {
     return (
-      <div className="h-32 animate-pulse bg-[var(--bg-card)] rounded-lg" />
+      <div className="h-32 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
     );
   }
 

@@ -88,7 +88,7 @@ export default function WeekClient({ start }: Props) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-24 animate-pulse bg-[var(--bg-card)] rounded-lg"
+            className="h-24 animate-pulse bg-[var(--skeleton-bg)] rounded-lg"
           />
         ))}
       </div>
