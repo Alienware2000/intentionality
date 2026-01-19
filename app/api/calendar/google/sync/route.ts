@@ -8,6 +8,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { parseISOToLocal } from "@/app/lib/date-utils";
 import type { ISODateString } from "@/app/lib/types";
 
 // Google Calendar API
@@ -201,13 +202,22 @@ export const POST = withAuth(async ({ user, supabase }) => {
         result.eventsProcessed++;
 
         try {
-          // Parse event times
+          // Parse event times - use parseISOToLocal to correctly handle timezone offsets
           const isAllDay = !!event.start.date;
-          const startDate = isAllDay
-            ? event.start.date!
-            : event.start.dateTime!.slice(0, 10);
-          const startTime = isAllDay ? undefined : event.start.dateTime!.slice(11, 16);
-          const endTime = isAllDay ? undefined : event.end.dateTime?.slice(11, 16);
+          let startDate: string;
+          let startTime: string | undefined;
+          let endTime: string | undefined;
+
+          if (isAllDay) {
+            startDate = event.start.date!;
+          } else {
+            const startParsed = parseISOToLocal(event.start.dateTime!);
+            startDate = startParsed.date;
+            startTime = startParsed.time;
+            if (event.end.dateTime) {
+              endTime = parseISOToLocal(event.end.dateTime).time;
+            }
+          }
 
           // Determine import type
           const importAs = connection.import_as === "smart"

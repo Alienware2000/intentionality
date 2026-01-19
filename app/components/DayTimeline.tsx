@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
-import { formatTime } from "@/app/lib/date-utils";
+import { formatTime, toISODateString } from "@/app/lib/date-utils";
 import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -109,7 +109,7 @@ export default function DayTimeline({
     if (showAllBlocks) return rawScheduledItems;
 
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = toISODateString(now);
 
     // Only filter blocks for today's date
     if (date !== todayStr) return rawScheduledItems;

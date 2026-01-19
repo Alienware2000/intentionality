@@ -14,6 +14,8 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
+import { addDaysISO } from "@/app/lib/date-utils";
+import type { ISODateString } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -33,9 +35,7 @@ type CompleteHabitBody = {
  * Get the previous day's date string from a given date.
  */
 function getYesterdayFromDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split("T")[0];
+  return addDaysISO(dateStr as ISODateString, -1);
 }
 
 /**

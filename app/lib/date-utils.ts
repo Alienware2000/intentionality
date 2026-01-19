@@ -36,6 +36,32 @@ export function toISODateString(d: Date): ISODateString {
 }
 
 /**
+ * Parse an ISO 8601 dateTime string and extract local date/time.
+ * Handles timezone offsets correctly (e.g., "2025-01-16T19:00:00-05:00").
+ *
+ * @param isoDateTime - Full ISO 8601 dateTime string
+ * @returns Object with date (YYYY-MM-DD) and time (HH:MM) in local timezone
+ *
+ * @example
+ * ```ts
+ * // If user is in EST (UTC-5) and input has -05:00 offset:
+ * parseISOToLocal("2025-01-16T19:00:00-05:00");
+ * // Returns: { date: "2025-01-16", time: "19:00" }
+ *
+ * // If input is UTC time viewed from EST:
+ * parseISOToLocal("2025-01-16T19:00:00Z");
+ * // Returns: { date: "2025-01-16", time: "14:00" } (converted to EST)
+ * ```
+ */
+export function parseISOToLocal(isoDateTime: string): { date: ISODateString; time: string } {
+  const parsed = new Date(isoDateTime);
+  return {
+    date: toISODateString(parsed),
+    time: `${String(parsed.getHours()).padStart(2, "0")}:${String(parsed.getMinutes()).padStart(2, "0")}`,
+  };
+}
+
+/**
  * Add days to an ISO date string.
  */
 export function addDaysISO(dateISO: ISODateString, daysToAdd: number): ISODateString {

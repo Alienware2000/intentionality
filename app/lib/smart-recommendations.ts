@@ -13,6 +13,7 @@ import type {
   WeeklyPlan,
   ISODateString,
 } from "./types";
+import { toISODateString } from "./date-utils";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -190,7 +191,7 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
   if (!isPlanningDay) return null;
 
   // Check if there's a plan for this week
-  const today = currentTime.toISOString().split("T")[0];
+  const today = toISODateString(currentTime);
   const monday = getWeekMonday(today);
 
   if (weeklyPlan?.week_start === monday) return null;
@@ -215,11 +216,12 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
  * Get the Monday of the week for a given date.
  */
 function getWeekMonday(dateStr: ISODateString): ISODateString {
-  const date = new Date(dateStr);
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   date.setDate(diff);
-  return date.toISOString().split("T")[0] as ISODateString;
+  return toISODateString(date);
 }
 
 // -----------------------------------------------------------------------------

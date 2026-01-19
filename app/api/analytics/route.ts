@@ -10,6 +10,8 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { getTodayISO, addDaysISO } from "@/app/lib/date-utils";
+import type { ISODateString } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Helper Functions
@@ -19,9 +21,7 @@ import {
  * Gets date string for N days ago.
  */
 function daysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split("T")[0];
+  return addDaysISO(getTodayISO(), -days);
 }
 
 /**
@@ -29,12 +29,11 @@ function daysAgo(days: number): string {
  */
 function getDateRange(startDate: string, endDate: string): string[] {
   const dates: string[] = [];
-  const current = new Date(startDate);
-  const end = new Date(endDate);
+  let current = startDate;
 
-  while (current <= end) {
-    dates.push(current.toISOString().split("T")[0]);
-    current.setDate(current.getDate() + 1);
+  while (current <= endDate) {
+    dates.push(current);
+    current = addDaysISO(current as ISODateString, 1);
   }
 
   return dates;

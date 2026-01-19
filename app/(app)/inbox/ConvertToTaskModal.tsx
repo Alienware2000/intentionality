@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight } from "lucide-react";
 import type { BrainDumpEntry, Quest, Priority } from "@/app/lib/types";
+import { getTodayISO } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "@/app/components/ProfileProvider";
@@ -44,7 +45,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
       setQuestId(quests[0]?.id ?? "");
       setPriority("medium");
       // Default due date to today
-      setDueDate(new Date().toISOString().split("T")[0]);
+      setDueDate(getTodayISO());
       setError(null);
     }
   }, [entry, quests]);
