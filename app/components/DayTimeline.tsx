@@ -654,7 +654,8 @@ function TaskFocusPopoverContent({
         "bg-[var(--bg-card)] border border-[var(--border-default)]",
         "shadow-lg",
         "bottom-full mb-1",
-        "right-0"
+        // Left-align on mobile to prevent overflow, right-align on desktop
+        "left-0 sm:left-auto sm:right-0"
       )}
     >
       <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-2">
@@ -1138,7 +1139,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
           />
         </div>
 
-        <span className="text-xs font-mono text-[var(--text-muted)] hidden sm:inline">
+        <span className="text-xs font-mono text-[var(--text-muted)]">
           {task.due_date}
         </span>
       </div>

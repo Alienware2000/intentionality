@@ -115,7 +115,7 @@ export default function TaskCard({
       )}
 
       {/* Priority label */}
-      <div className="hidden sm:block text-xs text-[var(--text-muted)] font-mono">
+      <div className="text-xs text-[var(--text-muted)] font-mono">
         {PRIORITY_LABELS[task.priority]}
       </div>
 
