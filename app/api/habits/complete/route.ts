@@ -5,12 +5,12 @@
 // Integrates with gamification v2 for achievements, challenges, and bonuses.
 // =============================================================================
 
-import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   withAuth,
   parseJsonBody,
   ApiErrors,
+  successResponse,
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
@@ -156,8 +156,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       actionType: "habit",
     });
 
-    return NextResponse.json({
-      ok: true,
+    return successResponse({
       xpGained: result.xpBreakdown.totalXp,
       xpBreakdown: result.xpBreakdown,
       leveledUp: result.leveledUp,
@@ -257,8 +256,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       }
 
       const levelDecreased = newLevel < profile.level;
-      return NextResponse.json({
-        ok: true,
+      return successResponse({
         xpLost: xpToDeduct,
         newStreak,
         newXpTotal,
@@ -267,6 +265,6 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       });
     }
 
-    return NextResponse.json({ ok: true, newStreak, newXpTotal: 0 });
+    return successResponse({ newStreak, newXpTotal: 0 });
   }
 });

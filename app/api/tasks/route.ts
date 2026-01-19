@@ -333,5 +333,5 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
     }
   }
 
-  return NextResponse.json({ ok: true, newXpTotal, newLevel });
+  return successResponse({ newXpTotal, newLevel });
 });

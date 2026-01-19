@@ -4,11 +4,11 @@
 // Integrates with gamification v2 for achievements, challenges, and bonuses.
 // =============================================================================
 
-import { NextResponse } from "next/server";
 import {
   withAuth,
   parseJsonBody,
   ApiErrors,
+  successResponse,
 } from "@/app/lib/auth-middleware";
 import { getFocusTotalXp } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
@@ -118,8 +118,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .eq("user_id", user.id);
   }
 
-  return NextResponse.json({
-    ok: true,
+  return successResponse({
     xpGained: result.xpBreakdown.totalXp,
     xpBreakdown: result.xpBreakdown,
     newLevel: result.leveledUp ? result.newLevel : undefined,

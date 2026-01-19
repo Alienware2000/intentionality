@@ -36,14 +36,38 @@ Organize tasks under high-level goals (quests). Track progress, prioritize work,
 ### Gamification System
 Earn XP for completing tasks, maintain streaks, level up, and celebrate achievements with animated overlays.
 
+### Achievement System
+Unlock bronze, silver, and gold achievements for reaching milestones. Track progress across categories like Task Master, Habit Builder, and Focus Champion.
+
+### Daily Challenges
+Complete 3 daily challenges (easy/medium/hard) for bonus XP. Complete all three for an additional bonus reward.
+
+### Weekly Challenges
+Take on weekly goals with progression tracking. Earn 100 XP for completing the weekly challenge.
+
 ### Pomodoro Focus Timer
 Timed work sessions with flexible durations (5-90 min presets or custom). Earn XP for focused work with bonus rewards for longer sessions.
 
 ### Brain Dump
 Quick capture via `Ctrl+K` / `Cmd+K`. Capture thoughts instantly and process them later from your inbox.
 
+### Natural Language Input
+Create tasks using natural language: "Finish essay tomorrow high priority at 3pm" automatically parses date, time, and priority.
+
 ### Daily Habits
 Track recurring habits with streak counting and daily completion history.
+
+### Daily Review
+Reflect on your day, rate energy and mood, set intentions for tomorrow. Earn 15 XP for completing your daily review.
+
+### Weekly Planning
+Set weekly goals and intentions at the start of each week. Earn 25 XP for completing your weekly plan.
+
+### Streak Freezes
+Protect your streak on off days. Earn streak freezes through achievements or purchase with XP.
+
+### Smart Recommendations
+Get time-based suggestions for what to focus on next based on your schedule and priorities.
 
 ### Analytics Dashboard
 Visualize your productivity with XP history charts and GitHub-style activity heatmaps.
@@ -144,11 +168,16 @@ app/
 │   ├── page.tsx              # Dashboard (Command Center)
 │   ├── analytics/            # Analytics dashboard
 │   ├── inbox/                # Brain dump inbox
+│   ├── plan/                 # Weekly planning
 │   ├── quests/               # Quests management
+│   ├── review/               # Daily review
 │   ├── settings/             # Settings & integrations
 │   └── week/                 # Weekly view
 ├── (auth)/auth/              # Authentication pages
 ├── api/                      # API routes
+│   ├── achievements/         # Achievement system
+│   ├── challenges/           # Daily/weekly challenges
+│   ├── daily-review/         # Daily reflection
 │   ├── tasks/                # Task CRUD + toggle/move/range
 │   ├── quests/               # Quest CRUD
 │   ├── habits/               # Habits + completions
@@ -157,6 +186,9 @@ app/
 │   ├── brain-dump/           # Quick capture
 │   ├── analytics/            # Aggregated stats
 │   ├── calendar/             # Google Calendar + ICS sync
+│   ├── gamification/         # Full gamification profile
+│   ├── streak/               # Streak freeze management
+│   ├── weekly-plan/          # Weekly planning
 │   └── profile/              # User profile + gamification
 ├── components/               # React components
 └── lib/                      # Utilities and helpers
@@ -245,25 +277,59 @@ function QuickActions() {
 
 ### Gamification System
 
-| Priority | XP Reward |
-|----------|-----------|
-| Low | 5 XP |
-| Medium | 10 XP |
-| High | 25 XP |
+#### XP Values
+| Action | XP Reward |
+|--------|-----------|
+| Low priority task | 5 XP |
+| Medium priority task | 10 XP |
+| High priority task | 25 XP |
+| Daily review | 15 XP |
+| Weekly planning | 25 XP |
+| Focus sessions | ~1 XP per minute + bonuses |
 
-**Level Formula:** `level = floor(0.5 + sqrt(0.25 + xp/50))`
+#### Level Formula (V2)
+`XP for level = floor(50 * level^1.5)` cumulative per level
 
-| Level | Total XP Required |
-|-------|-------------------|
-| 1 | 0 |
-| 2 | 100 |
-| 3 | 300 |
-| 5 | 1,000 |
-| 10 | 4,500 |
+| Level | Total XP | Title |
+|-------|----------|-------|
+| 1 | 0 | Novice |
+| 5 | ~900 | Scholar |
+| 10 | ~4,250 | Expert |
+| 20 | ~20,650 | Grandmaster |
+| 50 | ~204,600 | Ascended |
 
-**Streaks:** Consecutive days with at least one completed task or habit. Streaks reset if you miss a day.
+#### Streak Multipliers
+| Streak Days | Multiplier |
+|-------------|------------|
+| 0-2 | 1.0x |
+| 3-6 | 1.05x |
+| 7-13 | 1.1x |
+| 14-29 | 1.2x |
+| 30+ | 1.5x |
 
 **Celebrations:** XP gains, level-ups, and streak milestones trigger animated overlays.
+
+### Achievement System
+
+Multi-tier achievements (bronze/silver/gold) with progressive unlocks:
+- **Task Master**: Complete tasks (10/50/200)
+- **Habit Builder**: Maintain habit streaks (7/30/100 days)
+- **Focus Champion**: Complete focus sessions (10/50/200)
+- **XP Legend**: Earn total XP (1K/10K/100K)
+
+### Daily Challenges
+
+3 daily challenges refreshed at midnight:
+- **Easy**: Quick wins (complete 1 habit, etc.) - 10 XP
+- **Medium**: Moderate effort (complete 3 tasks, etc.) - 25 XP
+- **Hard**: Stretch goals (45+ min focus, etc.) - 50 XP
+- **Bonus**: Complete all 3 for +25 XP extra
+
+### Weekly Challenges
+
+One weekly goal with progression tracking:
+- Complete for 100 XP bonus
+- Examples: "Complete 20 tasks", "Log 5 hours focus time"
 
 ### Task & Quest Management
 
@@ -292,6 +358,7 @@ function QuickActions() {
 ### Brain Dump
 
 - Global keyboard shortcut: `Ctrl+K` (Windows/Linux) or `Cmd+K` (Mac)
+- NLP parsing preview shows detected date, time, and priority
 - Entries stored in inbox for later processing
 - Convert to task: Assign priority, due date, and quest
 
@@ -314,6 +381,7 @@ function QuickActions() {
 - **XP History Chart** - 30-day area chart showing daily XP earned
 - **Activity Heatmap** - GitHub-style grid showing completion activity
 - **Completion Stats** - Tasks, habits, and focus session metrics
+- **Daily/Weekly Challenges** - Challenge progress and completion
 
 ---
 
@@ -380,6 +448,38 @@ function QuickActions() {
 | POST | `/api/brain-dump` | Create entry |
 | DELETE | `/api/brain-dump` | Delete entry |
 
+### Achievements
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/achievements` | List all achievements with progress |
+| POST | `/api/achievements/check` | Check and unlock achievements |
+
+### Challenges
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/challenges/daily` | Get today's daily challenges |
+| GET | `/api/challenges/weekly` | Get current weekly challenge |
+| POST | `/api/challenges/progress` | Update challenge progress |
+
+### Daily Review & Weekly Planning
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/daily-review` | Submit daily reflection |
+| GET | `/api/daily-review/summary` | Get review summary |
+| POST | `/api/weekly-plan` | Submit weekly plan |
+| GET | `/api/weekly-plan/summary` | Get plan summary |
+
+### Gamification
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/gamification/profile` | Get full gamification profile |
+| POST | `/api/streak/freeze` | Use a streak freeze |
+| GET | `/api/activity-log` | Get activity log |
+
 ### Profile & Analytics
 
 | Method | Endpoint | Description |
@@ -419,6 +519,17 @@ function QuickActions() {
 | `brain_dump_entries` | Quick capture inbox entries |
 | `google_calendar_connections` | Google OAuth credentials |
 | `calendar_subscriptions` | ICS feed URLs |
+| `achievements` | Achievement definitions |
+| `user_achievements` | User achievement progress |
+| `daily_challenge_templates` | Daily challenge definitions |
+| `user_daily_challenges` | User's daily challenges |
+| `weekly_challenge_templates` | Weekly challenge definitions |
+| `user_weekly_challenges` | User's weekly challenges |
+| `user_streak_freezes` | Streak freeze usage |
+| `user_activity_log` | Daily activity tracking |
+| `daily_reflections` | Daily review entries |
+| `weekly_plans` | Weekly planning entries |
+| `imported_events` | Calendar imports |
 
 All tables use Row Level Security (RLS) policies scoped to the authenticated user.
 
@@ -504,6 +615,7 @@ npm run db:reset   # Reset database (destructive)
 3. **Error Handling** - Use `ApiErrors` helpers for consistent responses
 4. **Shared Utilities** - Import from `lib/` rather than duplicating
 5. **No Console Logs** - Use error states for user-facing errors
+6. **Touch Targets** - Minimum 44px on mobile for accessibility
 
 ---
 
@@ -514,7 +626,7 @@ See [ROADMAP.md](./ROADMAP.md) for the full roadmap.
 ### Current Focus
 - Polish & friction reduction
 - Mobile-responsive improvements
-- Better onboarding flow
+- Performance optimizations
 
 ### Planned Features
 - Background sync for calendar feeds

@@ -22,6 +22,10 @@ import {
   Sun,
   Moon,
   Brain,
+  ClipboardList,
+  BookOpen,
+  Inbox,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
@@ -200,7 +204,34 @@ export default function MobileNav() {
                     pathname === "/inbox" && "bg-[var(--bg-card)] text-[var(--text-primary)]"
                   )}
                 >
+                  <Inbox size={20} />
                   Inbox
+                </Link>
+                <Link
+                  href="/plan"
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg",
+                    "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors",
+                    pathname === "/plan" && "bg-[var(--bg-card)] text-[var(--text-primary)]"
+                  )}
+                >
+                  <ClipboardList size={20} />
+                  Plan
+                </Link>
+                <Link
+                  href="/review"
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg",
+                    "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors",
+                    pathname === "/review" && "bg-[var(--bg-card)] text-[var(--text-primary)]"
+                  )}
+                >
+                  <BookOpen size={20} />
+                  Review
                 </Link>
                 <Link
                   href="/settings"
@@ -212,6 +243,7 @@ export default function MobileNav() {
                     pathname === "/settings" && "bg-[var(--bg-card)] text-[var(--text-primary)]"
                   )}
                 >
+                  <Settings size={20} />
                   Settings
                 </Link>
               </div>

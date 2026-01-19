@@ -166,8 +166,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .update({ xp_total: newXpTotal, level: newLevel })
       .eq("user_id", user.id);
 
-    return NextResponse.json({
-      ok: true,
+    return successResponse({
       reflection,
       xpGained: xpToAward,
       newLevel: newLevel > profile.level ? newLevel : undefined,
@@ -175,8 +174,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     });
   }
 
-  return NextResponse.json({
-    ok: true,
+  return successResponse({
     reflection,
     xpGained: xpToAward,
     isNew: true,

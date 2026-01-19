@@ -49,10 +49,13 @@ export default function ConfirmModal({
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-[calc(100%-32px)] sm:w-full max-w-md p-4 sm:p-6 rounded-lg",
+              // Bottom-positioned on mobile to avoid keyboard, centered on desktop
+              "fixed z-50",
+              "bottom-0 left-0 right-0 sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
+              "w-full sm:w-full max-w-md p-4 sm:p-6",
+              "rounded-t-xl sm:rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-default)]",
-              "max-h-[90vh] overflow-y-auto"
+              "max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             )}
           >
             {/* Close button */}

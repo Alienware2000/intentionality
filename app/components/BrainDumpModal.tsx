@@ -112,16 +112,19 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={cn(
-              "fixed top-[10%] sm:top-[20%] left-1/2 -translate-x-1/2 z-50",
-              "w-[calc(100%-32px)] sm:w-full max-w-lg p-4 sm:p-6 rounded-lg",
+              // Bottom-positioned on mobile to avoid keyboard, top-positioned on desktop
+              "fixed z-50",
+              "bottom-0 left-0 right-0 sm:bottom-auto sm:left-1/2 sm:top-[15%] sm:-translate-x-1/2",
+              "w-full sm:w-full max-w-lg p-4 sm:p-6",
+              "rounded-t-xl sm:rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-default)]",
               "shadow-2xl shadow-black/50",
-              "max-h-[85vh] overflow-y-auto"
+              "max-h-[80vh] sm:max-h-[85vh] overflow-y-auto"
             )}
             onKeyDown={handleKeyDown}
           >

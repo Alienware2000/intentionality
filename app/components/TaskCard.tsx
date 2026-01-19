@@ -36,7 +36,7 @@ export default function TaskCard({
     <motion.div
       className={cn(
         "w-full group",
-        "flex items-center gap-4 p-4",
+        "flex items-center gap-3 sm:gap-4 p-4",
         "border-l-4 rounded-r-lg",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors duration-150",
@@ -46,12 +46,12 @@ export default function TaskCard({
       )}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Checkbox - larger touch target on mobile */}
+      {/* Checkbox - larger touch target on mobile (44px min) */}
       <button
         type="button"
         onClick={() => onToggle?.(task.id)}
         className={cn(
-          "flex-shrink-0 w-6 h-6 sm:w-5 sm:h-5 rounded",
+          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded",
           "border-2 flex items-center justify-center",
           "transition-colors duration-150 cursor-pointer",
           isCompleted
@@ -59,7 +59,8 @@ export default function TaskCard({
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
         )}
       >
-        {isCompleted && <Check size={14} className="text-white" />}
+        {isCompleted && <Check size={18} className="text-white sm:hidden" />}
+        {isCompleted && <Check size={14} className="text-white hidden sm:block" />}
       </button>
 
       {/* Task content - clickable to toggle */}
@@ -92,7 +93,7 @@ export default function TaskCard({
             <button
               type="button"
               onClick={() => onEdit(task.id)}
-              className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+              className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
               title="Edit task"
             >
               <Pencil size={16} className="text-[var(--text-muted)] sm:hidden" />
@@ -103,7 +104,7 @@ export default function TaskCard({
             <button
               type="button"
               onClick={() => onDelete(task.id)}
-              className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+              className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
               title="Delete task"
             >
               <Trash2 size={16} className="text-[var(--text-muted)] sm:hidden" />

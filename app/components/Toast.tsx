@@ -128,7 +128,7 @@ function ToastItem({
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss notification"
-        className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+        className="p-1 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
       >
         <X size={14} />
       </button>

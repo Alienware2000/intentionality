@@ -145,7 +145,8 @@ export default function FocusLauncher() {
                         setValidationError(null);
                       }}
                       className={cn(
-                        "px-3 py-2.5 sm:py-2 rounded text-sm font-medium transition-all",
+                        // 44px min height on mobile (py-3 = 12px * 2 + text ~= 44px)
+                        "px-3 py-3 sm:py-2 rounded-lg text-sm font-medium transition-all",
                         !isCustom && selectedPreset === i
                           ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
@@ -160,7 +161,8 @@ export default function FocusLauncher() {
                       setValidationError(null);
                     }}
                     className={cn(
-                      "px-3 py-2.5 sm:py-2 rounded text-sm font-medium transition-all",
+                      // 44px min height on mobile
+                      "px-3 py-3 sm:py-2 rounded-lg text-sm font-medium transition-all",
                       isCustom
                         ? "bg-[var(--accent-primary)] text-white"
                         : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"

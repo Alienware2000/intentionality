@@ -26,7 +26,7 @@ export default function ScheduleBlockCard({
   if (compact) {
     return (
       <div
-        className="flex items-center gap-2 px-2 py-1 rounded text-xs"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
         style={{ backgroundColor: `${block.color}20`, borderLeft: `3px solid ${block.color}` }}
       >
         <span className="font-mono text-[var(--text-muted)]">

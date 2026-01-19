@@ -146,7 +146,7 @@ export default function HelpTooltip({
         showIcon && (
           <button
             type="button"
-            className="p-0.5 rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+            className="p-0.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
             aria-label="Help"
           >
             <HelpCircle size={iconSize} />

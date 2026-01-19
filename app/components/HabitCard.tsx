@@ -29,7 +29,7 @@ function HabitCard({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 p-3",
+        "group flex items-center gap-2 sm:gap-3 p-3",
         "border-l-2 rounded-r-lg",
         "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
         "transition-colors duration-150",
@@ -37,13 +37,13 @@ function HabitCard({
         isCompleted && "opacity-60"
       )}
     >
-      {/* Checkbox - larger touch target on mobile */}
+      {/* Checkbox - larger touch target on mobile (44px min) */}
       <button
         type="button"
         onClick={() => onToggle?.(habit.id)}
         aria-label={isCompleted ? "Mark habit incomplete" : "Mark habit complete"}
         className={cn(
-          "flex-shrink-0 w-6 h-6 sm:w-5 sm:h-5 rounded",
+          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded",
           "border-2 flex items-center justify-center",
           "transition-colors duration-150 cursor-pointer",
           isCompleted
@@ -51,8 +51,8 @@ function HabitCard({
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
         )}
       >
-        {isCompleted && <Check size={14} className="text-white sm:hidden" />}
-        {isCompleted && <Check size={12} className="text-white hidden sm:block" />}
+        {isCompleted && <Check size={18} className="text-white sm:hidden" />}
+        {isCompleted && <Check size={14} className="text-white hidden sm:block" />}
       </button>
 
       {/* Title */}
@@ -80,7 +80,7 @@ function HabitCard({
             type="button"
             onClick={() => onEdit(habit.id)}
             aria-label="Edit habit"
-            className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+            className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
           >
             <Pencil size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Pencil size={12} className="text-[var(--text-muted)] hidden sm:block" />
@@ -91,7 +91,7 @@ function HabitCard({
             type="button"
             onClick={() => onDelete(habit.id)}
             aria-label="Delete habit"
-            className="p-2 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+            className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
           >
             <Trash2 size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Trash2 size={12} className="text-[var(--text-muted)] hidden sm:block" />

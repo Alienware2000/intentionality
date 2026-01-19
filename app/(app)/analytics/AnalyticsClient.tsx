@@ -194,7 +194,7 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         <StatCard
           label="Total XP"
           value={overview.xpTotal.toLocaleString()}
@@ -226,7 +226,7 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Period Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard
           label={`XP Earned (${days}d)`}
           value={`+${overview.xpEarnedInPeriod.toLocaleString()}`}
