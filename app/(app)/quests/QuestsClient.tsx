@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, Circle } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, Circle, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Id, Quest, Task, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -30,6 +30,10 @@ export default function QuestsClient() {
   const [editingQuestId, setEditingQuestId] = useState<Id | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [deletingQuestId, setDeletingQuestId] = useState<Id | null>(null);
+
+  // Menu state for mobile/tablet three-dot menus
+  const [openQuestMenu, setOpenQuestMenu] = useState<Id | null>(null);
+  const [openTaskMenu, setOpenTaskMenu] = useState<Id | null>(null);
 
   // Expansion state
   const [expandedQuestId, setExpandedQuestId] = useState<Id | null>(null);
@@ -299,6 +303,17 @@ export default function QuestsClient() {
     loadData();
   }, [loadData]);
 
+  // Close menus on outside click
+  useEffect(() => {
+    if (!openQuestMenu && !openTaskMenu) return;
+    const handleClick = () => {
+      setOpenQuestMenu(null);
+      setOpenTaskMenu(null);
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [openQuestMenu, openTaskMenu]);
+
   const tasksByQuest = useMemo(() => {
     const map: Record<string, Task[]> = {};
     for (const task of tasks) {
@@ -446,29 +461,45 @@ export default function QuestsClient() {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 group">
+                        <div className="flex items-center gap-2">
                           <h2 className="font-medium text-[var(--text-primary)] truncate">
                             {quest.title}
                           </h2>
-                          <div
-                            className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          {/* Three-dot menu */}
+                          <div className="relative" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => startEditing(quest)}
-                              className="p-2 sm:p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                              title="Edit quest"
+                              onClick={() => setOpenQuestMenu(openQuestMenu === quest.id ? null : quest.id)}
+                              className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                              title="Quest options"
                             >
-                              <Pencil size={12} className="text-[var(--text-muted)]" />
+                              <MoreVertical size={18} className="text-[var(--text-muted)]" />
                             </button>
-                            {quests.length > 1 && (
-                              <button
-                                onClick={() => setDeletingQuestId(quest.id)}
-                                className="p-2 sm:p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                                title="Delete quest"
-                              >
-                                <Trash2 size={12} className="text-[var(--text-muted)]" />
-                              </button>
+                            {/* Dropdown */}
+                            {openQuestMenu === quest.id && (
+                              <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg min-w-[140px] py-1">
+                                <button
+                                  onClick={() => {
+                                    startEditing(quest);
+                                    setOpenQuestMenu(null);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors"
+                                >
+                                  <Pencil size={16} className="text-[var(--text-muted)]" />
+                                  <span>Edit</span>
+                                </button>
+                                {quests.length > 1 && (
+                                  <button
+                                    onClick={() => {
+                                      setDeletingQuestId(quest.id);
+                                      setOpenQuestMenu(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] text-red-500 transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                    <span>Delete</span>
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -575,22 +606,40 @@ export default function QuestsClient() {
                                   {task.completed ? "+" : ""}{task.xp_value} XP
                                 </span>
 
-                                {/* Edit/Delete Buttons */}
-                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                {/* Three-dot menu for tasks */}
+                                <div className="relative">
                                   <button
-                                    onClick={() => setEditingTask(task)}
-                                    className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                                    title="Edit task"
+                                    onClick={() => setOpenTaskMenu(openTaskMenu === task.id ? null : task.id)}
+                                    className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                                    title="Task options"
                                   >
-                                    <Pencil size={12} className="text-[var(--text-muted)]" />
+                                    <MoreVertical size={16} className="text-[var(--text-muted)]" />
                                   </button>
-                                  <button
-                                    onClick={() => setDeletingTaskId(task.id)}
-                                    className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
-                                    title="Delete task"
-                                  >
-                                    <Trash2 size={12} className="text-[var(--text-muted)]" />
-                                  </button>
+                                  {/* Dropdown */}
+                                  {openTaskMenu === task.id && (
+                                    <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg min-w-[140px] py-1">
+                                      <button
+                                        onClick={() => {
+                                          setEditingTask(task);
+                                          setOpenTaskMenu(null);
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors"
+                                      >
+                                        <Pencil size={16} className="text-[var(--text-muted)]" />
+                                        <span>Edit</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setDeletingTaskId(task.id);
+                                          setOpenTaskMenu(null);
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] text-red-500 transition-colors"
+                                      >
+                                        <Trash2 size={16} />
+                                        <span>Delete</span>
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </li>
                             ))}
