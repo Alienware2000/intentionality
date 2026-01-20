@@ -257,6 +257,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
                   title: event.summary,
                   start_time: startTime ?? "09:00",
                   end_time: endTime ?? "10:00",
+                  start_date: startDate,
+                  end_date: startDate,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", existing.created_id);

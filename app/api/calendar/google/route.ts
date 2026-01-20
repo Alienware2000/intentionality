@@ -44,7 +44,34 @@ export const GET = withAuth(async ({ supabase }) => {
 // -----------------------------------------------------------------------------
 
 export const DELETE = withAuth(async ({ user, supabase }) => {
-  // Delete imported events from Google
+  // Get all imported events to find their created items
+  const { data: imports } = await supabase
+    .from("imported_events")
+    .select("created_as, created_id")
+    .eq("source_type", "google")
+    .eq("user_id", user.id);
+
+  if (imports && imports.length > 0) {
+    // Separate tasks and schedule blocks
+    const taskIds = imports
+      .filter((i) => i.created_as === "task")
+      .map((i) => i.created_id);
+    const blockIds = imports
+      .filter((i) => i.created_as === "schedule_block")
+      .map((i) => i.created_id);
+
+    // Delete tasks created from Google Calendar
+    if (taskIds.length > 0) {
+      await supabase.from("tasks").delete().in("id", taskIds);
+    }
+
+    // Delete schedule blocks created from Google Calendar
+    if (blockIds.length > 0) {
+      await supabase.from("schedule_blocks").delete().in("id", blockIds);
+    }
+  }
+
+  // Delete imported events tracking
   await supabase
     .from("imported_events")
     .delete()
