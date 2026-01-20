@@ -4,7 +4,6 @@
 // Awards XP for completing daily reviews.
 // =============================================================================
 
-import { NextResponse } from "next/server";
 import {
   withAuth,
   parseJsonBody,
@@ -13,6 +12,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { PLANNING_XP, getLocalDateString, getLevelFromXpV2 } from "@/app/lib/gamification";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 import type { DailyReflection } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -166,6 +166,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .update({ xp_total: newXpTotal, level: newLevel })
       .eq("user_id", user.id);
 
+    // Mark onboarding step complete (fire-and-forget)
+    markOnboardingStepComplete(supabase, user.id, "daily_review").catch(() => {});
+
     return successResponse({
       reflection,
       xpGained: xpToAward,
@@ -173,6 +176,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       isNew: true,
     });
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "daily_review").catch(() => {});
 
   return successResponse({
     reflection,

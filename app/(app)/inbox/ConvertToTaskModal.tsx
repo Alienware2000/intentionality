@@ -42,7 +42,9 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
   useEffect(() => {
     if (entry) {
       setTitle(entry.content);
-      setQuestId(quests[0]?.id ?? "");
+      // Filter out onboarding quests when selecting default
+      const userQuests = quests.filter((q) => q.quest_type !== "onboarding");
+      setQuestId(userQuests[0]?.id ?? "");
       setPriority("medium");
       // Default due date to today
       setDueDate(getTodayISO());
@@ -177,7 +179,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
                     "transition-colors"
                   )}
                 >
-                  {quests.map((quest) => (
+                  {quests.filter((quest) => quest.quest_type !== "onboarding").map((quest) => (
                     <option key={quest.id} value={quest.id}>
                       {quest.title}
                     </option>

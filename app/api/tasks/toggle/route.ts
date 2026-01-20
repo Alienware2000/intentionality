@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -99,6 +100,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       isHighPriority,
       completionHour,
     });
+
+    // Mark onboarding step complete (fire-and-forget)
+    markOnboardingStepComplete(supabase, user.id, "complete_task").catch(() => {});
 
     return NextResponse.json({
       ok: true,

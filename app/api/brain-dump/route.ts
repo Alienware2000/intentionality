@@ -12,6 +12,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -121,6 +122,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   if (createError) {
     return ApiErrors.serverError(createError.message);
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "brain_dump").catch(() => {});
 
   return successResponse({ entry });
 });

@@ -3,7 +3,8 @@
 // =============================================================================
 // ONBOARDING PROVIDER CONTEXT
 // Global context for tracking onboarding progress across the app.
-// Enables auto-completion of checklist steps when users perform actions.
+// Uses metadata stored in user_profiles.onboarding_progress JSON field.
+// No actual tasks or quests are created - everything is virtual.
 // =============================================================================
 
 import {
@@ -11,17 +12,19 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useToast } from "./Toast";
 import type { OnboardingStep, OnboardingProgress } from "@/app/lib/types";
+import { TOTAL_ONBOARDING_STEPS } from "@/app/lib/onboarding";
+import { fetchApi, getErrorMessage } from "@/app/lib/api";
 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
 
 const STORAGE_KEY = "intentionality_onboarding_progress";
-const TOTAL_STEPS = 6;
 
 // Human-readable labels for each step (used in toast messages)
 const STEP_LABELS: Record<OnboardingStep, string> = {
@@ -31,20 +34,37 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
   complete_task: "Complete a Task",
   brain_dump: "Try Brain Dump",
   focus_session: "Start a Focus Session",
+  weekly_plan: "Complete Weekly Planning",
+  daily_review: "Complete Daily Review",
 };
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-type OnboardingContextValue = {
-  progress: OnboardingProgress | null;
-  loading: boolean;
-  markStepComplete: (step: OnboardingStep) => void;
-  isStepComplete: (step: OnboardingStep) => boolean;
-  isOnboardingDone: boolean;
+type OnboardingApiResponse = {
+  ok: true;
+  progress: OnboardingProgress;
+  completedSteps: OnboardingStep[];
   completedCount: number;
-  refreshProgress: () => void;
+  totalSteps: number;
+  isAllComplete: boolean;
+  isDismissed: boolean;
+  migrated?: boolean;
+};
+
+type OnboardingContextValue = {
+  loading: boolean;
+  isOnboardingDone: boolean;
+  completedSteps: OnboardingStep[];
+  completedCount: number;
+  totalSteps: number;
+  isStepComplete: (step: OnboardingStep) => boolean;
+  skipOnboarding: () => Promise<void>;
+  refreshOnboarding: () => Promise<void>;
+  // Legacy: markStepComplete for backward compatibility in case any component still calls it
+  // This is now a no-op locally since APIs handle step completion
+  markStepComplete: (step: OnboardingStep) => void;
 };
 
 // -----------------------------------------------------------------------------
@@ -54,19 +74,15 @@ type OnboardingContextValue = {
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 // -----------------------------------------------------------------------------
-// Provider
+// Helper Functions
 // -----------------------------------------------------------------------------
 
-// Helper to get initial progress from localStorage
-function getInitialProgress(): OnboardingProgress {
-  if (typeof window === "undefined") {
-    return {
-      completed_steps: [],
-      dismissed: false,
-      started_at: new Date().toISOString(),
-      completed_at: null,
-    };
-  }
+/**
+ * Read existing progress from localStorage for migration.
+ * Returns null if no progress exists.
+ */
+function getLocalStorageProgress(): OnboardingProgress | null {
+  if (typeof window === "undefined") return null;
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -74,111 +90,169 @@ function getInitialProgress(): OnboardingProgress {
       return JSON.parse(stored);
     }
   } catch {
-    // Fall through to create fresh progress
+    // Ignore parse errors
   }
 
-  // Initialize new progress
-  const newProgress: OnboardingProgress = {
-    completed_steps: [],
-    dismissed: false,
-    started_at: new Date().toISOString(),
-    completed_at: null,
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newProgress));
-  return newProgress;
+  return null;
 }
 
+/**
+ * Clear localStorage progress after migration.
+ */
+function clearLocalStorageProgress(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// -----------------------------------------------------------------------------
+// Provider
+// -----------------------------------------------------------------------------
+
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  // Use lazy initializer to avoid effect for initial load
-  const [progress, setProgress] = useState<OnboardingProgress | null>(() => getInitialProgress());
-  const loading = false; // Always loaded since we use lazy initializer
+  const [loading, setLoading] = useState(true);
+  const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
+  const [isDismissed, setIsDismissed] = useState(false);
   const { showToast } = useToast();
 
-  // Refresh progress from localStorage (for manual refresh if needed)
-  const refreshProgress = useCallback(() => {
-    setProgress(getInitialProgress());
+  // Fetch onboarding data from API
+  const fetchOnboarding = useCallback(async (existingProgress?: OnboardingProgress | null) => {
+    try {
+      let data: OnboardingApiResponse;
+
+      if (existingProgress && existingProgress.completed_steps.length > 0) {
+        // Migrate from localStorage
+        data = await fetchApi<OnboardingApiResponse>("/api/onboarding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "migrate",
+            existingProgress,
+          }),
+        });
+
+        // Clear localStorage after successful migration
+        if (data.migrated) {
+          clearLocalStorageProgress();
+        }
+      } else {
+        // Normal fetch
+        data = await fetchApi<OnboardingApiResponse>("/api/onboarding");
+      }
+
+      setCompletedSteps(data.completedSteps);
+      setIsDismissed(data.isDismissed || data.isAllComplete);
+    } catch (error) {
+      // If the API fails, treat as onboarding complete so the app continues to work
+      console.warn("Onboarding API error:", getErrorMessage(error));
+      setIsDismissed(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Update progress in localStorage and optionally sync to server
-  const updateProgress = useCallback((newProgress: OnboardingProgress) => {
-    setProgress(newProgress);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newProgress));
+  // Initialize on mount
+  useEffect(() => {
+    // Check for localStorage progress to migrate
+    const localProgress = getLocalStorageProgress();
+    fetchOnboarding(localProgress);
+  }, [fetchOnboarding]);
 
-    // Try to sync to server (silent fail is OK)
-    fetch("/api/profile/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ onboarding_progress: newProgress }),
-    }).catch(() => {
-      // Silent fail - localStorage is the primary source
-    });
-  }, []);
+  // Refresh onboarding data
+  const refreshOnboarding = useCallback(async () => {
+    setLoading(true);
+    await fetchOnboarding();
+  }, [fetchOnboarding]);
 
-  // Mark a step as complete (with toast notification)
+  // Skip onboarding
+  const skipOnboarding = useCallback(async () => {
+    try {
+      await fetchApi("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "skip" }),
+      });
+
+      // Clear localStorage too
+      clearLocalStorageProgress();
+
+      setIsDismissed(true);
+
+      showToast({
+        message: "Getting started guide dismissed",
+        type: "default",
+        duration: 3000,
+      });
+    } catch {
+      showToast({
+        message: "Failed to skip onboarding",
+        type: "error",
+        duration: 3000,
+      });
+    }
+  }, [showToast]);
+
+  // Check if a specific step is complete
+  const isStepComplete = useCallback(
+    (step: OnboardingStep) => {
+      return completedSteps.includes(step);
+    },
+    [completedSteps]
+  );
+
+  // Legacy: markStepComplete - optimistically update UI when a step is completed via API
+  // The actual step completion happens in the various API routes that call markOnboardingStepComplete
   const markStepComplete = useCallback(
     (step: OnboardingStep) => {
-      if (!progress) return;
-      if (progress.completed_steps.includes(step)) return;
-      if (progress.dismissed) return;
+      // Check if already complete
+      if (completedSteps.includes(step)) return;
+      if (isDismissed) return;
 
-      const newSteps = [...progress.completed_steps, step];
-      const isAllComplete = newSteps.length === TOTAL_STEPS;
-
-      const newProgress: OnboardingProgress = {
-        ...progress,
-        completed_steps: newSteps,
-        completed_at: isAllComplete ? new Date().toISOString() : null,
-      };
-
-      updateProgress(newProgress);
-
-      // Show toast notification for the completed step
+      // Show toast notification
       showToast({
         message: `Step completed: ${STEP_LABELS[step]}`,
         type: "success",
         duration: 3000,
       });
 
-      // If all steps complete, show celebration toast
-      if (isAllComplete) {
-        setTimeout(() => {
-          showToast({
-            message: "You've completed the getting started guide!",
-            type: "success",
-            duration: 5000,
-          });
-        }, 500);
-      }
+      // Optimistically update local state
+      setCompletedSteps((prev) => {
+        const newSteps = [...prev, step];
+        const newCount = newSteps.length;
+
+        // Check if all steps complete
+        if (newCount >= TOTAL_ONBOARDING_STEPS) {
+          setIsDismissed(true);
+          setTimeout(() => {
+            showToast({
+              message: "You've completed the getting started guide!",
+              type: "success",
+              duration: 5000,
+            });
+          }, 500);
+        }
+
+        return newSteps;
+      });
     },
-    [progress, updateProgress, showToast]
+    [completedSteps, isDismissed, showToast]
   );
 
-  // Check if a specific step is complete
-  const isStepComplete = useCallback(
-    (step: OnboardingStep) => {
-      return progress?.completed_steps.includes(step) ?? false;
-    },
-    [progress]
-  );
-
-  // Check if onboarding is done (all steps complete or dismissed)
-  const isOnboardingDone =
-    progress?.dismissed ||
-    progress?.completed_steps.length === TOTAL_STEPS ||
-    false;
-
-  const completedCount = progress?.completed_steps.length ?? 0;
+  // Check if onboarding is done (dismissed or all complete)
+  const completedCount = completedSteps.length;
+  const isOnboardingDone = isDismissed || completedCount >= TOTAL_ONBOARDING_STEPS;
 
   return (
     <OnboardingContext.Provider
       value={{
-        progress,
         loading,
-        markStepComplete,
-        isStepComplete,
         isOnboardingDone,
+        completedSteps,
         completedCount,
-        refreshProgress,
+        totalSteps: TOTAL_ONBOARDING_STEPS,
+        isStepComplete,
+        skipOnboarding,
+        refreshOnboarding,
+        markStepComplete,
       }}
     >
       {children}

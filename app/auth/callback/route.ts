@@ -1,43 +1,72 @@
 // =============================================================================
-// OAUTH CALLBACK ROUTE HANDLER
-// Handles the redirect from OAuth providers (Google, etc.) after user consent.
-// Exchanges the authorization code for a session.
+// AUTH CALLBACK ROUTE HANDLER
+// Handles redirects from:
+// 1. OAuth providers (Google, etc.) after user consent
+// 2. Email confirmation links with token_hash
 // =============================================================================
 
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 
 /**
  * GET /auth/callback
  *
- * OAuth providers redirect here with an authorization code.
- * This handler exchanges the code for a session and redirects to the app.
+ * Handles multiple auth callback scenarios:
  *
- * Query params from OAuth:
+ * OAuth callback (Google, etc.):
  * - code: Authorization code to exchange for tokens
  * - next: Optional URL to redirect to after auth (defaults to /)
+ *
+ * Email confirmation callback:
+ * - token_hash: The OTP token hash from the email link
+ * - type: The type of OTP (e.g., "email", "signup", "recovery")
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
 
-  // Get the authorization code from the OAuth provider
+  // Get params for both OAuth and email confirmation flows
   const code = searchParams.get("code");
-  // Optional: where to redirect after successful auth
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/";
 
-  if (code) {
-    const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
-    // Exchange the code for a session
-    // This creates the auth cookies automatically
+  // Handle OAuth callback (Google, etc.)
+  if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Successful auth - redirect to the intended destination
       return NextResponse.redirect(`${origin}${next}`);
     }
+
+    return NextResponse.redirect(`${origin}/auth?error=callback_failed`);
   }
 
-  // Auth failed - redirect to auth page with error indicator
-  return NextResponse.redirect(`${origin}/auth?error=callback_failed`);
+  // Handle email confirmation callback
+  if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+
+    if (!error) {
+      // Email confirmed successfully - redirect to auth page with success indicator
+      return NextResponse.redirect(`${origin}/auth?confirmed=true`);
+    }
+
+    // Check for expired link error
+    if (error.code === "otp_expired") {
+      return NextResponse.redirect(`${origin}/auth/link-expired`);
+    }
+
+    // Other verification errors
+    return NextResponse.redirect(
+      `${origin}/auth?error=verification_failed&message=${encodeURIComponent(error.message)}`
+    );
+  }
+
+  // No valid callback params - redirect to auth page
+  return NextResponse.redirect(`${origin}/auth?error=invalid_callback`);
 }

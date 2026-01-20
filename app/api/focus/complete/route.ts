@@ -12,6 +12,7 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getFocusTotalXp } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -117,6 +118,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       })
       .eq("user_id", user.id);
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "focus_session").catch(() => {});
 
   return successResponse({
     xpGained: result.xpBreakdown.totalXp,

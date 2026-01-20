@@ -17,6 +17,7 @@ import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { getTitleForLevel } from "@/app/lib/gamification";
 import { XpBarTooltip, StreakTooltip } from "./HelpTooltip";
+import { fetchApi } from "@/app/lib/api";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -147,10 +148,22 @@ export default function Sidebar() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            // Clear onboarding storage to re-show checklist
-            localStorage.removeItem("intentionality_onboarding_progress");
-            window.location.href = "/";
+          onClick={async () => {
+            try {
+              // Reset onboarding in database
+              await fetchApi("/api/onboarding", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "reset" }),
+              });
+              // Also clear localStorage for backwards compatibility
+              localStorage.removeItem("intentionality_onboarding_progress");
+              localStorage.removeItem("intentionality_onboarding_collapsed");
+              // Reload to show the guide
+              window.location.href = "/";
+            } catch (error) {
+              console.error("Failed to reset onboarding:", error);
+            }
           }}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",

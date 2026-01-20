@@ -13,6 +13,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { PLANNING_XP, getLocalDateString, getLevelFromXpV2 } from "@/app/lib/gamification";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 import type { WeeklyPlan, ISODateString } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -173,6 +174,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .update({ xp_total: newXpTotal, level: newLevel })
       .eq("user_id", user.id);
 
+    // Mark onboarding step complete (fire-and-forget)
+    markOnboardingStepComplete(supabase, user.id, "weekly_plan").catch(() => {});
+
     return NextResponse.json({
       ok: true,
       plan,
@@ -181,6 +185,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       isNew: true,
     });
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "weekly_plan").catch(() => {});
 
   return NextResponse.json({
     ok: true,

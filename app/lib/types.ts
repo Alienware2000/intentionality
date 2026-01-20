@@ -36,6 +36,9 @@ export type UserProfile = {
 // CORE ENTITY TYPES
 // =============================================================================
 
+/** Quest type - user-created or system (onboarding) */
+export type QuestType = 'user' | 'onboarding';
+
 /**
  * Quest represents a high-level goal or mission.
  * Contains related tasks and belongs to a specific user.
@@ -44,6 +47,8 @@ export type Quest = {
   id: Id;
   title: string;
   user_id: string;
+  quest_type: QuestType;
+  archived_at: string | null;
   created_at: string;
   tasks?: Task[];
 };
@@ -65,6 +70,7 @@ export type Task = {
   created_at: string;
   deleted_at: string | null;  // Soft delete timestamp
   default_work_duration: number | null;  // Minutes (1-180) for focus sessions
+  onboarding_step: OnboardingStep | null;  // For onboarding quest tasks only
   quest?: Quest;
 };
 
@@ -749,7 +755,9 @@ export type OnboardingStep =
   | 'create_habit'
   | 'complete_task'
   | 'brain_dump'
-  | 'focus_session';
+  | 'focus_session'
+  | 'weekly_plan'
+  | 'daily_review';
 
 /**
  * User's onboarding progress stored in profile.

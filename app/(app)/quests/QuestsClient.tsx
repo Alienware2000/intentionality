@@ -8,6 +8,7 @@ import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "@/app/components/ProfileProvider";
 import { useOnboarding } from "@/app/components/OnboardingProvider";
+import OnboardingQuestCard from "@/app/components/OnboardingQuestCard";
 import { useCelebration } from "@/app/components/CelebrationOverlay";
 import { useToast } from "@/app/components/Toast";
 import ConfirmModal from "@/app/components/ConfirmModal";
@@ -357,6 +358,9 @@ export default function QuestsClient() {
           <span className="hidden sm:inline">Create</span>
         </button>
       </div>
+
+      {/* Virtual Onboarding Quest */}
+      <OnboardingQuestCard />
 
       {/* Quests List */}
       <section className="space-y-4">

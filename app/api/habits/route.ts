@@ -13,6 +13,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { XP_VALUES, getLevelFromXpV2 } from "@/app/lib/gamification";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 import type { Priority } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -140,6 +141,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   if (createError) {
     return ApiErrors.serverError(createError.message);
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "create_habit").catch(() => {});
 
   return successResponse({ habit });
 });

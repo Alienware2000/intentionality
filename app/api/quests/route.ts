@@ -12,6 +12,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2 } from "@/app/lib/gamification";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -54,10 +55,32 @@ type DeleteQuestBody = {
  */
 export const GET = withAuth(async ({ user, supabase }) => {
   // Fetch user's quests (RLS automatically filters by user_id)
-  const { data: quests, error: fetchError } = await supabase
+  // Try to exclude onboarding quests and archived quests by default
+  // If the columns don't exist (migration not run), fall back to basic query
+  let quests;
+  let fetchError;
+
+  // First try with new columns
+  const result = await supabase
     .from("quests")
     .select("*")
+    .neq("quest_type", "onboarding")
+    .is("archived_at", null)
     .order("created_at", { ascending: true });
+
+  // If the query failed due to missing columns, try without them
+  if (result.error && (result.error.message?.includes("quest_type") || result.error.message?.includes("archived_at") || result.error.code === "42703")) {
+    // Fallback to basic query without new columns
+    const fallbackResult = await supabase
+      .from("quests")
+      .select("*")
+      .order("created_at", { ascending: true });
+    quests = fallbackResult.data;
+    fetchError = fallbackResult.error;
+  } else {
+    quests = result.data;
+    fetchError = result.error;
+  }
 
   if (fetchError) {
     return ApiErrors.serverError(fetchError.message);
@@ -65,6 +88,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
 
   // Create default quest if user has none
   if (!quests || quests.length === 0) {
+    // Try with quest_type column, fall back without it
     const { data: newQuest, error: createError } = await supabase
       .from("quests")
       .insert({ title: "General Tasks", user_id: user.id })
@@ -112,15 +136,36 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   }
 
   // Create the quest (RLS enforces user ownership)
-  const { data: quest, error: createError } = await supabase
+  // Try with quest_type column first, fall back without it if migration not run
+  let quest;
+  let createError;
+
+  const result = await supabase
     .from("quests")
-    .insert({ title: title.trim(), user_id: user.id })
+    .insert({ title: title.trim(), user_id: user.id, quest_type: "user" })
     .select()
     .single();
+
+  if (result.error && (result.error.message?.includes("quest_type") || result.error.code === "42703")) {
+    // Fallback without quest_type column
+    const fallbackResult = await supabase
+      .from("quests")
+      .insert({ title: title.trim(), user_id: user.id })
+      .select()
+      .single();
+    quest = fallbackResult.data;
+    createError = fallbackResult.error;
+  } else {
+    quest = result.data;
+    createError = result.error;
+  }
 
   if (createError) {
     return ApiErrors.serverError(createError.message);
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "create_quest").catch(() => {});
 
   return successResponse({ quest });
 });

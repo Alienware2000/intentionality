@@ -115,7 +115,7 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
             "outline-none focus:border-[var(--accent-primary)]"
           )}
         >
-          {quests.map((q) => (
+          {quests.filter((q) => q.quest_type !== "onboarding").map((q) => (
             <option key={q.id} value={q.id}>
               {q.title}
             </option>

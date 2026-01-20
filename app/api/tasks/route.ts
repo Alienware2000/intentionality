@@ -4,7 +4,6 @@
 // RLS policies enforce that users can only access tasks in their own quests.
 // =============================================================================
 
-import { NextResponse } from "next/server";
 import {
   withAuth,
   parseJsonBody,
@@ -13,6 +12,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, XP_VALUES } from "@/app/lib/gamification";
+import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 import type { Priority } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -117,7 +117,7 @@ export const GET = withAuth(async ({ supabase, request }) => {
  * @throws {404} Quest not found (prevents info disclosure about other users' quests)
  * @throws {500} Database error
  */
-export const POST = withAuth(async ({ supabase, request }) => {
+export const POST = withAuth(async ({ user, supabase, request }) => {
   // Parse request body
   const body = await parseJsonBody<CreateTaskBody>(request);
   const {
@@ -174,6 +174,9 @@ export const POST = withAuth(async ({ supabase, request }) => {
   if (createError) {
     return ApiErrors.serverError(createError.message);
   }
+
+  // Mark onboarding step complete (fire-and-forget)
+  markOnboardingStepComplete(supabase, user.id, "add_task").catch(() => {});
 
   return successResponse({ task });
 });
