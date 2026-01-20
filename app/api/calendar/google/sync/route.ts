@@ -122,6 +122,44 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Failed to refresh access token. Please reconnect Google Calendar.");
   }
 
+  // ---------------------------------------------------------------------------
+  // CLEANUP: Remove orphaned imported blocks before syncing
+  // These are schedule_blocks that look like imports (start_date = end_date)
+  // but have no tracking record in imported_events (from old disconnect bug)
+  // ---------------------------------------------------------------------------
+  const { data: allBlocks } = await supabase
+    .from("schedule_blocks")
+    .select("id, start_date, end_date")
+    .eq("user_id", user.id)
+    .not("start_date", "is", null);
+
+  const importPatternBlocks = (allBlocks ?? []).filter(
+    (b) => b.start_date && b.start_date === b.end_date
+  );
+
+  if (importPatternBlocks.length > 0) {
+    const blockIds = importPatternBlocks.map((b) => b.id);
+
+    // Find which ones have tracking records
+    const { data: trackedImports } = await supabase
+      .from("imported_events")
+      .select("created_id")
+      .in("created_id", blockIds);
+
+    const trackedIds = new Set((trackedImports ?? []).map((t) => t.created_id));
+
+    // Delete orphaned blocks (no tracking record)
+    const orphanedIds = blockIds.filter((id) => !trackedIds.has(id));
+
+    if (orphanedIds.length > 0) {
+      await supabase
+        .from("schedule_blocks")
+        .delete()
+        .in("id", orphanedIds);
+    }
+  }
+  // ---------------------------------------------------------------------------
+
   const result: SyncResult = {
     tasksCreated: 0,
     tasksUpdated: 0,
