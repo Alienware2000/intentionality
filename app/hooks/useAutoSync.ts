@@ -111,7 +111,15 @@ export function useAutoSync(): AutoSyncState {
       }));
 
       try {
-        const response = await fetch(endpoint, { method: "POST" });
+        // Pass timezone for Google Calendar sync to ensure correct event times
+        const fetchOptions: RequestInit = { method: "POST" };
+        if (type === "googleCalendar") {
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          fetchOptions.headers = { "Content-Type": "application/json" };
+          fetchOptions.body = JSON.stringify({ timezone });
+        }
+
+        const response = await fetch(endpoint, fetchOptions);
         const data = await response.json();
 
         if (!response.ok || !data.ok) {

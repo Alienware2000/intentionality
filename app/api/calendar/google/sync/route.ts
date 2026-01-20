@@ -160,6 +160,52 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   }
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // CLEANUP: Remove orphaned imported TASKS before syncing
+  // These are tasks in the "Calendar Imports" quest with no tracking record
+  // ---------------------------------------------------------------------------
+
+  // Find the "Calendar Imports" quest (auto-created by sync)
+  const { data: calendarImportsQuest } = await supabase
+    .from("quests")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("title", "Calendar Imports")
+    .single();
+
+  if (calendarImportsQuest) {
+    // Get all non-deleted tasks in that quest
+    const { data: allTasks } = await supabase
+      .from("tasks")
+      .select("id")
+      .eq("quest_id", calendarImportsQuest.id)
+      .is("deleted_at", null);
+
+    if (allTasks && allTasks.length > 0) {
+      const taskIds = allTasks.map((t) => t.id);
+
+      // Find which ones have tracking records
+      const { data: trackedTaskImports } = await supabase
+        .from("imported_events")
+        .select("created_id")
+        .eq("created_as", "task")
+        .in("created_id", taskIds);
+
+      const trackedTaskIds = new Set((trackedTaskImports ?? []).map((t) => t.created_id));
+
+      // Soft-delete orphaned tasks (no tracking record)
+      const orphanedTaskIds = taskIds.filter((id) => !trackedTaskIds.has(id));
+
+      if (orphanedTaskIds.length > 0) {
+        await supabase
+          .from("tasks")
+          .update({ deleted_at: new Date().toISOString() })
+          .in("id", orphanedTaskIds);
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+
   const result: SyncResult = {
     tasksCreated: 0,
     tasksUpdated: 0,
