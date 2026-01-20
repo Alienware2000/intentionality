@@ -397,6 +397,10 @@ export default function QuestsClient() {
                   tabIndex={0}
                   onClick={() => setExpandedQuestId(isExpanded ? null : quest.id)}
                   onKeyDown={(e) => {
+                    // Don't intercept keyboard events from input fields
+                    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                      return;
+                    }
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setExpandedQuestId(isExpanded ? null : quest.id);
