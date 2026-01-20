@@ -775,7 +775,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
       </span>
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+      <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <button
@@ -906,7 +906,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
       </span>
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+      <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <button
@@ -1095,7 +1095,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
         </span>
 
         {/* Action buttons - always visible on mobile, hover on desktop */}
-        <div className="relative flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
           {/* Focus button */}
           <button
             ref={focusButtonRef}

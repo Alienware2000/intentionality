@@ -138,9 +138,9 @@ export default function QuestsClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          questId,
+          quest_id: questId,
           title,
-          dueDate: newTaskDueDate,
+          due_date: newTaskDueDate,
           priority: newTaskPriority,
         }),
       });

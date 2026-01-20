@@ -6,7 +6,7 @@
 // Displays onboarding progress from metadata (no actual quest/tasks in DB).
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
@@ -55,8 +55,8 @@ const STEPS: StepConfig[] = [
     icon: CheckSquare,
     iconColor: "text-[var(--accent-success)]",
     title: "Add a Task",
-    description: "Break down quests into actionable items with due dates.",
-    actionLabel: "Expand Quest",
+    description: "Click any quest below to expand it, then add a task with a due date.",
+    actionLabel: "",
   },
   {
     id: "create_habit",
@@ -125,8 +125,17 @@ const STEPS: StepConfig[] = [
  */
 export default function OnboardingQuestCard() {
   const { loading, isOnboardingDone, isStepComplete, completedCount, totalSteps, skipOnboarding } = useOnboarding();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem("intentionality_onboarding_quest_expanded");
+    return saved === "true";
+  });
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+
+  // Persist expanded state to localStorage
+  useEffect(() => {
+    localStorage.setItem("intentionality_onboarding_quest_expanded", String(isExpanded));
+  }, [isExpanded]);
 
   // Don't render if loading, dismissed, or all complete
   if (loading || isOnboardingDone) return null;
