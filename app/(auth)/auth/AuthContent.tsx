@@ -76,7 +76,7 @@ export default function AuthContent() {
     // Check for email confirmation success
     const confirmed = searchParams.get("confirmed");
     if (confirmed === "true") {
-      showToast("Email confirmed! You can now sign in.", "success");
+      showToast({ message: "Email confirmed! You can now sign in.", type: "success" });
       // Clean up URL
       router.replace("/auth");
     }
@@ -246,7 +246,7 @@ export default function AuthContent() {
       return;
     }
 
-    showToast("Confirmation email sent!", "success");
+    showToast({ message: "Confirmation email sent!", type: "success" });
     setResendCooldown(60);
   }
 
