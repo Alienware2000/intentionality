@@ -124,11 +124,12 @@ export function useDayTimeline(
         )
       );
 
-      // Update in overdueTasks
+      // Update in overdueTasks - filter out completed tasks
+      // (overdue tasks should disappear when completed, matching API behavior)
       setOverdueTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, completed } : task
-        )
+        prev
+          .map((task) => (task.id === taskId ? { ...task, completed } : task))
+          .filter((task) => !task.completed)
       );
     },
     []

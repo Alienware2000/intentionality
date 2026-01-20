@@ -161,46 +161,73 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // ---------------------------------------------------------------------------
 
   // ---------------------------------------------------------------------------
-  // CLEANUP: Remove orphaned imported TASKS before syncing
-  // These are tasks in the "Calendar Imports" quest with no tracking record
+  // CLEANUP: Remove duplicate imported TASKS before syncing
+  // Find tasks with same title+due_date where one has tracking and one doesn't
   // ---------------------------------------------------------------------------
 
-  // Find the "Calendar Imports" quest (auto-created by sync)
-  const { data: calendarImportsQuest } = await supabase
-    .from("quests")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("title", "Calendar Imports")
-    .single();
-
-  if (calendarImportsQuest) {
-    // Get all non-deleted tasks in that quest
-    const { data: allTasks } = await supabase
-      .from("tasks")
+  // Get target quest ID for cleanup (same logic as later in sync)
+  let cleanupQuestId = connection.target_quest_id;
+  if (!cleanupQuestId && (connection.import_as === "tasks" || connection.import_as === "smart")) {
+    const { data: defaultQuest } = await supabase
+      .from("quests")
       .select("id")
-      .eq("quest_id", calendarImportsQuest.id)
+      .eq("user_id", user.id)
+      .eq("title", "Calendar Imports")
+      .single();
+    cleanupQuestId = defaultQuest?.id;
+  }
+
+  if (cleanupQuestId) {
+    // Get all non-deleted tasks in target quest
+    const { data: questTasks } = await supabase
+      .from("tasks")
+      .select("id, title, due_date")
+      .eq("quest_id", cleanupQuestId)
       .is("deleted_at", null);
 
-    if (allTasks && allTasks.length > 0) {
-      const taskIds = allTasks.map((t) => t.id);
-
-      // Find which ones have tracking records
-      const { data: trackedTaskImports } = await supabase
+    if (questTasks && questTasks.length > 0) {
+      // Get tracking records for these tasks
+      const taskIds = questTasks.map((t) => t.id);
+      const { data: trackedImports } = await supabase
         .from("imported_events")
         .select("created_id")
         .eq("created_as", "task")
         .in("created_id", taskIds);
 
-      const trackedTaskIds = new Set((trackedTaskImports ?? []).map((t) => t.created_id));
+      const trackedIds = new Set((trackedImports ?? []).map((t) => t.created_id));
 
-      // Soft-delete orphaned tasks (no tracking record)
-      const orphanedTaskIds = taskIds.filter((id) => !trackedTaskIds.has(id));
+      // Group tasks by title+due_date to find duplicates
+      const taskGroups = new Map<string, typeof questTasks>();
+      for (const task of questTasks) {
+        const key = `${task.title}|${task.due_date}`;
+        if (!taskGroups.has(key)) {
+          taskGroups.set(key, []);
+        }
+        taskGroups.get(key)!.push(task);
+      }
 
-      if (orphanedTaskIds.length > 0) {
+      // For each group with duplicates, soft-delete untracked ones
+      const orphansToDelete: string[] = [];
+      for (const [, tasks] of taskGroups) {
+        if (tasks.length > 1) {
+          // Multiple tasks with same title+date - delete untracked ones
+          const hasTracked = tasks.some((t) => trackedIds.has(t.id));
+          if (hasTracked) {
+            // Keep tracked ones, delete untracked ones
+            for (const task of tasks) {
+              if (!trackedIds.has(task.id)) {
+                orphansToDelete.push(task.id);
+              }
+            }
+          }
+        }
+      }
+
+      if (orphansToDelete.length > 0) {
         await supabase
           .from("tasks")
           .update({ deleted_at: new Date().toISOString() })
-          .in("id", orphanedTaskIds);
+          .in("id", orphansToDelete);
       }
     }
   }
@@ -357,35 +384,70 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
           } else {
             // Create new item
             if (importAs === "task" || importAs === "tasks") {
-              const { data: task, error: taskError } = await supabase
+              // Check for existing untracked task with same title+date (adopt orphan)
+              const { data: existingTask } = await supabase
                 .from("tasks")
-                .insert({
-                  quest_id: targetQuestId,
-                  title: event.summary,
-                  due_date: startDate,
-                  priority: "medium",
-                  completed: false,
-                  xp_value: 10,
-                })
                 .select("id")
+                .eq("quest_id", targetQuestId)
+                .eq("title", event.summary)
+                .eq("due_date", startDate)
+                .is("deleted_at", null)
+                .limit(1)
                 .single();
 
-              if (taskError) {
-                result.errors.push(`Failed to create task: ${event.summary}`);
-                continue;
+              // Check if this task already has tracking
+              let taskId: string;
+              let isOrphanAdoption = false;
+
+              if (existingTask) {
+                const { data: existingTracking } = await supabase
+                  .from("imported_events")
+                  .select("id")
+                  .eq("created_id", existingTask.id)
+                  .limit(1)
+                  .single();
+
+                if (!existingTracking) {
+                  // Orphan found - adopt it
+                  taskId = existingTask.id;
+                  isOrphanAdoption = true;
+                  result.tasksUpdated++;
+                }
               }
 
+              if (!isOrphanAdoption) {
+                // Create new task
+                const { data: task, error: taskError } = await supabase
+                  .from("tasks")
+                  .insert({
+                    quest_id: targetQuestId,
+                    title: event.summary,
+                    due_date: startDate,
+                    priority: "medium",
+                    completed: false,
+                    xp_value: 10,
+                  })
+                  .select("id")
+                  .single();
+
+                if (taskError) {
+                  result.errors.push(`Failed to create task: ${event.summary}`);
+                  continue;
+                }
+                taskId = task!.id;
+                result.tasksCreated++;
+              }
+
+              // Add tracking record
               await supabase.from("imported_events").insert({
                 user_id: user.id,
                 source_type: "google",
                 source_id: connection.id,
                 external_uid: externalUid,
                 created_as: "task",
-                created_id: task.id,
+                created_id: taskId!,
                 event_hash: eventHash,
               });
-
-              result.tasksCreated++;
             } else {
               // Create schedule block
               const dayOfWeek = getDayOfWeek(startDate as ISODateString);
