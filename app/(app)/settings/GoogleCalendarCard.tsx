@@ -178,8 +178,13 @@ export default function GoogleCalendarCard() {
     setError(null);
 
     try {
+      // Get the user's timezone from the browser
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       const result = await fetchApi<SyncResult>("/api/calendar/google/sync", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone }),
       });
       setSyncResult(result);
       await loadData();

@@ -62,6 +62,46 @@ export function parseISOToLocal(isoDateTime: string): { date: ISODateString; tim
 }
 
 /**
+ * Parse an ISO 8601 dateTime string and convert to a specific timezone.
+ * Used for server-side conversion when user's timezone is known.
+ *
+ * @param isoDateTime - Full ISO 8601 dateTime string
+ * @param targetTimezone - IANA timezone string (e.g., "America/New_York")
+ * @returns Object with date (YYYY-MM-DD) and time (HH:MM) in the target timezone
+ *
+ * @example
+ * ```ts
+ * // UTC time converted to EST:
+ * parseISOToTimezone("2025-01-16T19:00:00Z", "America/New_York");
+ * // Returns: { date: "2025-01-16", time: "14:00" }
+ * ```
+ */
+export function parseISOToTimezone(
+  isoDateTime: string,
+  targetTimezone: string
+): { date: ISODateString; time: string } {
+  const parsed = new Date(isoDateTime);
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: targetTimezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(parsed);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "00";
+
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}` as ISODateString,
+    time: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+/**
  * Add days to an ISO date string.
  */
 export function addDaysISO(dateISO: ISODateString, daysToAdd: number): ISODateString {

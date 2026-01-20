@@ -8,7 +8,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { parseISOToLocal } from "@/app/lib/date-utils";
+import { parseISOToTimezone } from "@/app/lib/date-utils";
 import type { ISODateString } from "@/app/lib/types";
 
 // Google Calendar API
@@ -97,7 +97,11 @@ async function getValidAccessToken(
 // Sync events from selected calendars
 // -----------------------------------------------------------------------------
 
-export const POST = withAuth(async ({ user, supabase }) => {
+export const POST = withAuth(async ({ user, supabase, request }) => {
+  // Parse timezone from request body (defaults to UTC if not provided)
+  const body = await request.json().catch(() => ({}));
+  const userTimezone = body.timezone || "UTC";
+
   // Get connection
   const { data: connection, error: connError } = await supabase
     .from("google_calendar_connections")
@@ -211,11 +215,11 @@ export const POST = withAuth(async ({ user, supabase }) => {
           if (isAllDay) {
             startDate = event.start.date!;
           } else {
-            const startParsed = parseISOToLocal(event.start.dateTime!);
+            const startParsed = parseISOToTimezone(event.start.dateTime!, userTimezone);
             startDate = startParsed.date;
             startTime = startParsed.time;
             if (event.end.dateTime) {
-              endTime = parseISOToLocal(event.end.dateTime).time;
+              endTime = parseISOToTimezone(event.end.dateTime, userTimezone).time;
             }
           }
 
