@@ -28,6 +28,9 @@ SECURITY_AUDIT.md
 # Personal development log (not tracked)
 DEVLOG.md
 
+# Claude Code instructions (not tracked)
+CLAUDE.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
