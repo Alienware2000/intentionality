@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { withAuth, getSearchParams, ApiErrors } from "@/app/lib/auth-middleware";
-import { getDayOfWeek, getTodayISO } from "@/app/lib/date-utils";
+import { getDayOfWeek } from "@/app/lib/date-utils";
 import type { Task, ScheduleBlock, TimelineItem, DayOfWeek } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -14,7 +14,7 @@ import type { Task, ScheduleBlock, TimelineItem, DayOfWeek } from "@/app/lib/typ
 // -----------------------------------------------------------------------------
 
 /**
- * GET /api/day-timeline?date=YYYY-MM-DD
+ * GET /api/day-timeline?date=YYYY-MM-DD&includeOverdue=true
  *
  * Returns all timeline items for a specific day:
  * - Tasks due on that date (with optional scheduled_time)
@@ -22,18 +22,19 @@ import type { Task, ScheduleBlock, TimelineItem, DayOfWeek } from "@/app/lib/typ
  *
  * Items are sorted chronologically by time.
  * Tasks without scheduled_time are returned separately.
- * Overdue tasks are only included when date is today.
+ * Overdue tasks are only included when includeOverdue=true.
  *
  * @authentication Required
  *
  * @query {string} date - Date in YYYY-MM-DD format (required)
+ * @query {string} includeOverdue - "true" to include overdue tasks (optional)
  *
  * @returns {Object} Response object
  * @returns {boolean} ok - Success indicator
  * @returns {string} date - The requested date
  * @returns {TimelineItem[]} scheduledItems - Chronologically sorted items with times
  * @returns {Task[]} unscheduledTasks - Tasks without scheduled_time
- * @returns {Task[]} overdueTasks - Overdue tasks (only for today)
+ * @returns {Task[]} overdueTasks - Overdue tasks (only when includeOverdue=true)
  *
  * @throws {401} Not authenticated
  * @throws {400} Missing date query param
@@ -47,16 +48,17 @@ export const GET = withAuth(async ({ supabase, request }) => {
     return ApiErrors.badRequest("Missing date query param");
   }
 
-  const today = getTodayISO();
-  const isToday = date === today;
+  // Client passes includeOverdue flag to avoid timezone issues
+  // (server timezone may differ from user's timezone)
+  const includeOverdue = params.get("includeOverdue") === "true";
   const dayOfWeek = getDayOfWeek(date) as DayOfWeek;
 
   try {
     // Fetch in parallel: tasks, schedule blocks, and completions
     const [tasksResult, blocksResult, completionsResult] = await Promise.all([
-      // Fetch tasks for this date (and overdue if today)
+      // Fetch tasks for this date (and overdue if requested)
       // Filter out soft-deleted tasks
-      isToday
+      includeOverdue
         ? supabase
             .from("tasks")
             .select("*, quest:quests(*)")
@@ -110,8 +112,8 @@ export const GET = withAuth(async ({ supabase, request }) => {
     const unscheduledTasks: Task[] = [];
 
     for (const task of tasks) {
-      if (isToday && task.due_date < date && !task.completed) {
-        // Overdue task (only for today view)
+      if (includeOverdue && task.due_date < date && !task.completed) {
+        // Overdue task (only when includeOverdue is true)
         overdueTasks.push(task);
       } else if (task.due_date === date) {
         // Task for this date
@@ -156,7 +158,7 @@ export const GET = withAuth(async ({ supabase, request }) => {
       date,
       scheduledItems,
       unscheduledTasks,
-      overdueTasks: isToday ? overdueTasks : [],
+      overdueTasks: includeOverdue ? overdueTasks : [],
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Server error";

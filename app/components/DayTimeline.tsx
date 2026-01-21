@@ -88,8 +88,9 @@ export default function DayTimeline({
     () => ({
       onProfileUpdate: refreshProfile,
       onTaskToggle: handleTaskToggle,
+      includeOverdue: showOverdue,
     }),
-    [refreshProfile, handleTaskToggle]
+    [refreshProfile, handleTaskToggle, showOverdue]
   );
 
   const {

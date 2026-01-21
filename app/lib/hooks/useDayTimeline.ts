@@ -29,6 +29,8 @@ type UseDayTimelineOptions = {
   onProfileUpdate?: () => void;
   /** Callback when task is toggled, receives XP/level info for celebrations */
   onTaskToggle?: (result: ToggleResult) => void;
+  /** Whether to include overdue tasks in the response (for today's view) */
+  includeOverdue?: boolean;
 };
 
 type UseDayTimelineReturn = {
@@ -82,9 +84,8 @@ export function useDayTimeline(
   const refresh = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchApi<DayTimelineResponse>(
-        `/api/day-timeline?date=${date}`
-      );
+      const url = `/api/day-timeline?date=${date}${options?.includeOverdue ? "&includeOverdue=true" : ""}`;
+      const data = await fetchApi<DayTimelineResponse>(url);
       setScheduledItems(data.scheduledItems);
       setUnscheduledTasks(data.unscheduledTasks);
       setOverdueTasks(data.overdueTasks);
@@ -93,7 +94,7 @@ export function useDayTimeline(
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, [date, options?.includeOverdue]);
 
   useEffect(() => {
     setLoading(true);
