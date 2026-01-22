@@ -66,8 +66,8 @@ Set weekly goals and intentions at the start of each week. Earn 25 XP for comple
 ### Streak Freezes
 Protect your streak on off days. Earn streak freezes through achievements or purchase with XP.
 
-### AI Assistant (Jarvis)
-Your personal AI-powered productivity assistant. Chat with Jarvis to manage tasks, get personalized insights, and process brain dumps automatically.
+### AI Assistant (Kofi)
+Your personal AI-powered productivity assistant. Chat with Kofi to manage tasks, get personalized insights, and process brain dumps automatically.
 
 ### Smart Recommendations
 Get time-based suggestions for what to focus on next based on your schedule and priorities.
@@ -101,7 +101,8 @@ Screenshots coming soon...
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Database | Supabase (PostgreSQL with Row Level Security) |
 | Auth | Supabase Auth (Google OAuth + Email/Password) |
-| AI | Google Gemini 1.5 Flash (streaming chat, insights) |
+| AI (Primary) | Google Gemini 2.5 Flash-Lite (streaming chat, insights) |
+| AI (Fallback) | Groq LLaMA 3.3 70B (automatic failover) |
 | Styling | Tailwind CSS 4 |
 | Animations | Framer Motion |
 | Charts | Recharts |
@@ -139,11 +140,13 @@ Screenshots coming soon...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-   For AI Assistant (Jarvis):
+   For AI Assistant (Kofi):
    ```env
    GEMINI_API_KEY=your_gemini_api_key
+   GROQ_API_KEY=your_groq_api_key
    ```
-   Get your free API key from [Google AI Studio](https://aistudio.google.com/apikey).
+   Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
+   Get your Groq API key from [Groq Console](https://console.groq.com/keys).
 
    For Google Calendar integration (optional):
    ```env
@@ -283,7 +286,7 @@ function QuickActions() {
 </details>
 
 <details>
-<summary><strong>AI Assistant (Jarvis)</strong></summary>
+<summary><strong>AI Assistant (Kofi)</strong></summary>
 
 Chat with AI via `Ctrl+Shift+K` or sidebar button:
 
@@ -292,7 +295,7 @@ import { useAI } from "@/app/components/AIProvider";
 
 function AIButton() {
   const { openChat, sendMessage } = useAI();
-  return <button onClick={openChat}>Ask Jarvis</button>;
+  return <button onClick={openChat}>Ask Kofi</button>;
 }
 ```
 
@@ -390,9 +393,17 @@ One weekly goal with progression tracking:
 - Convert to task: Assign priority, due date, and quest
 - **AI Processing**: Click "AI Process" to automatically extract tasks with dates and priorities
 
-### AI Assistant (Jarvis)
+### AI Assistant (Kofi)
 
-Your personal AI-powered productivity assistant powered by Google Gemini 1.5 Flash.
+Your personal AI-powered productivity assistant with dual-provider architecture.
+
+#### Provider Architecture
+| Provider | Role | Model |
+|----------|------|-------|
+| Google Gemini | Primary | Gemini 2.5 Flash-Lite |
+| Groq | Fallback | LLaMA 3.3 70B |
+
+Automatic failover ensures Kofi remains available even when one provider is down.
 
 #### Features
 | Feature | Description |
@@ -402,6 +413,27 @@ Your personal AI-powered productivity assistant powered by Google Gemini 1.5 Fla
 | **Proactive Insights** | Toast notifications for streak risks, optimal focus times, workload warnings |
 | **Brain Dump Processing** | Automatically extract tasks from free-form text with dates and priorities |
 | **Context-Aware** | Understands your tasks, habits, streaks, and patterns |
+| **Learning System** | Learns your goals, work style, and preferences over time |
+
+#### Learning System
+Kofi learns about you through multiple channels:
+
+| Learning Type | Description |
+|---------------|-------------|
+| **LLM Extraction** | Extracts goals, preferences, and context from your conversations |
+| **Explicit Signals** | Parses statements like "My goal is to finish my thesis" |
+| **Implicit Signals** | Tracks dismissed insights and advice acceptance rates |
+| **Pattern Analysis** | Computes best work times and completion rates from history |
+
+#### Rate Limits
+| Limit Type | Value |
+|------------|-------|
+| Gemini requests | 15/min |
+| Groq requests | 30/min |
+| Daily chat messages | 50 |
+| Daily brain dump processing | 20 |
+| Daily proactive insights | 48 |
+| Daily briefing requests | 5 |
 
 #### Keyboard Shortcuts
 | Shortcut | Action |
@@ -410,7 +442,7 @@ Your personal AI-powered productivity assistant powered by Google Gemini 1.5 Fla
 | `Ctrl+K` → "AI Process" | Process brain dump with AI |
 
 #### Chat Commands
-Ask Jarvis anything about your productivity:
+Ask Kofi anything about your productivity:
 - "What should I focus on today?"
 - "Create a task to submit essay by Friday"
 - "How's my streak looking?"
@@ -524,6 +556,11 @@ Ask Jarvis anything about your productivity:
 | PATCH | `/api/ai/insights` | Mark insight shown/dismissed |
 | POST | `/api/ai/process` | Process brain dump text with AI |
 | GET | `/api/ai/context` | Get user context for AI |
+| GET | `/api/ai/learn` | Get user learning profile |
+| POST | `/api/ai/learn` | Create learning profile |
+| PATCH | `/api/ai/learn` | Update learning profile |
+| DELETE | `/api/ai/learn` | Delete learning profile |
+| POST | `/api/ai/learn/compute` | Trigger pattern computation |
 
 ### Achievements
 
@@ -611,6 +648,11 @@ Ask Jarvis anything about your productivity:
 | `ai_messages` | Messages within AI conversations |
 | `ai_insights` | Proactive AI-generated insights |
 | `user_ai_preferences` | User AI communication preferences |
+| `user_learning_profiles` | AI learning: goals, work style, preferences |
+| `ai_interaction_outcomes` | Tracks suggestion effectiveness |
+| `user_pattern_aggregates` | Computed behavior patterns |
+| `ai_briefing_cache` | Cached daily briefings |
+| `ai_usage_log` | Daily usage tracking for rate limits |
 
 All tables use Row Level Security (RLS) policies scoped to the authenticated user.
 
@@ -710,8 +752,11 @@ See [ROADMAP.md](./ROADMAP.md) for the full roadmap.
 - Performance optimizations
 
 ### Recently Completed
-- AI Assistant (Jarvis) with chat, briefing, and proactive insights
+- AI Assistant (Kofi) with chat, briefing, and proactive insights
 - AI-powered brain dump processing
+- AI Learning System with LLM-based signal extraction
+- Dual-provider AI architecture (Gemini + Groq fallback)
+- Rate limiting and usage tracking
 
 ### Planned Features
 - Background sync for calendar feeds
