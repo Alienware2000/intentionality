@@ -6,16 +6,30 @@
 // Triggered via Ctrl+K / Cmd+K keyboard shortcut.
 // anime.js inspired: minimal dark theme with dramatic focus.
 // Now includes NLP parsing preview for smart task creation.
+//
+// AI ENHANCEMENT:
+// Added "Process with AI" button that sends content to AI for intelligent
+// parsing into tasks, habits, and quests. Shows suggestions that users can
+// selectively create.
 // =============================================================================
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Brain, Zap, Calendar, Flag, Clock, Sparkles } from "lucide-react";
+import { X, Brain, Zap, Calendar, Flag, Clock, Sparkles, Bot, Loader2, Check, Plus, Target, Heart } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { parseTaskInput } from "@/app/lib/nlp-parser";
 import { useOnboarding } from "./OnboardingProvider";
-import type { BrainDumpEntry, ParsedTaskInput } from "@/app/lib/types";
+import type { BrainDumpEntry, ParsedTaskInput, AIProcessBrainDumpResponse, Priority } from "@/app/lib/types";
+
+// Type for AI suggestions
+type AISuggestion = {
+  type: 'task' | 'quest' | 'habit';
+  title: string;
+  due_date?: string;
+  priority?: Priority;
+  quest_suggestion?: string;
+};
 
 type Props = {
   isOpen: boolean;
@@ -29,6 +43,14 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { markStepComplete } = useOnboarding();
+
+  // AI processing state
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [aiNotes, setAiNotes] = useState<string | null>(null);
+  const [creatingItems, setCreatingItems] = useState<Set<number>>(new Set());
+  const [createdItems, setCreatedItems] = useState<Set<number>>(new Set());
+  const [showAiResults, setShowAiResults] = useState(false);
 
   // Parse content for smart preview
   const parsed: ParsedTaskInput | null = useMemo(() => {
@@ -55,6 +77,12 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
     if (!isOpen) {
       setContent("");
       setError(null);
+      setAiProcessing(false);
+      setAiSuggestions([]);
+      setAiNotes(null);
+      setCreatingItems(new Set());
+      setCreatedItems(new Set());
+      setShowAiResults(false);
     }
   }, [isOpen]);
 
@@ -85,10 +113,130 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
     }
   }
 
+  // Process content with AI
+  async function handleAiProcess() {
+    if (!content.trim()) return;
+
+    setAiProcessing(true);
+    setError(null);
+    setAiSuggestions([]);
+    setAiNotes(null);
+    setCreatedItems(new Set());
+
+    try {
+      const result = await fetchApi<AIProcessBrainDumpResponse>(
+        "/api/ai/process",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: content.trim(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          }),
+        }
+      );
+
+      setAiSuggestions(result.suggestions || []);
+      setAiNotes(result.notes || null);
+      setShowAiResults(true);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setAiProcessing(false);
+    }
+  }
+
+  // Create a single suggestion as a task/habit/quest
+  async function handleCreateSuggestion(suggestion: AISuggestion, index: number) {
+    if (creatingItems.has(index) || createdItems.has(index)) return;
+
+    setCreatingItems(prev => new Set(prev).add(index));
+    setError(null);
+
+    try {
+      if (suggestion.type === 'task') {
+        // Create task - need to get or create a quest first
+        // Use default "Personal" quest
+        const questsRes = await fetchApi<{ ok: true; quests: Array<{ id: string; title: string }> }>(
+          "/api/quests"
+        );
+        let questId = questsRes.quests?.find(q => q.title === "Personal")?.id;
+
+        if (!questId && questsRes.quests?.[0]) {
+          questId = questsRes.quests[0].id;
+        }
+
+        if (!questId) {
+          // Create Personal quest
+          const newQuest = await fetchApi<{ ok: true; quest: { id: string } }>(
+            "/api/quests",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: "Personal" }),
+            }
+          );
+          questId = newQuest.quest.id;
+        }
+
+        await fetchApi("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: suggestion.title,
+            quest_id: questId,
+            due_date: suggestion.due_date || new Date().toISOString().split("T")[0],
+            priority: suggestion.priority || "medium",
+          }),
+        });
+      } else if (suggestion.type === 'habit') {
+        await fetchApi("/api/habits", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: suggestion.title,
+            priority: suggestion.priority || "medium",
+          }),
+        });
+      } else if (suggestion.type === 'quest') {
+        await fetchApi("/api/quests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: suggestion.title,
+          }),
+        });
+      }
+
+      setCreatedItems(prev => new Set(prev).add(index));
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setCreatingItems(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  }
+
+  // Create all suggestions at once
+  async function handleCreateAll() {
+    for (let i = 0; i < aiSuggestions.length; i++) {
+      if (!createdItems.has(i)) {
+        await handleCreateSuggestion(aiSuggestions[i], i);
+      }
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
       e.preventDefault();
-      onClose();
+      if (showAiResults) {
+        setShowAiResults(false);
+      } else {
+        onClose();
+      }
     }
     // Submit on Cmd/Ctrl+Enter
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -233,15 +381,150 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
               )}
             </AnimatePresence>
 
+            {/* AI Suggestions Results */}
+            <AnimatePresence>
+              {showAiResults && aiSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 p-3 rounded-lg bg-[var(--accent-highlight)]/5 border border-[var(--accent-highlight)]/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Bot size={14} className="text-[var(--accent-highlight)]" />
+                        <span className="text-xs font-medium text-[var(--accent-highlight)]">
+                          AI Suggestions ({aiSuggestions.length})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleCreateAll}
+                          disabled={createdItems.size === aiSuggestions.length}
+                          className={cn(
+                            "text-xs px-2 py-1 rounded",
+                            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+                            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+                            "disabled:opacity-50 disabled:cursor-not-allowed"
+                          )}
+                        >
+                          Create All
+                        </button>
+                        <button
+                          onClick={() => setShowAiResults(false)}
+                          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                        >
+                          Hide
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {aiSuggestions.map((suggestion, index) => {
+                        const isCreating = creatingItems.has(index);
+                        const isCreated = createdItems.has(index);
+                        const TypeIcon = suggestion.type === 'task' ? Plus
+                          : suggestion.type === 'habit' ? Heart
+                          : Target;
+
+                        return (
+                          <div
+                            key={index}
+                            className={cn(
+                              "flex items-start gap-3 p-2 rounded-lg",
+                              "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                              isCreated && "opacity-60"
+                            )}
+                          >
+                            <div className={cn(
+                              "p-1.5 rounded-lg flex-shrink-0 mt-0.5",
+                              suggestion.type === 'task' && "bg-[var(--accent-primary)]/10",
+                              suggestion.type === 'habit' && "bg-pink-500/10",
+                              suggestion.type === 'quest' && "bg-[var(--accent-success)]/10"
+                            )}>
+                              <TypeIcon size={12} className={cn(
+                                suggestion.type === 'task' && "text-[var(--accent-primary)]",
+                                suggestion.type === 'habit' && "text-pink-500",
+                                suggestion.type === 'quest' && "text-[var(--accent-success)]"
+                              )} />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-[var(--text-primary)]">
+                                {suggestion.title}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 mt-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)]">
+                                  {suggestion.type}
+                                </span>
+                                {suggestion.due_date && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)] flex items-center gap-1">
+                                    <Calendar size={8} />
+                                    {new Date(suggestion.due_date).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                )}
+                                {suggestion.priority && (
+                                  <span className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1",
+                                    suggestion.priority === "high" && "bg-[var(--priority-high)]/10 text-[var(--priority-high)]",
+                                    suggestion.priority === "medium" && "bg-[var(--priority-medium)]/10 text-[var(--priority-medium)]",
+                                    suggestion.priority === "low" && "bg-[var(--priority-low)]/10 text-[var(--priority-low)]"
+                                  )}>
+                                    <Flag size={8} />
+                                    {suggestion.priority}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleCreateSuggestion(suggestion, index)}
+                              disabled={isCreating || isCreated}
+                              className={cn(
+                                "p-1.5 rounded-lg transition-colors flex-shrink-0",
+                                isCreated
+                                  ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+                                  : "hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]",
+                                "disabled:cursor-not-allowed"
+                              )}
+                            >
+                              {isCreating ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : isCreated ? (
+                                <Check size={14} />
+                              ) : (
+                                <Plus size={14} />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {aiNotes && (
+                      <p className="mt-2 text-xs text-[var(--text-muted)] italic">
+                        {aiNotes}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Error message */}
             {error && (
               <p className="mt-2 text-sm text-[var(--priority-high)]">{error}</p>
             )}
 
             {/* Actions */}
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex items-center justify-between gap-2">
               {/* Keyboard shortcut hint - only show on desktop */}
-              <p className="hidden md:block text-xs text-[var(--text-muted)]">
+              <p className="hidden md:block text-xs text-[var(--text-muted)] flex-shrink-0">
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px]">
                   {typeof window !== "undefined" && navigator.platform.includes("Mac")
                     ? "Cmd"
@@ -251,23 +534,48 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                 <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px]">
                   Enter
                 </kbd>
-                {" to capture"}
               </p>
-              {/* Spacer for mobile to push button to the right */}
-              <div className="md:hidden" />
-              <button
-                onClick={handleCapture}
-                disabled={saving || !content.trim()}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
-                  "bg-[var(--accent-primary)] text-white",
-                  "hover:bg-[var(--accent-primary)]/80 transition-colors",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <Zap size={14} />
-                {saving ? "Capturing..." : "Capture"}
-              </button>
+              {/* Spacer for mobile */}
+              <div className="flex-1 md:hidden" />
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {/* AI Process Button */}
+                <button
+                  onClick={handleAiProcess}
+                  disabled={aiProcessing || !content.trim()}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
+                    "bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)] border border-[var(--accent-highlight)]/20",
+                    "hover:bg-[var(--accent-highlight)]/20 transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {aiProcessing ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Bot size={14} />
+                  )}
+                  <span className="hidden sm:inline">
+                    {aiProcessing ? "Processing..." : "AI Process"}
+                  </span>
+                </button>
+
+                {/* Capture Button */}
+                <button
+                  onClick={handleCapture}
+                  disabled={saving || !content.trim()}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
+                    "bg-[var(--accent-primary)] text-white",
+                    "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  <Zap size={14} />
+                  {saving ? "Saving..." : "Capture"}
+                </button>
+              </div>
             </div>
           </motion.div>
         </>

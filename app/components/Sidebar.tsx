@@ -8,13 +8,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Bot } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
+import { useAI } from "./AIProvider";
 import { getTitleForLevel } from "@/app/lib/gamification";
 import { XpBarTooltip, StreakTooltip } from "./HelpTooltip";
 import { fetchApi } from "@/app/lib/api";
@@ -47,6 +48,7 @@ export default function Sidebar() {
   const router = useRouter();
   const { profile, loading } = useProfile();
   const { theme, toggleTheme } = useTheme();
+  const { openChat } = useAI();
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
@@ -130,6 +132,24 @@ export default function Sidebar() {
             <StreakTooltip />
           </div>
         )}
+
+        {/* AI Assistant Button */}
+        <button
+          type="button"
+          onClick={openChat}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+            "bg-[var(--accent-highlight)]/10 border border-[var(--accent-highlight)]/20",
+            "text-[var(--accent-highlight)] hover:bg-[var(--accent-highlight)]/20",
+            "transition-colors duration-150"
+          )}
+        >
+          <Bot size={18} />
+          <span className="text-sm font-medium">Ask Kofi</span>
+          <span className="ml-auto text-xs text-[var(--text-muted)]">
+            Ctrl+Shift+K
+          </span>
+        </button>
       </div>
 
       {/* Theme Toggle, Help & Sign Out */}

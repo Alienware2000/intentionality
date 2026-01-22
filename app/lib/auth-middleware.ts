@@ -29,11 +29,17 @@ export type AuthContext = {
 
 /**
  * Handler function type for authenticated routes.
- * Receives an AuthContext and returns a NextResponse.
+ * Receives an AuthContext and returns a NextResponse or Response (for streaming).
+ *
+ * LEARNING: Streaming vs Standard Responses
+ * -----------------------------------------
+ * Most endpoints return NextResponse, but streaming endpoints (like AI chat)
+ * need to return a plain Response with a ReadableStream body.
+ * We allow both types to support this use case.
  */
 export type AuthenticatedHandler = (
   ctx: AuthContext
-) => Promise<NextResponse> | NextResponse;
+) => Promise<NextResponse | Response> | NextResponse | Response;
 
 // -----------------------------------------------------------------------------
 // Response Helpers
@@ -131,7 +137,7 @@ export const ApiErrors = {
  * ```
  */
 export function withAuth(handler: AuthenticatedHandler) {
-  return async (request: NextRequest | Request): Promise<NextResponse> => {
+  return async (request: NextRequest | Request): Promise<NextResponse | Response> => {
     // Create authenticated Supabase client
     const supabase = await createSupabaseServerClient();
 

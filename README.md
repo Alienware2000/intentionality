@@ -66,6 +66,9 @@ Set weekly goals and intentions at the start of each week. Earn 25 XP for comple
 ### Streak Freezes
 Protect your streak on off days. Earn streak freezes through achievements or purchase with XP.
 
+### AI Assistant (Jarvis)
+Your personal AI-powered productivity assistant. Chat with Jarvis to manage tasks, get personalized insights, and process brain dumps automatically.
+
 ### Smart Recommendations
 Get time-based suggestions for what to focus on next based on your schedule and priorities.
 
@@ -98,6 +101,7 @@ Screenshots coming soon...
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Database | Supabase (PostgreSQL with Row Level Security) |
 | Auth | Supabase Auth (Google OAuth + Email/Password) |
+| AI | Google Gemini 1.5 Flash (streaming chat, insights) |
 | Styling | Tailwind CSS 4 |
 | Animations | Framer Motion |
 | Charts | Recharts |
@@ -134,6 +138,12 @@ Screenshots coming soon...
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+
+   For AI Assistant (Jarvis):
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+   Get your free API key from [Google AI Studio](https://aistudio.google.com/apikey).
 
    For Google Calendar integration (optional):
    ```env
@@ -186,6 +196,7 @@ app/
 │   ├── brain-dump/           # Quick capture
 │   ├── analytics/            # Aggregated stats
 │   ├── calendar/             # Google Calendar + ICS sync
+│   ├── ai/                   # AI assistant (chat, briefing, insights)
 │   ├── gamification/         # Full gamification profile
 │   ├── streak/               # Streak freeze management
 │   ├── weekly-plan/          # Weekly planning
@@ -266,6 +277,22 @@ import { useBrainDump } from "@/app/components/BrainDumpProvider";
 function QuickActions() {
   const { openBrainDump } = useBrainDump();
   return <button onClick={openBrainDump}>Quick Capture</button>;
+}
+```
+
+</details>
+
+<details>
+<summary><strong>AI Assistant (Jarvis)</strong></summary>
+
+Chat with AI via `Ctrl+Shift+K` or sidebar button:
+
+```typescript
+import { useAI } from "@/app/components/AIProvider";
+
+function AIButton() {
+  const { openChat, sendMessage } = useAI();
+  return <button onClick={openChat}>Ask Jarvis</button>;
 }
 ```
 
@@ -361,6 +388,42 @@ One weekly goal with progression tracking:
 - NLP parsing preview shows detected date, time, and priority
 - Entries stored in inbox for later processing
 - Convert to task: Assign priority, due date, and quest
+- **AI Processing**: Click "AI Process" to automatically extract tasks with dates and priorities
+
+### AI Assistant (Jarvis)
+
+Your personal AI-powered productivity assistant powered by Google Gemini 1.5 Flash.
+
+#### Features
+| Feature | Description |
+|---------|-------------|
+| **Chat Interface** | Slide-out panel (`Ctrl+Shift+K`) for conversational task management |
+| **AI Briefing** | Personalized daily briefing with AI-generated insights on dashboard |
+| **Proactive Insights** | Toast notifications for streak risks, optimal focus times, workload warnings |
+| **Brain Dump Processing** | Automatically extract tasks from free-form text with dates and priorities |
+| **Context-Aware** | Understands your tasks, habits, streaks, and patterns |
+
+#### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+K` | Open/close AI chat panel |
+| `Ctrl+K` → "AI Process" | Process brain dump with AI |
+
+#### Chat Commands
+Ask Jarvis anything about your productivity:
+- "What should I focus on today?"
+- "Create a task to submit essay by Friday"
+- "How's my streak looking?"
+- "What's my workload like this week?"
+
+#### Proactive Insight Types
+| Type | Trigger |
+|------|---------|
+| Streak Risk | Evening with no completions and active streak |
+| Optimal Focus Time | Your historically productive hours |
+| Workload Warning | Too many tasks scheduled |
+| Break Reminder | After long focus sessions |
+| Progress Celebration | Weekly milestones achieved |
 
 ### Calendar Integration
 
@@ -448,6 +511,20 @@ One weekly goal with progression tracking:
 | POST | `/api/brain-dump` | Create entry |
 | DELETE | `/api/brain-dump` | Delete entry |
 
+### AI Assistant
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/ai/chat` | Get conversations list |
+| POST | `/api/ai/chat` | Send message (streaming response) |
+| DELETE | `/api/ai/chat` | Delete conversation |
+| GET | `/api/ai/briefing` | Get AI-generated daily briefing |
+| GET | `/api/ai/insights` | Get pending proactive insights |
+| POST | `/api/ai/insights` | Generate new insights |
+| PATCH | `/api/ai/insights` | Mark insight shown/dismissed |
+| POST | `/api/ai/process` | Process brain dump text with AI |
+| GET | `/api/ai/context` | Get user context for AI |
+
 ### Achievements
 
 | Method | Endpoint | Description |
@@ -530,6 +607,10 @@ One weekly goal with progression tracking:
 | `daily_reflections` | Daily review entries |
 | `weekly_plans` | Weekly planning entries |
 | `imported_events` | Calendar imports |
+| `ai_conversations` | AI chat conversation threads |
+| `ai_messages` | Messages within AI conversations |
+| `ai_insights` | Proactive AI-generated insights |
+| `user_ai_preferences` | User AI communication preferences |
 
 All tables use Row Level Security (RLS) policies scoped to the authenticated user.
 
@@ -628,11 +709,15 @@ See [ROADMAP.md](./ROADMAP.md) for the full roadmap.
 - Mobile-responsive improvements
 - Performance optimizations
 
+### Recently Completed
+- AI Assistant (Jarvis) with chat, briefing, and proactive insights
+- AI-powered brain dump processing
+
 ### Planned Features
 - Background sync for calendar feeds
 - CourseTable integration (Yale course schedules)
 - Social features (study groups, accountability partners)
-- AI-powered brain dump processing
+- Enhanced AI capabilities (voice input, more actions)
 
 ---
 

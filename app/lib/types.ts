@@ -895,3 +895,574 @@ export type ParsedTaskInput = {
   scheduled_time: string | null;  // HH:MM format
   confidence: number;             // 0-1 confidence score
 };
+
+// =============================================================================
+// AI ASSISTANT TYPES
+// =============================================================================
+
+/**
+ * AI conversation stored in database.
+ * Groups related messages together.
+ */
+export type AIConversation = {
+  id: Id;
+  user_id: string;
+  title: string | null;
+  created_at: string;
+};
+
+/**
+ * Message role in AI conversations.
+ * - user: Messages from the human
+ * - assistant: Messages from the AI
+ * - system: System-level messages (not typically stored)
+ */
+export type AIMessageRole = 'user' | 'assistant' | 'system';
+
+/**
+ * AI message stored in database.
+ * Part of a conversation thread.
+ */
+export type AIMessage = {
+  id: Id;
+  conversation_id: Id;
+  user_id: string;
+  role: AIMessageRole;
+  content: string;
+  metadata: AIMessageMetadata;
+  created_at: string;
+};
+
+/**
+ * Metadata attached to AI messages.
+ * Tracks token usage, actions, and processing details.
+ */
+export type AIMessageMetadata = {
+  promptTokens?: number;
+  completionTokens?: number;
+  actions?: AIAction[];
+  processingTimeMs?: number;
+  model?: string;
+};
+
+/**
+ * User's AI preferences for personalization.
+ */
+export type UserAIPreferences = {
+  id: Id;
+  user_id: string;
+  proactive_enabled: boolean;
+  communication_style: AICommunicationStyle;
+  created_at: string;
+};
+
+/**
+ * AI communication styles.
+ * - friendly: Warm, encouraging, uses casual language
+ * - professional: Concise, focused, formal tone
+ * - minimal: Very brief responses, just the essentials
+ */
+export type AICommunicationStyle = 'friendly' | 'professional' | 'minimal';
+
+/**
+ * Action types the AI can suggest or execute.
+ * These are parsed from AI responses and can be confirmed by the user.
+ */
+export type AIActionType =
+  | 'CREATE_TASK'
+  | 'UPDATE_TASK'
+  | 'COMPLETE_TASK'
+  | 'DELETE_TASK'
+  | 'START_FOCUS'
+  | 'CREATE_HABIT'
+  | 'CREATE_QUEST'
+  | 'NAVIGATE'
+  | 'OPEN_MODAL';
+
+/**
+ * Base structure for AI actions.
+ * Each action type has specific payload requirements.
+ */
+export type AIAction = {
+  type: AIActionType;
+  payload: Record<string, unknown>;
+  confirmed?: boolean;
+  executedAt?: string;
+};
+
+/**
+ * Specific action payloads for type safety.
+ */
+export type AICreateTaskPayload = {
+  title: string;
+  due_date?: ISODateString;
+  scheduled_time?: string;
+  priority?: Priority;
+  quest_id?: Id;
+};
+
+export type AIUpdateTaskPayload = {
+  task_id: Id;
+  title?: string;
+  due_date?: ISODateString;
+  scheduled_time?: string;
+  priority?: Priority;
+};
+
+export type AICompleteTaskPayload = {
+  task_id: Id;
+};
+
+export type AIStartFocusPayload = {
+  task_id?: Id;
+  title?: string;
+  work_duration?: number;
+};
+
+export type AICreateHabitPayload = {
+  title: string;
+  priority?: Priority;
+};
+
+export type AICreateQuestPayload = {
+  title: string;
+};
+
+export type AINavigatePayload = {
+  path: string;
+};
+
+/**
+ * Proactive AI insight stored in database.
+ * Generated based on user patterns and context.
+ */
+export type AIInsight = {
+  id: Id;
+  user_id: string;
+  insight_type: AIInsightType;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  action_type: AIActionType | null;
+  action_payload: Record<string, unknown> | null;
+  shown_at: string | null;
+  dismissed_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Types of proactive insights the AI can generate.
+ */
+export type AIInsightType =
+  | 'optimal_focus_time'      // Good time to start a focus session
+  | 'workload_warning'        // Heavy day ahead
+  | 'streak_risk'             // Complete something to maintain streak
+  | 'break_reminder'          // Take a break after long focus
+  | 'progress_celebration'    // Weekly milestones reached
+  | 'habit_reminder'          // Pending habits
+  | 'task_suggestion'         // Suggested task based on patterns
+  | 'planning_reminder';      // Time to plan the week
+
+/**
+ * User context aggregated for AI prompts.
+ * This is the main data structure passed to the AI for personalization.
+ */
+export type AIUserContext = {
+  profile: {
+    level: number;
+    currentStreak: number;
+    xpTotal: number;
+    title: string;
+  };
+  today: {
+    date: ISODateString;
+    dayOfWeek: string;
+    tasks: Array<{
+      id: Id;
+      title: string;
+      priority: Priority;
+      completed: boolean;
+      scheduled_time: string | null;
+    }>;
+    completedCount: number;
+    totalCount: number;
+    habits: Array<{
+      id: Id;
+      title: string;
+      completedToday: boolean;
+      currentStreak: number;
+    }>;
+    scheduleBlocks: Array<{
+      title: string;
+      start_time: string;
+      end_time: string;
+    }>;
+    focusSessions: Array<{
+      title: string | null;
+      work_duration: number;
+      status: string;
+    }>;
+  };
+  recent: {
+    tasksCompletedThisWeek: number;
+    averageDailyCompletion: number;
+    commonFocusTimes: string[];
+    moodTrend: 'improving' | 'stable' | 'declining' | null;
+  };
+  upcoming: {
+    tasksDueTomorrow: Array<{
+      id: Id;
+      title: string;
+      priority: Priority;
+    }>;
+    overdueCount: number;
+    weeklyGoals: string[];
+  };
+  preferences: {
+    communicationStyle: AICommunicationStyle;
+    proactiveEnabled: boolean;
+  };
+  // Learning context (optional - may not exist for new users)
+  learning?: AILearningContext;
+};
+
+/**
+ * Response from AI chat endpoint.
+ */
+export type AIChatResponse = {
+  ok: true;
+  message: string;
+  actions: AIAction[];
+  conversationId: Id;
+  messageId: Id;
+};
+
+/**
+ * Response from AI briefing endpoint.
+ */
+export type AIBriefingResponse = {
+  ok: true;
+  greeting: string;
+  summary: string;
+  insights: Array<{
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    actionLabel?: string;
+    actionHref?: string;
+  }>;
+  suggestedFocus?: {
+    title: string;
+    taskId?: Id;
+  };
+};
+
+/**
+ * Response from AI process brain dump endpoint.
+ */
+export type AIProcessBrainDumpResponse = {
+  ok: true;
+  suggestions: Array<{
+    type: 'task' | 'quest' | 'habit';
+    title: string;
+    due_date?: ISODateString;
+    priority?: Priority;
+    quest_suggestion?: string;
+  }>;
+  notes?: string;
+};
+
+/**
+ * Response from AI insights endpoint.
+ */
+export type AIInsightsResponse = {
+  ok: true;
+  insights: AIInsight[];
+};
+
+// =============================================================================
+// AI PROVIDER TYPES
+// =============================================================================
+
+/**
+ * Available AI providers.
+ * - gemini: Google's Gemini 2.5 Flash-Lite (primary for quality)
+ * - groq: Groq's LLaMA 3.3 70B (fallback, high volume)
+ */
+export type AIProviderType = 'gemini' | 'groq';
+
+/**
+ * AI feature types for routing.
+ * Each feature has a primary provider and fallback.
+ */
+export type AIFeatureType = 'chat' | 'briefing' | 'insights' | 'brain_dump';
+
+/**
+ * Cached AI briefing entry.
+ */
+export type AIBriefingCache = {
+  id: Id;
+  user_id: string;
+  date: ISODateString;
+  content: AIBriefingResponse;
+  provider: AIProviderType;
+  created_at: string;
+};
+
+/**
+ * AI usage log entry for tracking.
+ */
+export type AIUsageLog = {
+  id: Id;
+  user_id: string;
+  feature: AIFeatureType;
+  provider: AIProviderType;
+  created_at: string;
+};
+
+// =============================================================================
+// AI LEARNING SYSTEM TYPES
+// =============================================================================
+
+/**
+ * Work style preferences for the AI to understand user patterns.
+ */
+export type WorkStyle = 'deep-work' | 'task-switching' | 'balanced';
+
+/**
+ * Motivation drivers that help the AI frame advice effectively.
+ */
+export type MotivationDriver =
+  | 'achievement'
+  | 'mastery'
+  | 'deadline'
+  | 'social'
+  | 'curiosity'
+  | 'competition';
+
+/**
+ * Stress indicators that signal when to offer supportive advice.
+ */
+export type StressIndicator =
+  | 'high-task-count'
+  | 'broken-streak'
+  | 'missed-deadlines'
+  | 'long-work-sessions'
+  | 'late-night-work';
+
+/**
+ * Work hours productivity scores.
+ */
+export type WorkHoursPreference = {
+  morning: number | null;   // 5:00-12:00
+  afternoon: number | null; // 12:00-17:00
+  evening: number | null;   // 17:00-21:00
+  night: number | null;     // 21:00-5:00
+};
+
+/**
+ * User's learning profile - persistent memory for AI personalization.
+ * Stores explicit preferences, goals, and learned behaviors.
+ */
+export type UserLearningProfile = {
+  id: Id;
+  user_id: string;
+  stated_goals: string[];
+  preferred_work_hours: WorkHoursPreference;
+  preferred_focus_duration: number;
+  work_style: WorkStyle;
+  motivation_drivers: MotivationDriver[];
+  stress_indicators: StressIndicator[];
+  disliked_insight_types: AIInsightType[];
+  quiet_hours: string[]; // Format: ["21:00-07:00"]
+  learning_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Suggestion types for AI interaction tracking.
+ */
+export type AISuggestionType =
+  | 'task_suggestion'
+  | 'focus_suggestion'
+  | 'habit_suggestion'
+  | 'break_suggestion'
+  | 'planning_suggestion'
+  | 'goal_advice'
+  | 'general_advice';
+
+/**
+ * Source types for AI interactions.
+ */
+export type AIInteractionSource = 'chat' | 'insight' | 'briefing' | 'brain_dump';
+
+/**
+ * Tracks outcomes of AI suggestions to learn what works.
+ */
+export type AIInteractionOutcome = {
+  id: Id;
+  user_id: string;
+  suggestion_type: AISuggestionType;
+  suggestion_content: string;
+  source_type: AIInteractionSource;
+  source_id: Id | null;
+  action_taken: boolean;
+  action_taken_at: string | null;
+  task_created_id: Id | null;
+  outcome_completed: boolean | null;
+  outcome_completed_at: string | null;
+  time_to_completion_hours: number | null;
+  created_at: string;
+};
+
+/**
+ * Most/least successful advice types with success rates.
+ */
+export type AdviceSuccessRates = {
+  [key: string]: number; // e.g., {"focus_suggestion": 0.8, "task_creation": 0.6}
+};
+
+/**
+ * Dismissed insights count by type.
+ */
+export type InsightsDismissedByType = {
+  [key: string]: number; // e.g., {"habit_reminder": 5, "workload_warning": 2}
+};
+
+/**
+ * Precomputed user behavior patterns for AI context.
+ * Updated periodically to avoid computing on every request.
+ */
+export type UserPatternAggregates = {
+  id: Id;
+  user_id: string;
+
+  // Task patterns
+  avg_tasks_per_day: number;
+  avg_completion_rate: number;
+  best_completion_day: number | null; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  worst_completion_day: number | null;
+
+  // Focus patterns
+  avg_focus_sessions_per_day: number;
+  preferred_focus_hours: number[]; // Hours 0-23
+  avg_focus_duration_minutes: number;
+
+  // AI effectiveness
+  ai_advice_acceptance_rate: number;
+  most_successful_advice_types: AdviceSuccessRates;
+  least_successful_advice_types: AdviceSuccessRates;
+
+  // Insight engagement
+  insight_engagement_rate: number;
+  insight_action_rate: number;
+  insights_dismissed_by_type: InsightsDismissedByType;
+
+  // Time patterns
+  most_active_hours: number[];
+  quiet_period_detected: string | null; // e.g., "21:00-07:00"
+
+  // Metadata
+  days_analyzed: number;
+  last_computed_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Extended user context with learning data for AI prompts.
+ */
+export type AILearningContext = {
+  // From UserLearningProfile
+  goals: string[];
+  workStyle: WorkStyle;
+  motivationDrivers: MotivationDriver[];
+  preferredFocusDuration: number;
+  dislikedInsightTypes: AIInsightType[];
+  quietHours: string[];
+
+  // From UserPatternAggregates
+  avgCompletionRate: number;
+  bestCompletionDay: string | null; // "Tuesday", "Friday", etc.
+  preferredFocusHours: string[]; // "9-10 AM", "2-3 PM"
+  aiAdviceAcceptanceRate: number;
+  mostSuccessfulAdvice: string[]; // Top 3 advice types
+
+  // Computed
+  personalizationLevel: 'low' | 'medium' | 'high'; // Based on data availability
+};
+
+/**
+ * Signals extracted from AI conversations for implicit learning.
+ */
+export type LearningSignal = {
+  type: 'goal_stated' | 'preference_expressed' | 'feedback_given' | 'work_style_indicated';
+  content: string;
+  confidence: number; // 0.0 to 1.0
+  extractedAt: string;
+};
+
+/**
+ * LLM-extracted signals from user messages.
+ * Uses AI to understand natural, unstructured "brain dump" style input
+ * that regex patterns would miss.
+ */
+export type LLMExtractedSignals = {
+  /** Detected goals from user message */
+  goals: Array<{
+    text: string;
+    isHypothetical: boolean; // Filter out "If my goal was..."
+    confidence: 0.5 | 0.7 | 0.9;
+  }>;
+  /** Detected work style preference */
+  workStyle: {
+    preference: 'deep-work' | 'task-switching' | 'balanced' | null;
+    evidence: string;
+    confidence: number;
+  } | null;
+  /** Time of day preferences */
+  timePreferences: Array<{
+    period: 'morning' | 'afternoon' | 'evening' | 'night';
+    productivity: 'high' | 'low';
+    confidence: number;
+  }>;
+  /** What motivates the user */
+  motivationDrivers: Array<{
+    driver: MotivationDriver;
+    confidence: number;
+  }>;
+  /** Things the user explicitly doesn't want */
+  dislikes: Array<{
+    type: 'insight_type' | 'feature' | 'behavior';
+    value: string;
+    confidence: number;
+  }>;
+  /** Preferred focus session length */
+  focusDuration: { minutes: number; confidence: number } | null;
+  /** True if no learning signals were found */
+  noSignalsDetected: boolean;
+};
+
+/**
+ * Response from the /api/ai/learn endpoint.
+ */
+export type AILearnResponse = {
+  ok: true;
+  profile: UserLearningProfile;
+  patterns: UserPatternAggregates | null;
+};
+
+/**
+ * Request body for updating learning profile.
+ */
+export type AILearnUpdateRequest = {
+  stated_goals?: string[];
+  preferred_work_hours?: WorkHoursPreference;
+  preferred_focus_duration?: number;
+  work_style?: WorkStyle;
+  motivation_drivers?: MotivationDriver[];
+  stress_indicators?: StressIndicator[];
+  quiet_hours?: string[];
+  learning_enabled?: boolean;
+};
