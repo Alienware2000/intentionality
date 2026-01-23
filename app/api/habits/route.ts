@@ -14,7 +14,7 @@ import {
 } from "@/app/lib/auth-middleware";
 import { XP_VALUES, getLevelFromXpV2 } from "@/app/lib/gamification";
 import { markOnboardingStepComplete } from "@/app/lib/onboarding";
-import type { Priority } from "@/app/lib/types";
+import type { Priority, HabitFrequency, DayOfWeek } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -24,6 +24,8 @@ import type { Priority } from "@/app/lib/types";
 type CreateHabitBody = {
   title?: string;
   priority?: Priority;
+  frequency?: HabitFrequency;
+  active_days?: DayOfWeek[];
 };
 
 /** Request body for PATCH /api/habits */
@@ -31,12 +33,32 @@ type UpdateHabitBody = {
   habitId?: string;
   title?: string;
   priority?: Priority;
+  frequency?: HabitFrequency;
+  active_days?: DayOfWeek[];
 };
 
 /** Request body for DELETE /api/habits */
 type DeleteHabitBody = {
   habitId?: string;
 };
+
+/**
+ * Get active days array for a given frequency preset.
+ */
+function getActiveDaysForFrequency(frequency: HabitFrequency): DayOfWeek[] {
+  switch (frequency) {
+    case "daily":
+      return [1, 2, 3, 4, 5, 6, 7];
+    case "weekdays":
+      return [1, 2, 3, 4, 5];
+    case "weekends":
+      return [6, 7];
+    case "custom":
+      // For custom, caller should provide active_days explicitly
+      // Default to daily if not provided
+      return [1, 2, 3, 4, 5, 6, 7];
+  }
+}
 
 // -----------------------------------------------------------------------------
 // GET /api/habits
@@ -118,7 +140,7 @@ export const GET = withAuth(async ({ supabase, request }) => {
  */
 export const POST = withAuth(async ({ user, supabase, request }) => {
   const body = await parseJsonBody<CreateHabitBody>(request);
-  const { title, priority = "medium" } = body ?? {};
+  const { title, priority = "medium", frequency = "daily", active_days } = body ?? {};
 
   if (!title || !title.trim()) {
     return ApiErrors.badRequest("Missing title");
@@ -127,6 +149,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // Calculate XP value based on priority
   const xp_value = XP_VALUES[priority] ?? XP_VALUES.medium;
 
+  // Determine active_days based on frequency if not explicitly provided
+  const resolvedActiveDays = active_days ?? getActiveDaysForFrequency(frequency);
+
   const { data: habit, error: createError } = await supabase
     .from("habits")
     .insert({
@@ -134,6 +159,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       title: title.trim(),
       priority,
       xp_value,
+      frequency,
+      active_days: resolvedActiveDays,
     })
     .select()
     .single();
@@ -174,13 +201,13 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
  */
 export const PATCH = withAuth(async ({ supabase, request }) => {
   const body = await parseJsonBody<UpdateHabitBody>(request);
-  const { habitId, title, priority } = body ?? {};
+  const { habitId, title, priority, frequency, active_days } = body ?? {};
 
   if (!habitId) {
     return ApiErrors.badRequest("Missing habitId");
   }
 
-  if (!title && !priority) {
+  if (!title && !priority && !frequency && !active_days) {
     return ApiErrors.badRequest("No fields to update");
   }
 
@@ -190,6 +217,20 @@ export const PATCH = withAuth(async ({ supabase, request }) => {
   if (priority) {
     updates.priority = priority;
     updates.xp_value = XP_VALUES[priority];
+  }
+  if (frequency) {
+    updates.frequency = frequency;
+    // If frequency changes but no explicit active_days, derive from frequency
+    if (!active_days) {
+      updates.active_days = getActiveDaysForFrequency(frequency);
+    }
+  }
+  if (active_days) {
+    updates.active_days = active_days;
+    // If custom days are provided, set frequency to custom
+    if (!frequency) {
+      updates.frequency = "custom";
+    }
   }
 
   const { data: habit, error: updateError } = await supabase

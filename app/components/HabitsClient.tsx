@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus } from "lucide-react";
-import type { ISODateString, Id, HabitWithStatus, Priority } from "@/app/lib/types";
+import type { ISODateString, Id, HabitWithStatus, Priority, HabitFrequency, DayOfWeek } from "@/app/lib/types";
+import { isActiveDay } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
@@ -23,9 +24,17 @@ type Props = {
 
 type HabitsResponse = { ok: true; habits: HabitWithStatus[] };
 
+// Frequency options for the add form dropdown
+const frequencyOptions: { value: HabitFrequency; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "weekdays", label: "Mon-Fri" },
+  { value: "weekends", label: "Sat-Sun" },
+];
+
 export default function HabitsClient({ date, onHabitToggle }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [frequency, setFrequency] = useState<HabitFrequency>("daily");
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +64,28 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
     refreshHabits();
   }, [refreshHabits]);
 
-  // Sort: incomplete habits first, then by streak (descending)
+  // Sort: active incomplete first, then completed, then inactive (not scheduled today)
   const sortedHabits = useMemo(() => {
     return [...habits].sort((a, b) => {
-      if (a.completedToday !== b.completedToday) {
-        return a.completedToday ? 1 : -1;
+      const aActive = isActiveDay(date, a.active_days ?? [1, 2, 3, 4, 5, 6, 7]);
+      const bActive = isActiveDay(date, b.active_days ?? [1, 2, 3, 4, 5, 6, 7]);
+
+      // Active habits come before inactive
+      if (aActive !== bActive) {
+        return aActive ? -1 : 1;
       }
+
+      // Within active habits: incomplete before completed
+      if (aActive && bActive) {
+        if (a.completedToday !== b.completedToday) {
+          return a.completedToday ? 1 : -1;
+        }
+      }
+
+      // Sort by streak (descending)
       return b.current_streak - a.current_streak;
     });
-  }, [habits]);
+  }, [habits, date]);
 
   async function handleToggle(habitId: Id) {
     // 1. Find habit and capture previous state
@@ -144,10 +166,11 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
       await fetchApi("/api/habits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed, priority }),
+        body: JSON.stringify({ title: trimmed, priority, frequency }),
       });
 
       setTitle("");
+      setFrequency("daily");
       await refreshHabits();
       // Mark onboarding step complete
       markStepComplete("create_habit");
@@ -158,7 +181,12 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
 
   async function handleEditHabit(
     habitId: Id,
-    updates: { title?: string; priority?: Priority }
+    updates: {
+      title?: string;
+      priority?: Priority;
+      frequency?: HabitFrequency;
+      active_days?: DayOfWeek[];
+    }
   ) {
     try {
       await fetchApi("/api/habits", {
@@ -226,6 +254,21 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
+          <select
+            value={frequency}
+            onChange={(e) => setFrequency(e.target.value as HabitFrequency)}
+            className={cn(
+              "flex-1 sm:flex-initial rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
+              "outline-none focus:border-[var(--accent-primary)]"
+            )}
+          >
+            {frequencyOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-2 flex-1">
@@ -274,6 +317,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
             <HabitCard
               key={h.id}
               habit={h}
+              date={date}
               onToggle={handleToggle}
               onEdit={openEditModal}
               onDelete={setDeletingHabitId}

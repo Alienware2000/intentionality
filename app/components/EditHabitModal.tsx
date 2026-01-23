@@ -2,20 +2,25 @@
 
 // =============================================================================
 // EDIT HABIT MODAL COMPONENT
-// Modal for editing habit title and priority.
+// Modal for editing habit title, priority, and schedule.
 // =============================================================================
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import type { HabitWithStatus, Priority } from "@/app/lib/types";
+import type { HabitWithStatus, Priority, HabitFrequency, DayOfWeek } from "@/app/lib/types";
 import { cn } from "@/app/lib/cn";
 
 type Props = {
   habit: HabitWithStatus | null;
   onSave: (
     habitId: string,
-    updates: { title?: string; priority?: Priority }
+    updates: {
+      title?: string;
+      priority?: Priority;
+      frequency?: HabitFrequency;
+      active_days?: DayOfWeek[];
+    }
   ) => Promise<void>;
   onClose: () => void;
 };
@@ -26,9 +31,28 @@ const priorityOptions: { value: Priority; label: string; color: string }[] = [
   { value: "low", label: "Low", color: "var(--priority-low)" },
 ];
 
+const frequencyOptions: { value: HabitFrequency; label: string; days: DayOfWeek[] }[] = [
+  { value: "daily", label: "Daily", days: [1, 2, 3, 4, 5, 6, 7] },
+  { value: "weekdays", label: "Mon-Fri", days: [1, 2, 3, 4, 5] },
+  { value: "weekends", label: "Sat-Sun", days: [6, 7] },
+  { value: "custom", label: "Custom", days: [] },
+];
+
+const dayLabels: { value: DayOfWeek; label: string; short: string }[] = [
+  { value: 1, label: "Monday", short: "M" },
+  { value: 2, label: "Tuesday", short: "T" },
+  { value: 3, label: "Wednesday", short: "W" },
+  { value: 4, label: "Thursday", short: "T" },
+  { value: 5, label: "Friday", short: "F" },
+  { value: 6, label: "Saturday", short: "S" },
+  { value: 7, label: "Sunday", short: "S" },
+];
+
 export default function EditHabitModal({ habit, onSave, onClose }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [frequency, setFrequency] = useState<HabitFrequency>("daily");
+  const [activeDays, setActiveDays] = useState<DayOfWeek[]>([1, 2, 3, 4, 5, 6, 7]);
   const [saving, setSaving] = useState(false);
 
   // Sync state when habit changes
@@ -36,16 +60,41 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
     if (habit) {
       setTitle(habit.title);
       setPriority(habit.priority);
+      setFrequency(habit.frequency ?? "daily");
+      setActiveDays(habit.active_days ?? [1, 2, 3, 4, 5, 6, 7]);
     }
   }, [habit]);
 
+  function handleFrequencyChange(newFrequency: HabitFrequency) {
+    setFrequency(newFrequency);
+    // Update active days based on preset
+    const preset = frequencyOptions.find((f) => f.value === newFrequency);
+    if (preset && newFrequency !== "custom") {
+      setActiveDays(preset.days);
+    }
+  }
+
+  function toggleDay(day: DayOfWeek) {
+    setFrequency("custom");
+    setActiveDays((prev) => {
+      if (prev.includes(day)) {
+        // Don't allow removing the last day
+        if (prev.length === 1) return prev;
+        return prev.filter((d) => d !== day);
+      }
+      return [...prev, day].sort((a, b) => a - b);
+    });
+  }
+
   async function handleSave() {
-    if (!habit || !title.trim()) return;
+    if (!habit || !title.trim() || activeDays.length === 0) return;
     setSaving(true);
     try {
       await onSave(habit.id, {
         title: title.trim(),
         priority,
+        frequency,
+        active_days: activeDays,
       });
       onClose();
     } finally {
@@ -151,6 +200,55 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
                   ))}
                 </div>
               </div>
+
+              {/* Schedule */}
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                  Schedule
+                </label>
+                {/* Frequency presets */}
+                <div className="flex gap-2 mb-3">
+                  {frequencyOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleFrequencyChange(opt.value)}
+                      className={cn(
+                        "flex-1 px-2 py-2 rounded text-sm font-medium",
+                        "border-2 transition-all",
+                        frequency === opt.value
+                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
+                          : "border-transparent bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Day toggles */}
+                <div className="flex gap-1 justify-between">
+                  {dayLabels.map((day) => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleDay(day.value)}
+                      aria-label={day.label}
+                      className={cn(
+                        "w-9 h-9 rounded-full text-sm font-medium",
+                        "border-2 transition-all",
+                        activeDays.includes(day.value)
+                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
+                          : "border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+                      )}
+                    >
+                      {day.short}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mt-2">
+                  Streaks only count on selected days. Missing non-scheduled days won&apos;t break your streak.
+                </p>
+              </div>
             </div>
 
             {/* Actions */}
@@ -167,7 +265,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || !title.trim()}
+                disabled={saving || !title.trim() || activeDays.length === 0}
                 className={cn(
                   "px-4 py-2 text-sm font-medium rounded",
                   "bg-[var(--accent-primary)] text-white",

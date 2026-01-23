@@ -14,8 +14,8 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
-import { addDaysISO } from "@/app/lib/date-utils";
-import type { ISODateString } from "@/app/lib/types";
+import { getPreviousActiveDay, isActiveDay } from "@/app/lib/date-utils";
+import type { ISODateString, DayOfWeek } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -32,19 +32,14 @@ type CompleteHabitBody = {
 // -----------------------------------------------------------------------------
 
 /**
- * Get the previous day's date string from a given date.
- */
-function getYesterdayFromDate(dateStr: string): string {
-  return addDaysISO(dateStr as ISODateString, -1);
-}
-
-/**
- * Recalculate the streak for a habit based on completions.
+ * Recalculate the streak for a habit based on completions and active days.
+ * Uses active_days to skip non-scheduled days when counting consecutive completions.
  */
 async function recalculateStreak(
   supabase: SupabaseClient,
   habitId: string,
-  fromDate: string
+  fromDate: string,
+  activeDays: DayOfWeek[]
 ): Promise<number> {
   const { data: completions } = await supabase
     .from("habit_completions")
@@ -60,7 +55,8 @@ async function recalculateStreak(
   let currentDate = fromDate;
 
   for (let i = 1; i < completions.length; i++) {
-    const expectedPrevDate = getYesterdayFromDate(currentDate);
+    // Get the expected previous active day (skipping non-scheduled days)
+    const expectedPrevDate = getPreviousActiveDay(currentDate, activeDays);
     if (completions[i].completed_date === expectedPrevDate) {
       streak++;
       currentDate = completions[i].completed_date;
@@ -115,11 +111,15 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   if (isCompleting) {
     // --- COMPLETING HABIT ---
 
-    // Calculate habit streak
+    // Get active days (default to daily if not set - backwards compatibility)
+    const activeDays: DayOfWeek[] = habit.active_days ?? [1, 2, 3, 4, 5, 6, 7];
+
+    // Calculate habit streak using active days schedule
     let newStreak = 1;
     if (habit.last_completed_date) {
-      const yesterday = getYesterdayFromDate(date);
-      if (habit.last_completed_date === yesterday) {
+      // Get the previous active day (skipping non-scheduled days)
+      const previousActiveDay = getPreviousActiveDay(date, activeDays);
+      if (habit.last_completed_date === previousActiveDay) {
         newStreak = habit.current_streak + 1;
       }
     }
@@ -180,6 +180,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .delete()
       .eq("id", existingCompletion.id);
 
+    // Get active days for streak calculation (default to daily for backwards compatibility)
+    const activeDays: DayOfWeek[] = habit.active_days ?? [1, 2, 3, 4, 5, 6, 7];
+
     // Handle streak recalculation if this was the last completion
     let newStreak = habit.current_streak;
     if (habit.last_completed_date === date) {
@@ -195,7 +198,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
         newStreak = await recalculateStreak(
           supabase,
           habitId,
-          prevCompletion.completed_date
+          prevCompletion.completed_date,
+          activeDays
         );
         await supabase
           .from("habits")

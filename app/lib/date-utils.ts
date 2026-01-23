@@ -179,6 +179,55 @@ export function getDayOfWeek(dateISO: ISODateString): DayOfWeek {
   return (jsDay === 0 ? 7 : jsDay) as DayOfWeek;
 }
 
+/**
+ * Check if a date is an active day for a habit.
+ *
+ * @param dateISO - ISO date string (YYYY-MM-DD)
+ * @param activeDays - Array of active days (1=Monday, 7=Sunday)
+ * @returns true if the date falls on one of the active days
+ *
+ * @example
+ * ```ts
+ * isActiveDay("2026-01-23", [1, 2, 3, 4, 5]); // Friday = 5, returns true
+ * isActiveDay("2026-01-25", [1, 2, 3, 4, 5]); // Sunday = 7, returns false
+ * ```
+ */
+export function isActiveDay(dateISO: ISODateString, activeDays: DayOfWeek[]): boolean {
+  const dayOfWeek = getDayOfWeek(dateISO);
+  return activeDays.includes(dayOfWeek);
+}
+
+/**
+ * Get the previous active day before a given date.
+ * Used for habit streak calculations - finds when the habit was last scheduled.
+ *
+ * @param dateISO - ISO date string to start searching from (exclusive)
+ * @param activeDays - Array of active days (1=Monday, 7=Sunday)
+ * @returns ISO date string of the most recent active day before the given date
+ *
+ * @example
+ * ```ts
+ * // If today is Monday (Jan 26, 2026) and habit is weekdays only [1,2,3,4,5]
+ * getPreviousActiveDay("2026-01-26", [1, 2, 3, 4, 5]);
+ * // Returns: "2026-01-23" (Friday - skips weekend)
+ *
+ * // If today is Tuesday and habit is daily
+ * getPreviousActiveDay("2026-01-27", [1, 2, 3, 4, 5, 6, 7]);
+ * // Returns: "2026-01-26" (Monday)
+ * ```
+ */
+export function getPreviousActiveDay(dateISO: ISODateString, activeDays: DayOfWeek[]): ISODateString {
+  // Start from yesterday and go backwards up to 7 days
+  for (let i = 1; i <= 7; i++) {
+    const previousDate = addDaysISO(dateISO, -i);
+    if (isActiveDay(previousDate, activeDays)) {
+      return previousDate;
+    }
+  }
+  // Fallback: if no active day found in last 7 days (shouldn't happen with valid activeDays)
+  return addDaysISO(dateISO, -1);
+}
+
 // -----------------------------------------------------------------------------
 // Task Grouping Utilities
 // NOTE: These functions are reserved for future features

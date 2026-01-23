@@ -10,6 +10,9 @@ export type Id = string;
 // Date strings in YYYY-MM-DD format
 export type ISODateString = string;
 
+/** Day of week number (1=Monday, 7=Sunday) - ISO 8601 standard */
+export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
 // =============================================================================
 // GAMIFICATION TYPES
 // =============================================================================
@@ -126,10 +129,16 @@ export type TaskToggleResponse = {
 // HABIT TYPES
 // =============================================================================
 
+/** Habit frequency presets */
+export type HabitFrequency = 'daily' | 'weekdays' | 'weekends' | 'custom';
+
+/** Array of active days for a habit (1=Monday, 7=Sunday) */
+export type HabitActiveDays = DayOfWeek[];
+
 /**
- * Habit represents a recurring daily action.
+ * Habit represents a recurring action on specified days.
  * User owns directly (not tied to quests).
- * Each habit tracks its own streak.
+ * Each habit tracks its own streak based on active_days schedule.
  */
 export type Habit = {
   id: Id;
@@ -140,6 +149,8 @@ export type Habit = {
   current_streak: number;
   longest_streak: number;
   last_completed_date: ISODateString | null;
+  frequency: HabitFrequency;
+  active_days: HabitActiveDays;
   created_at: string;
 };
 
@@ -181,9 +192,6 @@ export type HabitToggleResponse = {
 // =============================================================================
 // SCHEDULE TYPES
 // =============================================================================
-
-/** Day of week number (1=Monday, 7=Sunday) */
-export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /**
  * Schedule block represents a recurring time slot.
