@@ -1,6 +1,6 @@
 # Intentionality
 
-**A Gamified Student Productivity Dashboard**
+**An AI-Powered Gamified Student Productivity Dashboard**
 
 Your personal operating system for academic success. Intentionality combines quest-based task management, XP progression, focus timers, and calendar integrations into a unified productivity experience.
 
