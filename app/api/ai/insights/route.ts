@@ -334,7 +334,7 @@ function generateRuleBasedInsights(
         : `Complete a task or habit to maintain your ${context.profile.currentStreak} day streak.`,
       priority: 'high',
       action_type: 'NAVIGATE',
-      action_payload: { path: '/' },
+      action_payload: { path: '/dashboard' },
     });
   }
 
@@ -390,7 +390,7 @@ function generateRuleBasedInsights(
       description: `${incompleteHabits} habit${incompleteHabits > 1 ? 's' : ''} not completed yet today.`,
       priority: 'medium',
       action_type: 'NAVIGATE',
-      action_payload: { path: '/' },
+      action_payload: { path: '/dashboard' },
     });
   }
 
