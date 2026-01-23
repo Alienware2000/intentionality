@@ -28,6 +28,10 @@ type RecommendationContext = {
   weeklyPlan: WeeklyPlan | null;
   hasReviewedToday: boolean;
   currentTime: Date;
+  // Optional: for best day recognition
+  bestCompletionDay: number | null;
+  // Optional: user email for fallback name extraction
+  userEmail?: string;
 };
 
 // -----------------------------------------------------------------------------
@@ -208,6 +212,64 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
   };
 }
 
+/**
+ * Check if user is close to a streak milestone (7, 14, 21, 30 days).
+ * Only shows when within 3 days of a milestone.
+ */
+function checkMilestoneCountdown(ctx: RecommendationContext): DailyRecommendation | null {
+  const { profile } = ctx;
+
+  if (!profile || profile.current_streak === 0) return null;
+
+  const streak = profile.current_streak;
+  const milestones = [7, 14, 21, 30, 60, 90, 180, 365];
+
+  // Find the next milestone
+  const nextMilestone = milestones.find(m => m > streak);
+  if (!nextMilestone) return null;
+
+  const daysUntil = nextMilestone - streak;
+
+  // Only show when within 3 days
+  if (daysUntil > 3 || daysUntil <= 0) return null;
+
+  return {
+    type: "milestone_countdown",
+    priority: "low",
+    title: daysUntil === 1
+      ? `Tomorrow is your ${nextMilestone}-day streak!`
+      : `${daysUntil} days until your ${nextMilestone}-day streak!`,
+    description: `Keep the momentum going - you're almost there!`,
+    actionLabel: "View Analytics",
+    actionHref: "/analytics",
+  };
+}
+
+/**
+ * Recognize when it's the user's statistically best productivity day.
+ * Only shows on that specific day, once per week.
+ */
+function checkBestDay(ctx: RecommendationContext): DailyRecommendation | null {
+  const { bestCompletionDay, currentTime } = ctx;
+
+  // bestCompletionDay: 0=Sunday, 1=Monday, ..., 6=Saturday
+  if (bestCompletionDay === null || bestCompletionDay === undefined) return null;
+
+  const todayDayOfWeek = currentTime.getDay();
+
+  if (todayDayOfWeek !== bestCompletionDay) return null;
+
+  const dayNames = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+  const dayName = dayNames[bestCompletionDay];
+
+  return {
+    type: "best_day",
+    priority: "low",
+    title: `${dayName} are your strongest day!`,
+    description: `You've got this - historically you're most productive today.`,
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
@@ -244,6 +306,8 @@ export function generateRecommendations(ctx: RecommendationContext): DailyRecomm
     checkHabitReminder,
     checkReviewReminder,
     checkPlanningNeeded,
+    checkMilestoneCountdown,
+    checkBestDay,
   ];
 
   for (const generator of generators) {
@@ -267,14 +331,46 @@ export function generateRecommendations(ctx: RecommendationContext): DailyRecomm
 }
 
 /**
- * Get a greeting based on the current time.
+ * Extract a name from an email address (e.g., "john" from "john@email.com").
+ * Capitalizes the first letter.
  */
-export function getTimeBasedGreeting(): string {
+function extractNameFromEmail(email: string | undefined): string | null {
+  if (!email) return null;
+  const localPart = email.split("@")[0];
+  if (!localPart || localPart.length === 0) return null;
+  // Clean up common patterns (numbers, dots, underscores)
+  const cleaned = localPart.split(/[._\-0-9]/)[0];
+  if (!cleaned || cleaned.length < 2) return null;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+}
+
+/**
+ * Get a greeting based on the current time.
+ * Optionally includes the user's name.
+ *
+ * @param displayName - User's preferred display name (from profile)
+ * @param userEmail - User's email (fallback for extracting name)
+ */
+export function getTimeBasedGreeting(displayName?: string | null, userEmail?: string): string {
   const hour = new Date().getHours();
 
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  let timeGreeting: string;
+  if (hour < 12) {
+    timeGreeting = "Good morning";
+  } else if (hour < 17) {
+    timeGreeting = "Good afternoon";
+  } else {
+    timeGreeting = "Good evening";
+  }
+
+  // Determine the name to use
+  const name = displayName || extractNameFromEmail(userEmail);
+
+  if (name) {
+    return `${timeGreeting}, ${name}!`;
+  }
+
+  return `${timeGreeting}!`;
 }
 
 /**

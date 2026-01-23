@@ -13,7 +13,7 @@ import HabitsClient from "./HabitsClient";
 import DashboardStats from "./DashboardStats";
 import FocusLauncher from "./FocusLauncher";
 import GettingStartedChecklist from "./GettingStartedChecklist";
-import AIBriefing from "./AIBriefing";
+import DailyBriefing from "./DailyBriefing";
 import { useOnboarding } from "./OnboardingProvider";
 import type { ISODateString } from "@/app/lib/types";
 
@@ -36,9 +36,9 @@ export default function DashboardContent({ date }: Props) {
         <GettingStartedChecklist />
       )}
 
-      {/* AI Briefing - shows after onboarding is done */}
+      {/* Daily Briefing - shows after onboarding is done */}
       {!onboardingLoading && isOnboardingDone && (
-        <AIBriefing date={date} />
+        <DailyBriefing date={date} />
       )}
 
       {/* Stats Section */}

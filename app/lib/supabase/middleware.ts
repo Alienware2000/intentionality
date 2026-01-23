@@ -69,19 +69,22 @@ export async function updateSession(request: NextRequest) {
   // Define route types
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+  const isLandingPage = request.nextUrl.pathname === "/";
 
   // Redirect unauthenticated users away from protected routes
   // API routes handle their own auth and return 401
-  if (!user && !isAuthRoute && !isApiRoute) {
+  // Landing page is public
+  if (!user && !isAuthRoute && !isApiRoute && !isLandingPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages (they're already logged in)
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from auth pages and landing page
+  // (they should go to dashboard)
+  if (user && (isAuthRoute || isLandingPage)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

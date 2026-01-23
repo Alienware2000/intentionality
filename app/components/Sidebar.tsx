@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Bot } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Sparkles } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
@@ -25,7 +25,7 @@ import { fetchApi } from "@/app/lib/api";
 // -----------------------------------------------------------------------------
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
   { label: "Inbox", href: "/inbox", icon: Inbox },
@@ -56,18 +56,57 @@ export default function Sidebar() {
     router.push("/auth");
   }
 
+  async function handleResetOnboarding() {
+    try {
+      // Reset onboarding in database
+      await fetchApi("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset" }),
+      });
+      // Also clear localStorage for backwards compatibility
+      localStorage.removeItem("intentionality_onboarding_progress");
+      localStorage.removeItem("intentionality_onboarding_collapsed");
+      // Reload to show the guide
+      window.location.href = "/dashboard";
+    } catch (error) {
+      console.error("Failed to reset onboarding:", error);
+    }
+  }
+
   return (
     <aside className="hidden md:flex h-screen w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex-col">
-      {/* Header */}
-      <div className="p-6 pb-4">
+      {/* Header - fixed */}
+      <div className="flex-shrink-0 p-6 pb-4">
         <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
           Intentionality
         </h1>
         <div className="mt-2 h-[2px] bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
       </div>
 
-      {/* User Profile Section */}
-      <div className="px-6 pb-4">
+      {/* Kofi AI Button - prominent position */}
+      <div className="flex-shrink-0 px-6 pb-4">
+        <button
+          type="button"
+          onClick={openChat}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-xl",
+            "bg-[var(--accent-primary)]/10",
+            "border border-[var(--accent-primary)]/20",
+            "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/20",
+            "transition-all duration-200"
+          )}
+        >
+          <Sparkles size={20} />
+          <span className="font-medium">Ask Kofi</span>
+          <span className="ml-auto text-xs text-[var(--text-muted)]">
+            Ctrl+Shift+K
+          </span>
+        </button>
+      </div>
+
+      {/* User Profile Section - fixed */}
+      <div className="flex-shrink-0 px-6 pb-4">
         {loading ? (
           <div className="h-16 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
         ) : profile ? (
@@ -94,10 +133,10 @@ export default function Sidebar() {
       </div>
 
       {/* Divider */}
-      <div className="mx-6 h-px bg-[var(--border-subtle)]" />
+      <div className="flex-shrink-0 mx-6 h-px bg-[var(--border-subtle)]" />
 
-      {/* Navigation */}
-      <nav className="flex-1 p-6 space-y-1">
+      {/* Navigation - scrollable */}
+      <nav className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -121,91 +160,46 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Divider */}
-      <div className="mx-6 h-px bg-[var(--border-subtle)]" />
-
-      {/* Stats Section */}
-      <div className="p-6 space-y-3">
-        {profile && (
+      {/* Compact Footer - fixed */}
+      <div className="flex-shrink-0 p-4 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between">
+          {/* Streak badge on left */}
           <div className="flex items-center gap-2">
-            <StreakBadge streak={profile.current_streak} size="sm" />
-            <StreakTooltip />
+            {profile && (
+              <>
+                <StreakBadge streak={profile.current_streak} size="sm" />
+                <StreakTooltip />
+              </>
+            )}
           </div>
-        )}
-
-        {/* AI Assistant Button */}
-        <button
-          type="button"
-          onClick={openChat}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-            "bg-[var(--accent-highlight)]/10 border border-[var(--accent-highlight)]/20",
-            "text-[var(--accent-highlight)] hover:bg-[var(--accent-highlight)]/20",
-            "transition-colors duration-150"
-          )}
-        >
-          <Bot size={18} />
-          <span className="text-sm font-medium">Ask Kofi</span>
-          <span className="ml-auto text-xs text-[var(--text-muted)]">
-            Ctrl+Shift+K
-          </span>
-        </button>
-      </div>
-
-      {/* Theme Toggle, Help & Sign Out */}
-      <div className="p-6 pt-0 space-y-1">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-            "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
-            "hover:bg-[var(--bg-hover)] transition-colors duration-150"
-          )}
-        >
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          <span className="text-sm">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              // Reset onboarding in database
-              await fetchApi("/api/onboarding", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "reset" }),
-              });
-              // Also clear localStorage for backwards compatibility
-              localStorage.removeItem("intentionality_onboarding_progress");
-              localStorage.removeItem("intentionality_onboarding_collapsed");
-              // Reload to show the guide
-              window.location.href = "/";
-            } catch (error) {
-              console.error("Failed to reset onboarding:", error);
-            }
-          }}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-            "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
-            "hover:bg-[var(--bg-hover)] transition-colors duration-150"
-          )}
-        >
-          <HelpCircle size={18} />
-          <span className="text-sm">Help & Guide</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
-            "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
-            "hover:bg-[var(--bg-hover)] transition-colors duration-150"
-          )}
-        >
-          <LogOut size={18} />
-          <span className="text-sm">Sign out</span>
-        </button>
+          {/* Actions on right - icon only */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={handleResetOnboarding}
+              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+              title="Help & Guide"
+            >
+              <HelpCircle size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+              title="Sign out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
       </div>
     </aside>
   );

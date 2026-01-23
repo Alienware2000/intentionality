@@ -185,6 +185,42 @@ body {
 }
 
 /* =============================================================================
+   CUSTOM SCROLLBAR STYLING
+   Thin, themed scrollbars that match the design system
+   ============================================================================= */
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-default);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
+:root.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-subtle);
+}
+
+:root.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
+/* =============================================================================
    UTILITY CLASSES
    ============================================================================= */
 
@@ -313,5 +349,105 @@ body {
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* =============================================================================
+   LANDING PAGE ANIMATIONS
+   Smooth, purposeful animations for the marketing landing page
+   ============================================================================= */
+
+/* Perspective for 3D transforms */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Smooth gradient text - for hero headlines */
+.gradient-text {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle floating animation for dashboard preview */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Glow pulse for active elements */
+@keyframes glow-pulse-landing {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse-landing 3s ease-in-out infinite;
+}
+
+/* Counter number animation helper */
+@keyframes count-up {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Shimmer effect for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Light mode landing adjustments */
+:root.light .animate-glow-pulse {
+  animation-name: glow-pulse-landing-light;
+}
+
+@keyframes glow-pulse-landing-light {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.25);
+  }
+}
+
+/* Reduced motion support for landing animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-glow-pulse,
+  .animate-shimmer {
+    animation: none;
   }
 }

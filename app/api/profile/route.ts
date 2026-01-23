@@ -25,6 +25,8 @@ type ProfileUpdateBody = {
   xp_to_add?: number;
   /** Whether to update the daily streak */
   update_streak?: boolean;
+  /** User's preferred display name */
+  display_name?: string;
 };
 
 // -----------------------------------------------------------------------------
@@ -127,6 +129,7 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
   const body = await parseJsonBody<ProfileUpdateBody>(request);
   const xp_to_add = body?.xp_to_add;
   const update_streak = body?.update_streak;
+  const display_name = body?.display_name;
 
   // Fetch current profile
   const { data: currentProfile, error: fetchError } = await supabase
@@ -150,6 +153,11 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
 
     updates.xp_total = newXpTotal;
     updates.level = newLevel;
+  }
+
+  // Update display name if provided
+  if (display_name !== undefined) {
+    updates.display_name = display_name.trim() || null;
   }
 
   // Update streak if requested

@@ -68,7 +68,7 @@ export default function AuthContent() {
     // User is authenticated - redirect to home
     setUserId(data.user.id);
     setStatus("Logged in - redirecting...");
-    router.push("/");
+    router.push("/dashboard");
   }, [supabase, router]);
 
   // Handle URL params (confirmed, error) and auth state
@@ -105,7 +105,7 @@ export default function AuthContent() {
         if (event === "SIGNED_IN" && session) {
           setUserId(session.user.id);
           setStatus("Logged in - redirecting...");
-          router.push("/");
+          router.push("/dashboard");
         } else if (event === "SIGNED_OUT") {
           setUserId(null);
           setStatus("Not logged in");

@@ -29,6 +29,7 @@ export type UserProfile = {
   current_streak: number;
   longest_streak: number;
   last_active_date: ISODateString | null;
+  display_name: string | null;
   created_at: string;
 };
 
@@ -863,14 +864,16 @@ export type WeeklySummary = {
  * Recommendation types for the daily briefing.
  */
 export type RecommendationType =
-  | 'urgent'           // High-priority overdue tasks
-  | 'streak_at_risk'   // Streak might be lost
-  | 'weekly_goal'      // Behind on weekly goals
-  | 'heavy_day'        // Too many tasks today
-  | 'quest_progress'   // Quest close to completion
-  | 'habit_reminder'   // Daily habits not done
-  | 'planning_needed'  // Weekly plan due
-  | 'review_reminder'; // Daily review reminder
+  | 'urgent'              // High-priority overdue tasks
+  | 'streak_at_risk'      // Streak might be lost
+  | 'weekly_goal'         // Behind on weekly goals
+  | 'heavy_day'           // Too many tasks today
+  | 'quest_progress'      // Quest close to completion
+  | 'habit_reminder'      // Daily habits not done
+  | 'planning_needed'     // Weekly plan due
+  | 'review_reminder'     // Daily review reminder
+  | 'milestone_countdown' // Close to streak milestone
+  | 'best_day';           // User's statistically best productivity day
 
 /**
  * A single recommendation for the daily briefing.

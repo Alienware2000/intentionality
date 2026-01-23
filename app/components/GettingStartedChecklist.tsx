@@ -5,6 +5,7 @@
 // Persistent onboarding checklist that guides new users through key features.
 // Shows on dashboard until all steps are completed or dismissed.
 // Uses OnboardingProvider for state management across the app.
+// Includes name input step for personalized greetings.
 // =============================================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -22,9 +23,11 @@ import {
   Sparkles,
   ClipboardList,
   BookOpen,
+  User,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useOnboarding } from "./OnboardingProvider";
+import { useProfile } from "./ProfileProvider";
 import type { OnboardingStep } from "@/app/lib/types";
 import ConfirmModal from "./ConfirmModal";
 
@@ -118,6 +121,7 @@ const STEPS: StepConfig[] = [
 ];
 
 const COLLAPSE_FLAG_KEY = "intentionality_onboarding_collapsed";
+const NAME_ASKED_KEY = "intentionality_name_asked";
 
 // -----------------------------------------------------------------------------
 // Component
@@ -131,9 +135,16 @@ type Props = {
  * GettingStartedChecklist displays an interactive checklist for new users.
  * Uses OnboardingProvider for global state management.
  * Steps auto-complete when users perform actions across the app.
+ * Includes name input step for personalized greetings.
  */
 export default function GettingStartedChecklist({ onDismiss }: Props) {
   const { loading, isOnboardingDone, isStepComplete, completedCount, totalSteps, skipOnboarding } = useOnboarding();
+  const { profile, refreshProfile } = useProfile();
+
+  // Name input step state
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   // Initialize collapsed state from localStorage or if user has progress
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -151,6 +162,51 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
 
   // Track if we've already checked progress for initial collapse
   const hasCheckedProgressRef = useRef(false);
+
+  // Check if we should show name input (first-time users)
+  useEffect(() => {
+    if (loading || !profile) return;
+
+    // Show name input if:
+    // 1. User doesn't have a display_name set
+    // 2. We haven't asked before (check localStorage)
+    const hasAskedBefore = localStorage.getItem(NAME_ASKED_KEY) === "true";
+    if (!profile.display_name && !hasAskedBefore && completedCount === 0) {
+      setShowNameInput(true);
+    }
+  }, [loading, profile, completedCount]);
+
+  // Handle saving name
+  const handleSaveName = useCallback(async () => {
+    if (savingName) return;
+
+    setSavingName(true);
+    try {
+      const trimmedName = nameValue.trim();
+      if (trimmedName) {
+        await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ display_name: trimmedName }),
+        });
+        await refreshProfile();
+      }
+      localStorage.setItem(NAME_ASKED_KEY, "true");
+      setShowNameInput(false);
+    } catch {
+      // Silent fail - user can still proceed
+      localStorage.setItem(NAME_ASKED_KEY, "true");
+      setShowNameInput(false);
+    } finally {
+      setSavingName(false);
+    }
+  }, [nameValue, savingName, refreshProfile]);
+
+  // Handle skipping name input
+  const handleSkipName = useCallback(() => {
+    localStorage.setItem(NAME_ASKED_KEY, "true");
+    setShowNameInput(false);
+  }, []);
 
   // Auto-collapse when progress loads if user has completed steps
   // Note: This is a legitimate initialization pattern that requires setState in effect
@@ -219,6 +275,73 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
   if (isOnboardingDone) return null;
 
   const progressPercent = (completedCount / totalSteps) * 100;
+
+  // Show name input step for first-time users
+  if (showNameInput) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden"
+      >
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--accent-primary)]/10 flex items-center justify-center">
+            <User size={24} className="text-[var(--accent-primary)]" />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+            What should I call you?
+          </h3>
+          <p className="text-sm text-[var(--text-muted)] mb-4">
+            This helps make your experience more personal
+          </p>
+          <input
+            type="text"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && nameValue.trim()) {
+                handleSaveName();
+              }
+            }}
+            placeholder="Your first name"
+            autoFocus
+            className={cn(
+              "w-full max-w-xs mx-auto px-4 py-3 rounded-lg",
+              "bg-[var(--bg-elevated)] border border-[var(--border-subtle)]",
+              "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+              "focus:outline-none focus:border-[var(--accent-primary)]",
+              "transition-colors text-center"
+            )}
+          />
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={handleSkipName}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium",
+                "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+                "hover:bg-[var(--bg-hover)] transition-colors"
+              )}
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleSaveName}
+              disabled={savingName}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium",
+                "bg-[var(--accent-primary)] text-white",
+                "hover:bg-[var(--accent-primary)]/90 transition-colors",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "min-w-[80px]"
+              )}
+            >
+              {savingName ? "Saving..." : "Continue"}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <>

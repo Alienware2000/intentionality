@@ -29,7 +29,7 @@ import {
   History,
   Trash2,
   ChevronLeft,
-  Bot,
+  Sparkles,
   MessageSquare,
   Loader2,
   AlertCircle,
@@ -129,6 +129,25 @@ export default function ChatPanel() {
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
   }
 
+  /**
+   * Handle deleting a single conversation with confirmation.
+   */
+  function handleDeleteConversation(e: React.MouseEvent, conversationId: string) {
+    e.stopPropagation();
+    if (confirm("Delete this conversation?")) {
+      deleteConversation(conversationId);
+    }
+  }
+
+  /**
+   * Handle clearing all conversations with confirmation.
+   */
+  function handleClearAll() {
+    if (confirm(`Delete all ${conversations.length} conversations?`)) {
+      conversations.forEach(c => deleteConversation(c.id));
+    }
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -167,8 +186,8 @@ export default function ChatPanel() {
                   </button>
                 ) : null}
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-[var(--accent-highlight)]/20">
-                    <Bot size={18} className="text-[var(--accent-highlight)]" />
+                  <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/20">
+                    <Sparkles size={18} className="text-[var(--accent-primary)]" />
                   </div>
                   <div>
                     <h2 className="font-semibold text-[var(--text-primary)] text-sm">
@@ -215,7 +234,21 @@ export default function ChatPanel() {
             {/* Content */}
             {showHistory ? (
               // Conversation History View
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+                {/* Clear all button */}
+                {conversations.length > 0 && (
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
+                    </span>
+                    <button
+                      onClick={handleClearAll}
+                      className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                )}
                 {conversations.length === 0 ? (
                   <div className="text-center py-8 text-[var(--text-muted)]">
                     <MessageSquare size={32} className="mx-auto mb-2 opacity-50" />
@@ -227,7 +260,7 @@ export default function ChatPanel() {
                     <div
                       key={conv.id}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer",
+                        "group flex items-center gap-3 p-3 rounded-lg cursor-pointer",
                         "hover:bg-[var(--bg-hover)] transition-colors",
                         conv.id === currentConversationId && "bg-[var(--bg-card)]"
                       )}
@@ -246,13 +279,11 @@ export default function ChatPanel() {
                         </p>
                       </div>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteConversation(conv.id);
-                        }}
-                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-elevated)] transition-all"
+                        onClick={(e) => handleDeleteConversation(e, conv.id)}
+                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-elevated)] hover:text-red-400 transition-all"
+                        title="Delete conversation"
                       >
-                        <Trash2 size={14} className="text-[var(--text-muted)]" />
+                        <Trash2 size={14} className="text-[var(--text-muted)] group-hover:text-inherit" />
                       </button>
                     </div>
                   ))
@@ -262,14 +293,14 @@ export default function ChatPanel() {
               // Chat View
               <>
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--accent-highlight)]/20 flex items-center justify-center">
-                        <Bot size={32} className="text-[var(--accent-highlight)]" />
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--accent-primary)]/20 flex items-center justify-center">
+                        <Sparkles size={32} className="text-[var(--accent-primary)]" />
                       </div>
                       <h3 className="font-semibold text-[var(--text-primary)] mb-2">
-                        Hi, I'm Kofi!
+                        Hi, I&apos;m Kofi!
                       </h3>
                       <p className="text-sm text-[var(--text-muted)] max-w-[250px] mx-auto">
                         Your personal productivity assistant. Ask me anything about your tasks, schedule, or goals!
@@ -293,7 +324,7 @@ export default function ChatPanel() {
                               "hover:border-[var(--accent-primary)] transition-colors"
                             )}
                           >
-                            "{suggestion}"
+                            &ldquo;{suggestion}&rdquo;
                           </button>
                         ))}
                       </div>
@@ -323,33 +354,29 @@ export default function ChatPanel() {
 
                 {/* Input */}
                 <form onSubmit={handleSubmit} className="p-4 border-t border-[var(--border-subtle)]">
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Ask Kofi anything..."
-                        rows={1}
-                        className={cn(
-                          "w-full px-4 py-3 rounded-xl resize-none",
-                          "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
-                          "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
-                          "focus:outline-none focus:border-[var(--accent-primary)]",
-                          "text-sm"
-                        )}
-                        style={{ height: "44px" }}
-                      />
-                    </div>
+                  <div className="flex items-end gap-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl focus-within:border-[var(--accent-primary)] transition-colors">
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Ask Kofi anything..."
+                      rows={1}
+                      className={cn(
+                        "flex-1 px-4 py-3 bg-transparent resize-none",
+                        "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+                        "focus:outline-none text-sm custom-scrollbar",
+                        "min-h-[44px] max-h-[120px]"
+                      )}
+                    />
                     <button
                       type="submit"
                       disabled={!input.trim() || isLoading}
                       className={cn(
-                        "p-3 rounded-xl transition-colors",
+                        "flex-shrink-0 m-2 p-2 rounded-lg transition-colors",
                         input.trim() && !isLoading
                           ? "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90"
-                          : "bg-[var(--bg-card)] text-[var(--text-muted)] cursor-not-allowed"
+                          : "bg-transparent text-[var(--text-muted)] cursor-not-allowed"
                       )}
                     >
                       {isLoading ? (

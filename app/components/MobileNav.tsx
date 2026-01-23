@@ -26,11 +26,13 @@ import {
   BookOpen,
   Inbox,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { useBrainDump } from "./BrainDumpProvider";
+import { useAI } from "./AIProvider";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
@@ -40,7 +42,7 @@ import StreakBadge from "./StreakBadge";
 // -----------------------------------------------------------------------------
 
 const navItems = [
-  { label: "Home", href: "/", icon: LayoutDashboard },
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
   { label: "Quests", href: "/quests", icon: Target },
   { label: "Week", href: "/week", icon: Calendar },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -56,6 +58,7 @@ export default function MobileNav() {
   const { profile, loading } = useProfile();
   const { theme, toggleTheme } = useTheme();
   const { openBrainDump } = useBrainDump();
+  const { openChat } = useAI();
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleSignOut() {
@@ -153,7 +156,7 @@ export default function MobileNav() {
               className={cn(
                 "fixed top-0 right-0 bottom-0 w-full max-w-xs z-50 md:hidden",
                 "bg-[var(--bg-base)] border-l border-[var(--border-default)]",
-                "flex flex-col"
+                "flex flex-col pb-20"
               )}
             >
               {/* Header */}
@@ -167,6 +170,26 @@ export default function MobileNav() {
                   className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   <X size={20} className="text-[var(--text-muted)]" />
+                </button>
+              </div>
+
+              {/* Kofi AI Button - Prominent placement in mobile menu */}
+              <div className="p-4 border-b border-[var(--border-default)]">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    openChat();
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl",
+                    "bg-[var(--accent-primary)]/10",
+                    "border border-[var(--accent-primary)]/20",
+                    "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/20",
+                    "transition-all duration-200"
+                  )}
+                >
+                  <Sparkles size={20} />
+                  <span className="font-medium">Ask Kofi</span>
                 </button>
               </div>
 
@@ -193,7 +216,7 @@ export default function MobileNav() {
               </div>
 
               {/* Menu Items */}
-              <div className="flex-1 p-4 space-y-1">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-1">
                 <Link
                   href="/inbox"
                   onClick={() => setMenuOpen(false)}

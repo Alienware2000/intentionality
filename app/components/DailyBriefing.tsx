@@ -22,6 +22,8 @@ import {
   ChevronDown,
   RefreshCw,
   EyeOff,
+  Trophy,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
@@ -91,6 +93,16 @@ const RECOMMENDATION_ICONS: Record<RecommendationType, IconConfig> = {
     color: "text-[var(--accent-success)]",
     bgColor: "bg-[var(--accent-success)]/10",
   },
+  milestone_countdown: {
+    icon: Trophy,
+    color: "text-[var(--accent-streak)]",
+    bgColor: "bg-[var(--accent-streak)]/10",
+  },
+  best_day: {
+    icon: Star,
+    color: "text-[var(--accent-highlight)]",
+    bgColor: "bg-[var(--accent-highlight)]/10",
+  },
 };
 
 const PRIORITY_BORDER: Record<DailyRecommendation["priority"], string> = {
@@ -126,6 +138,7 @@ export default function DailyBriefing({ date }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ completed: 0, total: 0 });
+  const [bestCompletionDay, setBestCompletionDay] = useState<number | null>(null);
 
   // Check if hidden for today
   useEffect(() => {
@@ -138,10 +151,11 @@ export default function DailyBriefing({ date }: Props) {
   const loadData = useCallback(async () => {
     try {
       // Fetch all required data in parallel
-      const [tasksRes, habitsRes, questsRes] = await Promise.all([
+      const [tasksRes, habitsRes, questsRes, patternsRes] = await Promise.all([
         fetch(`/api/tasks/for-today?date=${date}`),
         fetch(`/api/habits?date=${date}`),
         fetch("/api/quests"),
+        fetch("/api/ai/learn").catch(() => null), // Pattern data is optional
       ]);
 
       const [tasksData, habitsData, questsData] = await Promise.all([
@@ -149,6 +163,20 @@ export default function DailyBriefing({ date }: Props) {
         habitsRes.json(),
         questsRes.json(),
       ]);
+
+      // Try to get pattern data for best completion day
+      let fetchedBestDay: number | null = null;
+      if (patternsRes?.ok) {
+        try {
+          const patternsData = await patternsRes.json();
+          if (patternsData.ok && patternsData.patterns?.best_completion_day !== undefined) {
+            fetchedBestDay = patternsData.patterns.best_completion_day;
+            setBestCompletionDay(fetchedBestDay);
+          }
+        } catch {
+          // Silent fail - patterns are optional
+        }
+      }
 
       const todayTasks: Task[] = tasksData.ok
         ? tasksData.tasks.filter((t: Task) => t.due_date === date)
@@ -174,6 +202,7 @@ export default function DailyBriefing({ date }: Props) {
         weeklyPlan: null, // TODO: Fetch weekly plan when implemented
         hasReviewedToday: false, // TODO: Check daily review status
         currentTime: new Date(),
+        bestCompletionDay: fetchedBestDay,
       });
 
       setRecommendations(recs);
@@ -205,7 +234,7 @@ export default function DailyBriefing({ date }: Props) {
     setHiddenForToday(true);
   }, [date]);
 
-  const greeting = getTimeBasedGreeting();
+  const greeting = getTimeBasedGreeting(profile?.display_name);
   const message = getEncouragingMessage(
     stats.completed,
     stats.total,
