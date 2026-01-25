@@ -94,10 +94,10 @@ export function WeeklyChallengeCard({ challenge }: Props) {
             {challenge.progress} / {template.target_value}
           </span>
         </div>
-        <div className="h-1 bg-[var(--bg-elevated)] rounded-full">
+        <div className="h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
           <div
             className={cn(
-              "h-1 rounded-full transition-all",
+              "h-1.5 rounded-full transition-all duration-300",
               challenge.completed
                 ? "bg-[var(--accent-success)]"
                 : "bg-[var(--accent-primary)]"

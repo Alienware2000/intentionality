@@ -58,12 +58,11 @@ export default function XpBar({
         <motion.div
           className={cn(
             "h-full rounded-full",
-            "bg-gradient-to-r from-[var(--accent-primary)] to-red-400",
-            isNearLevelUp && "animate-pulse-glow"
+            "bg-[var(--accent-primary)]"
           )}
           initial={animate ? { width: 0 } : false}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
     </div>

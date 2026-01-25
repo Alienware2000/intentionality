@@ -181,8 +181,8 @@ export default function AddScheduleModal({
             transition={{ duration: 0.1 }}
             className={cn(
               "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
-              "w-[calc(100%-32px)] sm:w-full max-w-md p-4 sm:p-6 rounded-lg",
-              "bg-[var(--bg-card)] border border-[var(--border-default)]",
+              "w-[calc(100%-32px)] sm:w-full max-w-md p-4 sm:p-6 rounded-xl",
+              "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
               "max-h-[90vh] overflow-y-auto"
             )}
             onKeyDown={handleKeyDown}
@@ -195,7 +195,7 @@ export default function AddScheduleModal({
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
               >
                 <X size={18} className="text-[var(--text-muted)]" />
               </button>

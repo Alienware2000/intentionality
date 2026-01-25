@@ -23,7 +23,6 @@ import {
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
 import { formatTime, toISODateString } from "@/app/lib/date-utils";
-import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
@@ -33,6 +32,7 @@ import { useToast } from "./Toast";
 import { useOnboarding } from "./OnboardingProvider";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
+import PriorityPill from "./ui/PriorityPill";
 
 // Duration presets for focus sessions (matches FocusLauncher)
 const DURATION_PRESETS = [
@@ -730,12 +730,16 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
 
   return (
     <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
       className={cn(
-        "group flex items-center gap-2 sm:gap-3 rounded-lg border-l-4",
-        "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
-        "transition-colors",
-        PRIORITY_BORDER_COLORS[task.priority],
-        isCompleted && "opacity-50",
+        "group flex items-center gap-2 sm:gap-3 rounded-xl",
+        "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+        "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
+        "hover-lift transition-all duration-200",
+        isCompleted && "opacity-60",
         compact ? "p-2" : "p-3"
       )}
       whileTap={{ scale: 0.98 }}
@@ -774,6 +778,8 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
       >
         {task.title}
       </span>
+
+      <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
       <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
@@ -870,12 +876,16 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
 
   return (
     <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
       className={cn(
-        "group flex items-center gap-2 sm:gap-3 rounded-lg border-l-4",
-        "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
-        "transition-colors",
-        PRIORITY_BORDER_COLORS[task.priority],
-        isCompleted && "opacity-50",
+        "group flex items-center gap-2 sm:gap-3 rounded-xl",
+        "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+        "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
+        "hover-lift transition-all duration-200",
+        isCompleted && "opacity-60",
         compact ? "p-2" : "p-3"
       )}
       whileTap={{ scale: 0.98 }}
@@ -905,6 +915,8 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
       >
         {task.title}
       </span>
+
+      <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
       <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
@@ -981,14 +993,19 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
   compact: boolean;
 }) {
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
       className={cn(
-        "rounded-lg border-l-4 transition-all",
+        "rounded-xl border-l-[3px] border border-[var(--border-subtle)]",
+        "hover-lift transition-all duration-200",
         completed && "opacity-60",
         compact ? "p-2" : "p-3"
       )}
       style={{
-        backgroundColor: `${block.color}15`,
+        backgroundColor: `${block.color}10`,
         borderLeftColor: block.color,
       }}
     >
@@ -1045,7 +1062,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 });
 
@@ -1094,6 +1111,8 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
         )}>
           {task.title}
         </span>
+
+        <PriorityPill priority={task.priority} compact />
 
         {/* Action buttons - always visible on mobile, hover on desktop */}
         <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">

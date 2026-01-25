@@ -424,10 +424,7 @@ function TomorrowStep({
                 key={task.id}
                 className={cn(
                   "flex items-center gap-2 p-2 rounded-lg",
-                  "bg-[var(--bg-elevated)] border-l-2",
-                  task.priority === "high" && "border-l-[var(--priority-high)]",
-                  task.priority === "medium" && "border-l-[var(--priority-medium)]",
-                  task.priority === "low" && "border-l-[var(--priority-low)]"
+                  "bg-[var(--bg-elevated)]"
                 )}
               >
                 <span className="text-sm text-[var(--text-primary)] truncate">

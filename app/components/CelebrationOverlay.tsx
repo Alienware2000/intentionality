@@ -106,9 +106,9 @@ function XpGainAnimation({ xp, onComplete }: { xp: number; onComplete: () => voi
       onAnimationComplete={onComplete}
       className="fixed bottom-24 right-4 sm:right-8 z-50 pointer-events-none"
     >
-      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent-primary)] shadow-lg">
-        <Zap size={18} className="text-white" />
-        <span className="text-lg font-mono font-bold text-white">+{xp} XP</span>
+      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--accent-highlight)]/30 shadow-lg shadow-[var(--accent-highlight)]/20">
+        <Zap size={18} className="text-[var(--accent-highlight)]" fill="currentColor" />
+        <span className="text-lg font-mono font-bold text-[var(--accent-highlight)]">+{xp} XP</span>
       </div>
     </motion.div>
   );

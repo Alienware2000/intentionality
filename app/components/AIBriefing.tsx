@@ -74,11 +74,6 @@ const PRIORITY_ICONS: Record<string, IconConfig> = {
   },
 };
 
-const PRIORITY_BORDER: Record<string, string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--border-default)]",
-};
 
 // Storage key for "hide for today" preference
 const HIDE_KEY = "intentionality_ai_briefing_hidden_date";
@@ -227,7 +222,7 @@ export default function AIBriefing({ date }: Props) {
   const highPriorityCount = briefing.insights?.filter(i => i.priority === "high").length || 0;
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+    <div className="bg-[var(--bg-card)] glass-card border border-[var(--border-subtle)] rounded-xl overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
@@ -338,13 +333,12 @@ export default function AIBriefing({ date }: Props) {
                   return (
                     <motion.div
                       key={index}
-                      initial={{ opacity: 0, x: -10 }}
+                      initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
                       className={cn(
                         "flex items-start gap-3 p-3 rounded-lg",
-                        "bg-[var(--bg-elevated)] border-l-2",
-                        PRIORITY_BORDER[insight.priority] || PRIORITY_BORDER.medium
+                        "bg-[var(--bg-elevated)]"
                       )}
                     >
                       <div className={cn("p-1.5 rounded-lg flex-shrink-0", iconConfig.bgColor)}>

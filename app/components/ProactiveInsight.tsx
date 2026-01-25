@@ -173,14 +173,13 @@ export default function ProactiveInsight({ insight, onDismiss, onAction }: Props
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          exit={{ opacity: 0, y: 10, scale: 0.98 }}
+          transition={{ type: "spring", damping: 30, stiffness: 400 }}
           className={cn(
             "w-80 p-4 rounded-xl shadow-lg",
-            "bg-[var(--bg-card)] border border-[var(--border-default)]",
-            "backdrop-blur-sm"
+            "bg-[var(--bg-card)] border border-[var(--border-default)]"
           )}
         >
           {/* Header */}

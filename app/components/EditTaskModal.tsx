@@ -98,8 +98,8 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
               "fixed z-50",
               "bottom-0 left-0 right-0 sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2",
               "w-full sm:w-full max-w-md p-4 sm:p-6",
-              "rounded-t-xl sm:rounded-lg",
-              "bg-[var(--bg-card)] border border-[var(--border-default)]",
+              "rounded-t-xl sm:rounded-xl",
+              "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
               "max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             )}
             onKeyDown={handleKeyDown}
@@ -112,7 +112,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
               >
                 <X size={18} className="text-[var(--text-muted)]" />
               </button>

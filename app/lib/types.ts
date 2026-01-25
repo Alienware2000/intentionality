@@ -709,6 +709,7 @@ export type XpBreakdown = {
  */
 export type XpAwardResult = {
   xpBreakdown: XpBreakdown;
+  actionTotalXp: number; // Base + streak + permanent + first action + milestone (for accurate deduction)
   newXpTotal: number;
   newLevel: number | null;
   leveledUp: boolean;

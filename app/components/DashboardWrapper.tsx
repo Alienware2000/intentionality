@@ -34,7 +34,6 @@ export default function DashboardWrapper() {
             </p>
             <DashboardSync />
           </div>
-          <div className="mt-2 h-[2px] w-24 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
         </div>
         <QuickActions />
       </header>

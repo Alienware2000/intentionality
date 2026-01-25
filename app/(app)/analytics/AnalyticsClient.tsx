@@ -3,12 +3,16 @@
 // =============================================================================
 // ANALYTICS CLIENT COMPONENT
 // Main analytics dashboard with stats, charts, and gamification features.
+// Enhanced with glassmorphism, animated stat cards, and smooth transitions.
 // =============================================================================
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Target, Flame, Clock, Zap, TrendingUp, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
+import { prefersReducedMotion } from "@/app/lib/anime-utils";
 import XpChart from "@/app/components/charts/XpChart";
 import ActivityHeatmap from "@/app/components/charts/ActivityHeatmap";
 import {
@@ -58,6 +62,24 @@ type AchievementsResponse = {
   };
 };
 
+// Animation variants - snappy
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
+};
+
 // -----------------------------------------------------------------------------
 // Stat Card Component
 // -----------------------------------------------------------------------------
@@ -68,9 +90,12 @@ type StatCardProps = {
   subValue?: string;
   icon: React.ReactNode;
   accent?: "primary" | "success" | "streak" | "highlight";
+  delay?: number;
 };
 
-function StatCard({ label, value, subValue, icon, accent = "primary" }: StatCardProps) {
+function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 }: StatCardProps) {
+  const valueRef = useRef<HTMLParagraphElement>(null);
+
   const accentColors = {
     primary: "text-[var(--accent-primary)]",
     success: "text-[var(--accent-success)]",
@@ -78,25 +103,76 @@ function StatCard({ label, value, subValue, icon, accent = "primary" }: StatCard
     highlight: "text-[var(--accent-highlight)]",
   };
 
+
+  const iconBgColors = {
+    primary: "bg-[var(--accent-primary)]/10",
+    success: "bg-[var(--accent-success)]/10",
+    streak: "bg-[var(--accent-streak)]/10",
+    highlight: "bg-[var(--accent-highlight)]/10",
+  };
+
+  // Animate numeric value on mount
+  useEffect(() => {
+    if (prefersReducedMotion() || !valueRef.current) return;
+
+    const numericValue = typeof value === "number" ? value : parseInt(String(value).replace(/[^0-9]/g, ""));
+    if (isNaN(numericValue)) return;
+
+    const el = valueRef.current;
+    anime({
+      targets: { val: 0 },
+      val: numericValue,
+      round: 1,
+      duration: 500,
+      delay: delay * 50,
+      easing: "easeOutExpo",
+      update: (anim) => {
+        const currentVal = Math.round((anim.animations[0] as unknown as { currentValue: number }).currentValue);
+        // Preserve prefix/suffix from original value
+        if (typeof value === "string") {
+          const prefix = value.match(/^[^0-9]*/)?.[0] ?? "";
+          const suffix = value.match(/[^0-9]*$/)?.[0] ?? "";
+          el.textContent = `${prefix}${currentVal.toLocaleString()}${suffix}`;
+        } else {
+          el.textContent = currentVal.toLocaleString();
+        }
+      },
+    });
+  }, [value, delay]);
+
   return (
-    <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ scale: 1.02, y: -2 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        "rounded-xl glass-card",
+        "bg-[var(--bg-card)]",
+        "border border-[var(--border-subtle)]",
+        "hover:border-[var(--border-default)]",
+        "p-4 transition-all duration-200"
+      )}
+    >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
             {label}
           </p>
-          <p className={cn("text-2xl font-mono font-bold mt-1", accentColors[accent])}>
+          <p
+            ref={valueRef}
+            className={cn("text-2xl font-mono font-bold mt-1", accentColors[accent])}
+          >
             {value}
           </p>
           {subValue && (
             <p className="text-xs text-[var(--text-muted)] mt-1">{subValue}</p>
           )}
         </div>
-        <div className={cn("p-2 rounded-lg bg-[var(--bg-elevated)]", accentColors[accent])}>
+        <div className={cn("p-2.5 rounded-lg", iconBgColors[accent], accentColors[accent])}>
           {icon}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -171,36 +247,56 @@ export default function AnalyticsClient() {
   const { overview, xpHistory, activityHeatmap } = data;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
+    >
       {/* Time Period Selector */}
-      <div className="flex items-center gap-2">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "flex items-center gap-2 p-3 rounded-xl",
+          "bg-[var(--bg-card)] glass-card",
+          "border border-[var(--border-subtle)]"
+        )}
+      >
         <span className="text-sm text-[var(--text-muted)]">Period:</span>
         <div className="flex gap-1">
           {[7, 14, 30, 60, 90].map((d) => (
-            <button
+            <motion.button
               key={d}
               onClick={() => setDays(d)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className={cn(
-                "px-3 py-2 sm:py-1 text-xs font-medium rounded transition-colors",
+                "px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-all",
                 days === d
                   ? "bg-[var(--accent-primary)] text-white"
-                  : "bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
               )}
             >
               {d}d
-            </button>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+      >
         <StatCard
           label="Total XP"
           value={overview.xpTotal.toLocaleString()}
           subValue={`Level ${overview.level}`}
           icon={<Zap size={18} />}
           accent="primary"
+          delay={0}
         />
         <StatCard
           label="Current Streak"
@@ -208,6 +304,7 @@ export default function AnalyticsClient() {
           subValue={`Best: ${overview.longestStreak} days`}
           icon={<Flame size={18} />}
           accent="streak"
+          delay={1}
         />
         <StatCard
           label="Tasks Completed"
@@ -215,6 +312,7 @@ export default function AnalyticsClient() {
           subValue={`${overview.taskCompletionRate}% completion rate`}
           icon={<Target size={18} />}
           accent="success"
+          delay={2}
         />
         <StatCard
           label="Focus Time"
@@ -222,16 +320,23 @@ export default function AnalyticsClient() {
           subValue={`${overview.focusSessionsCompleted} sessions`}
           icon={<Clock size={18} />}
           accent="highlight"
+          delay={3}
         />
-      </div>
+      </motion.div>
 
       {/* Period Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+      >
         <StatCard
           label={`XP Earned (${days}d)`}
           value={`+${overview.xpEarnedInPeriod.toLocaleString()}`}
           icon={<TrendingUp size={18} />}
           accent="primary"
+          delay={0}
         />
         <StatCard
           label="Habits Completed"
@@ -239,6 +344,7 @@ export default function AnalyticsClient() {
           subValue={`In last ${days} days`}
           icon={<CheckCircle2 size={18} />}
           accent="success"
+          delay={1}
         />
         <StatCard
           label="Avg Daily XP"
@@ -246,28 +352,59 @@ export default function AnalyticsClient() {
           subValue="XP per day"
           icon={<Zap size={18} />}
           accent="highlight"
+          delay={2}
         />
-      </div>
+      </motion.div>
 
       {/* XP Chart */}
-      <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className={cn(
+          "rounded-xl glass-card",
+          "bg-[var(--bg-card)]",
+          "border border-[var(--border-subtle)]",
+          "p-4"
+        )}
+      >
         <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
           XP Over Time
         </h3>
         <XpChart data={xpHistory} />
-      </div>
+      </motion.div>
 
       {/* Activity Heatmap */}
-      <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className={cn(
+          "rounded-xl glass-card",
+          "bg-[var(--bg-card)]",
+          "border border-[var(--border-subtle)]",
+          "p-4"
+        )}
+      >
         <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
           Activity Heatmap
         </h3>
         <ActivityHeatmap data={activityHeatmap} />
-      </div>
+      </motion.div>
 
       {/* Challenges Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className={cn(
+            "rounded-xl glass-card",
+            "bg-[var(--bg-card)]",
+            "border border-[var(--border-subtle)]",
+            "p-4"
+          )}
+        >
           <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
             Daily Challenges
           </h3>
@@ -277,18 +414,38 @@ export default function AnalyticsClient() {
               onRefresh={loadData}
             />
           )}
-        </div>
+        </motion.div>
 
-        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className={cn(
+            "rounded-xl glass-card",
+            "bg-[var(--bg-card)]",
+            "border border-[var(--border-subtle)]",
+            "p-4"
+          )}
+        >
           <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
             Weekly Challenge
           </h3>
           {profile && <WeeklyChallengeCard challenge={profile.weeklyChallenge} />}
-        </div>
+        </motion.div>
       </div>
 
       {/* Achievements - full width */}
-      <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className={cn(
+          "rounded-xl glass-card",
+          "bg-[var(--bg-card)]",
+          "border border-[var(--border-subtle)]",
+          "p-4"
+        )}
+      >
         <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
           Achievements
         </h3>
@@ -296,7 +453,7 @@ export default function AnalyticsClient() {
           achievements={achievements}
           summary={achievementSummary ?? undefined}
         />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

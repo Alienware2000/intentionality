@@ -105,11 +105,6 @@ const RECOMMENDATION_ICONS: Record<RecommendationType, IconConfig> = {
   },
 };
 
-const PRIORITY_BORDER: Record<DailyRecommendation["priority"], string> = {
-  high: "border-l-[var(--priority-high)]",
-  medium: "border-l-[var(--priority-medium)]",
-  low: "border-l-[var(--border-default)]",
-};
 
 // Storage key for "hide for today" preference
 const HIDE_KEY = "intentionality_briefing_hidden_date";
@@ -343,8 +338,7 @@ export default function DailyBriefing({ date }: Props) {
                     transition={{ delay: index * 0.1 }}
                     className={cn(
                       "flex items-start gap-3 p-3 rounded-lg",
-                      "bg-[var(--bg-elevated)] border-l-2",
-                      PRIORITY_BORDER[rec.priority]
+                      "bg-[var(--bg-elevated)]"
                     )}
                   >
                     <div className={cn("p-1.5 rounded-lg flex-shrink-0", iconConfig.bgColor)}>

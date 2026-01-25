@@ -27,6 +27,7 @@ export async function middleware(request: NextRequest) {
  * - _next/static: Static files (JS, CSS)
  * - _next/image: Image optimization
  * - favicon.ico: Browser favicon
+ * - auth/callback: OAuth callback (must exchange code before session exists)
  * - Public assets: Images, fonts, etc.
  *
  * This prevents unnecessary middleware execution on static resources.
@@ -38,8 +39,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico (favicon)
+     * - auth/callback (OAuth callback - needs to exchange code before session validation)
      * - Public folder assets (images, fonts, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

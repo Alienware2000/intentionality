@@ -279,6 +279,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
 
   return {
     xpBreakdown,
+    actionTotalXp, // Base + streak + permanent + first action + milestone (for accurate deduction)
     newXpTotal: finalXpTotal,
     newLevel: finalLeveledUp ? finalLevel : null,
     leveledUp: finalLeveledUp,
@@ -356,6 +357,7 @@ function createEmptyResult(baseXp: number): XpAwardResult {
       permanentBonus: 0,
       totalXp: baseXp,
     },
+    actionTotalXp: baseXp, // For empty result, action XP equals base XP
     newXpTotal: baseXp,
     newLevel: null,
     leveledUp: false,

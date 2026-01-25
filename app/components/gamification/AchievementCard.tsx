@@ -49,12 +49,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Inbox: Inbox,
 };
 
-// Tier colors using CSS variables
-const TIER_BORDER = {
-  bronze: "border-l-[var(--accent-streak)]",
-  silver: "border-l-[var(--text-secondary)]",
-  gold: "border-l-[var(--accent-highlight)]",
-};
 
 const TIER_TEXT = {
   bronze: "text-[var(--accent-streak)]",
@@ -101,9 +95,10 @@ export function AchievementCard({ achievement, compact = false }: Props) {
     return (
       <div
         className={cn(
-          "p-3 rounded-lg border-l-4 bg-[var(--bg-card)]",
-          "hover:bg-[var(--bg-hover)] transition-colors",
-          currentTier ? TIER_BORDER[currentTier] : "border-l-[var(--border-subtle)] opacity-60"
+          "p-3 rounded-lg bg-[var(--bg-card)]",
+          "hover:bg-[var(--bg-hover)] hover-lift transition-all duration-150",
+          "border border-[var(--border-subtle)]",
+          !currentTier && "opacity-60"
         )}
       >
         <div className="flex items-center gap-3">
@@ -134,9 +129,10 @@ export function AchievementCard({ achievement, compact = false }: Props) {
   return (
     <div
       className={cn(
-        "p-4 rounded-lg border-l-4 bg-[var(--bg-card)]",
-        "hover:bg-[var(--bg-hover)] transition-colors",
-        currentTier ? TIER_BORDER[currentTier] : "border-l-[var(--border-subtle)] opacity-60"
+        "p-4 rounded-xl bg-[var(--bg-card)]",
+        "hover:bg-[var(--bg-hover)] hover-lift transition-all duration-150",
+        "border border-[var(--border-subtle)]",
+        !currentTier && "opacity-60"
       )}
     >
       <div className="flex items-start gap-3">
@@ -152,9 +148,9 @@ export function AchievementCard({ achievement, compact = false }: Props) {
 
           {/* Progress bar */}
           <div className="mt-2">
-            <div className="h-1 bg-[var(--bg-elevated)] rounded-full">
+            <div className="h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
               <div
-                className="h-1 bg-[var(--accent-primary)] rounded-full transition-all"
+                className="h-1 bg-[var(--accent-primary)] rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>

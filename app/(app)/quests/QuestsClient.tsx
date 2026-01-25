@@ -1,7 +1,13 @@
 "use client";
 
+// =============================================================================
+// QUESTS CLIENT COMPONENT
+// Displays user quests with tasks, progress tracking, and CRUD operations.
+// Enhanced with glassmorphism, animated progress bars, and micro-interactions.
+// =============================================================================
+
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, Circle, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, Circle, MoreVertical, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Id, Quest, Task, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -13,8 +19,28 @@ import { useCelebration } from "@/app/components/CelebrationOverlay";
 import { useToast } from "@/app/components/Toast";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import EditTaskModal from "@/app/components/EditTaskModal";
-import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
+import PriorityPill from "@/app/components/ui/PriorityPill";
 import { getTodayISO } from "@/app/lib/date-utils";
+
+// Animation variants for staggered entrance - snappy
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
+};
 
 type QuestsResponse = { ok: true; quests: Quest[] };
 type TasksResponse = { ok: true; tasks: Task[] };
@@ -345,14 +371,26 @@ export default function QuestsClient() {
   return (
     <div className="space-y-6">
       {/* Create Quest Form */}
-      <div className="flex gap-2">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "flex gap-2 p-4 rounded-xl",
+          "bg-[var(--bg-card)] glass-card",
+          "border border-[var(--border-subtle)]"
+        )}
+      >
+        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 flex-shrink-0">
+          <Target size={18} className="text-[var(--accent-primary)]" />
+        </div>
         <input
           placeholder="New quest title..."
           className={cn(
-            "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]",
             "px-4 py-2.5 text-sm text-[var(--text-primary)]",
             "placeholder:text-[var(--text-muted)]",
-            "outline-none focus:border-[var(--accent-primary)]"
+            "outline-none focus:border-[var(--accent-primary)]",
+            "transition-colors"
           )}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
@@ -360,29 +398,47 @@ export default function QuestsClient() {
             if (e.key === "Enter") handleCreate();
           }}
         />
-        <button
+        <motion.button
           onClick={handleCreate}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           className={cn(
             "flex items-center gap-2",
-            "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
-            "px-4 py-2.5 text-sm text-[var(--accent-primary)]",
-            "hover:bg-[var(--accent-primary)]/20 transition"
+            "rounded-lg bg-[var(--accent-primary)] text-white",
+            "px-4 py-2.5 text-sm font-medium",
+            "hover:bg-[var(--accent-primary)]/90",
+            "glow-primary transition-all"
           )}
         >
           <Plus size={16} />
           <span className="hidden sm:inline">Create</span>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* Virtual Onboarding Quest */}
       <OnboardingQuestCard />
 
       {/* Quests List */}
-      <section className="space-y-4">
+      <motion.section
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-4"
+      >
         {quests.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)] py-8 text-center">
-            No quests yet. Create one to get started.
-          </p>
+          <motion.div
+            variants={itemVariants}
+            className={cn(
+              "py-12 text-center rounded-xl",
+              "bg-[var(--bg-card)] glass-card",
+              "border border-[var(--border-subtle)]"
+            )}
+          >
+            <Target size={40} className="mx-auto mb-3 text-[var(--text-muted)] opacity-50" />
+            <p className="text-sm text-[var(--text-muted)]">
+              No quests yet. Create one to get started.
+            </p>
+          </motion.div>
         ) : (
           quests.map((quest) => {
             const questTasks = tasksByQuest[quest.id] ?? [];
@@ -397,13 +453,16 @@ export default function QuestsClient() {
             const isAddingToThisQuest = addingTaskToQuest === quest.id;
 
             return (
-              <div
+              <motion.div
                 key={quest.id}
+                variants={itemVariants}
+                layout
                 className={cn(
-                  "rounded-lg border-l-2 bg-[var(--bg-card)]",
-                  percent === 100
-                    ? "border-l-[var(--accent-success)]"
-                    : "border-l-[var(--accent-primary)]"
+                  "rounded-xl",
+                  "bg-[var(--bg-card)]",
+                  "border border-[var(--border-subtle)]",
+                  "hover:border-[var(--border-default)]",
+                  "hover-lift transition-all duration-200"
                 )}
               >
                 {/* Quest Header - Clickable to expand */}
@@ -530,15 +589,17 @@ export default function QuestsClient() {
 
                   {/* Progress Bar */}
                   <div className="mt-4">
-                    <div className="h-1 w-full rounded-full bg-[var(--bg-elevated)]">
-                      <div
+                    <div className="h-1.5 w-full rounded-full bg-[var(--bg-elevated)] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percent}%` }}
+                        transition={{ duration: 0.35, ease: "easeOut", delay: 0.1 }}
                         className={cn(
-                          "h-1 rounded-full transition-all",
+                          "h-full rounded-full",
                           percent === 100
                             ? "bg-[var(--accent-success)]"
                             : "bg-[var(--accent-primary)]"
                         )}
-                        style={{ width: `${percent}%` }}
                       />
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-2">
@@ -561,88 +622,127 @@ export default function QuestsClient() {
                         {/* Task List */}
                         {questTasks.length > 0 && (
                           <ul className="mt-3 space-y-2">
-                            {questTasks.map((task) => (
-                              <li
-                                key={task.id}
-                                className={cn(
-                                  "flex items-center gap-3 py-2 px-3 rounded-lg",
-                                  "bg-[var(--bg-elevated)] border-l-2",
-                                  PRIORITY_BORDER_COLORS[task.priority],
-                                  "group"
-                                )}
-                              >
-                                {/* Checkbox */}
-                                <button
-                                  onClick={() => handleToggleTask(task.id)}
+                            <AnimatePresence>
+                              {questTasks.map((task, index) => (
+                                <motion.li
+                                  key={task.id}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: 8, scale: 0.95 }}
+                                  transition={{ duration: 0.2, delay: index * 0.03 }}
                                   className={cn(
-                                    "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                    task.completed
-                                      ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
-                                      : "border-[var(--text-muted)] hover:border-[var(--text-secondary)]"
-                                  )}
-                                  title={task.completed ? "Mark incomplete" : "Mark complete"}
-                                >
-                                  {task.completed ? (
-                                    <Check size={12} className="text-white" />
-                                  ) : (
-                                    <Circle size={12} className="text-transparent" />
-                                  )}
-                                </button>
-
-                                {/* Task Title */}
-                                <span
-                                  className={cn(
-                                    "flex-1 text-sm",
-                                    task.completed
-                                      ? "line-through text-[var(--text-muted)]"
-                                      : "text-[var(--text-primary)]"
+                                    "flex items-center gap-3 py-2.5 px-3 rounded-lg",
+                                    "bg-[var(--bg-elevated)]",
+                                    "border border-[var(--border-subtle)]",
+                                    "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
+                                    "transition-all duration-200",
+                                    "group",
+                                    task.completed && "opacity-60"
                                   )}
                                 >
-                                  {task.title}
-                                </span>
-
-                                {/* XP Badge */}
-                                <span className="text-xs font-mono text-[var(--text-muted)] flex-shrink-0">
-                                  {task.completed ? "+" : ""}{task.xp_value} XP
-                                </span>
-
-                                {/* Three-dot menu for tasks */}
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setOpenTaskMenu(openTaskMenu === task.id ? null : task.id)}
-                                    className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-                                    title="Task options"
+                                  {/* Checkbox */}
+                                  <motion.button
+                                    onClick={() => handleToggleTask(task.id)}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className={cn(
+                                      "flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all",
+                                      task.completed
+                                        ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
+                                        : "border-[var(--border-default)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
+                                    )}
+                                    title={task.completed ? "Mark incomplete" : "Mark complete"}
                                   >
-                                    <MoreVertical size={16} className="text-[var(--text-muted)]" />
-                                  </button>
-                                  {/* Dropdown */}
-                                  {openTaskMenu === task.id && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg min-w-[140px] py-1">
-                                      <button
-                                        onClick={() => {
-                                          setEditingTask(task);
-                                          setOpenTaskMenu(null);
-                                        }}
-                                        className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors"
-                                      >
-                                        <Pencil size={16} className="text-[var(--text-muted)]" />
-                                        <span>Edit</span>
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setDeletingTaskId(task.id);
-                                          setOpenTaskMenu(null);
-                                        }}
-                                        className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] text-red-500 transition-colors"
-                                      >
-                                        <Trash2 size={16} />
-                                        <span>Delete</span>
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
+                                    <AnimatePresence mode="wait">
+                                      {task.completed && (
+                                        <motion.div
+                                          initial={{ scale: 0, rotate: -45 }}
+                                          animate={{ scale: 1, rotate: 0 }}
+                                          exit={{ scale: 0, rotate: 45 }}
+                                          transition={{ duration: 0.15 }}
+                                        >
+                                          <Check size={14} className="text-white" />
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </motion.button>
+
+                                  {/* Task Title */}
+                                  <span
+                                    className={cn(
+                                      "flex-1 text-sm transition-all duration-200",
+                                      task.completed
+                                        ? "line-through text-[var(--text-muted)]"
+                                        : "text-[var(--text-primary)]"
+                                    )}
+                                  >
+                                    {task.title}
+                                  </span>
+
+                                  <PriorityPill priority={task.priority} compact />
+
+                                  {/* XP Badge */}
+                                  <motion.span
+                                    className={cn(
+                                      "text-xs font-mono px-2 py-0.5 rounded-md flex-shrink-0",
+                                      task.completed
+                                        ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+                                        : "bg-[var(--bg-card)] text-[var(--text-muted)]"
+                                    )}
+                                    animate={task.completed ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={{ duration: 0.3 }}
+                                  >
+                                    {task.completed ? "+" : ""}{task.xp_value} XP
+                                  </motion.span>
+
+                                  {/* Three-dot menu for tasks */}
+                                  <div className="relative">
+                                    <motion.button
+                                      onClick={() => setOpenTaskMenu(openTaskMenu === task.id ? null : task.id)}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+                                      title="Task options"
+                                    >
+                                      <MoreVertical size={16} className="text-[var(--text-muted)]" />
+                                    </motion.button>
+                                    {/* Dropdown */}
+                                    <AnimatePresence>
+                                      {openTaskMenu === task.id && (
+                                        <motion.div
+                                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                          transition={{ duration: 0.15 }}
+                                          className="absolute right-0 top-full mt-1 z-50 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg min-w-[140px] py-1 glass-card"
+                                        >
+                                          <button
+                                            onClick={() => {
+                                              setEditingTask(task);
+                                              setOpenTaskMenu(null);
+                                            }}
+                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors"
+                                          >
+                                            <Pencil size={16} className="text-[var(--text-muted)]" />
+                                            <span>Edit</span>
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setDeletingTaskId(task.id);
+                                              setOpenTaskMenu(null);
+                                            }}
+                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] text-red-500 transition-colors"
+                                          >
+                                            <Trash2 size={16} />
+                                            <span>Delete</span>
+                                          </button>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </motion.li>
+                              ))}
+                            </AnimatePresence>
                           </ul>
                         )}
 
@@ -755,29 +855,33 @@ export default function QuestsClient() {
                               </div>
                             </div>
                           ) : (
-                            <button
+                            <motion.button
                               onClick={() => setAddingTaskToQuest(quest.id)}
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.99 }}
                               className={cn(
                                 "w-full flex items-center justify-center gap-2",
-                                "py-2 rounded-lg border border-dashed border-[var(--border-subtle)]",
+                                "py-3 rounded-lg border border-dashed border-[var(--border-subtle)]",
                                 "text-sm text-[var(--text-muted)]",
-                                "hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors"
+                                "hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]",
+                                "hover:bg-[var(--accent-primary)]/5",
+                                "transition-all duration-200"
                               )}
                             >
                               <Plus size={16} />
                               Add Task
-                            </button>
+                            </motion.button>
                           )}
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             );
           })
         )}
-      </section>
+      </motion.section>
 
       {/* Delete Quest Confirmation Modal */}
       <ConfirmModal

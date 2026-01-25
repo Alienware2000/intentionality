@@ -36,7 +36,7 @@ export default function StreakBadge({
     <div
       className={cn(
         "flex items-center gap-1.5",
-        "px-2.5 py-1.5 rounded-lg",
+        "px-2.5 py-1.5 rounded-lg transition-all duration-150",
         isActive
           ? "bg-[var(--accent-streak)]/10 border border-[var(--accent-streak)]/20"
           : "bg-[var(--bg-card)] border border-[var(--border-subtle)]",

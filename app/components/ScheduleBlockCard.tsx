@@ -42,8 +42,8 @@ export default function ScheduleBlockCard({
   return (
     <div
       className={cn(
-        "rounded-lg p-3 transition-all group",
-        "border-l-4"
+        "rounded-xl p-3 transition-all duration-150 group hover-lift",
+        "border-l-4 glass-card"
       )}
       style={{
         backgroundColor: `${block.color}15`,

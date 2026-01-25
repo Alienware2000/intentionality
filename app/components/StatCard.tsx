@@ -38,10 +38,10 @@ export default function StatCard({
   return (
     <div
       className={cn(
-        "relative p-4 rounded-lg",
+        "relative p-4 rounded-xl",
         "border border-[var(--border-subtle)]",
-        "bg-[var(--bg-card)]",
-        "transition-all duration-200",
+        "bg-[var(--bg-card)] glass-card",
+        "transition-all duration-150 hover-lift",
         "hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]",
         className
       )}

@@ -151,8 +151,8 @@ export default function OnboardingQuestCard() {
     <>
       <div
         className={cn(
-          "rounded-lg border-l-2 bg-[var(--bg-card)]",
-          "border-l-[var(--accent-highlight)]"
+          "rounded-xl bg-[var(--bg-card)]",
+          "border border-[var(--border-subtle)]"
         )}
       >
         {/* Quest Header - Clickable to expand */}

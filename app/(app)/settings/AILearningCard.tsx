@@ -232,7 +232,7 @@ export default function AILearningCard() {
   const { profile, patterns } = data;
 
   return (
-    <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden">
+    <div className="rounded-xl bg-[var(--bg-card)] glass-card border border-[var(--border-subtle)] overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"

@@ -263,14 +263,15 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className={cn(
               // Bottom-positioned on mobile to avoid keyboard, top-positioned on desktop
               "fixed z-50",
               "bottom-0 left-0 right-0 sm:bottom-auto sm:left-1/2 sm:top-[15%] sm:-translate-x-1/2",
               "w-full sm:w-full max-w-lg p-4 sm:p-6",
-              "rounded-t-xl sm:rounded-lg",
-              "bg-[var(--bg-card)] border border-[var(--border-default)]",
+              "rounded-t-2xl sm:rounded-xl",
+              "bg-[var(--bg-card)] glass-card",
+              "border border-[var(--border-default)]",
               "shadow-2xl shadow-black/50",
               "max-h-[80vh] sm:max-h-[85vh] overflow-y-auto"
             )}
@@ -279,9 +280,14 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="p-2.5 rounded-xl bg-[var(--accent-primary)]/10 glow-primary"
+                >
                   <Brain size={20} className="text-[var(--accent-primary)]" />
-                </div>
+                </motion.div>
                 <div>
                   <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
                     Brain Dump
@@ -291,17 +297,24 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                   </p>
                 </div>
               </div>
-              <button
+              <motion.button
                 onClick={onClose}
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
                 aria-label="Close dialog"
-                className="p-2 rounded hover:bg-[var(--bg-hover)] transition-colors"
+                className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <X size={18} className="text-[var(--text-muted)]" />
-              </button>
+              </motion.button>
             </div>
 
             {/* Textarea */}
-            <div className="relative">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="relative"
+            >
               <textarea
                 ref={textareaRef}
                 value={content}
@@ -309,14 +322,14 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                 placeholder="What's on your mind? Try: 'Call mom tomorrow high priority' or 'Finish report by Friday at 3pm'"
                 rows={5}
                 className={cn(
-                  "w-full px-4 py-3 rounded-lg resize-none",
+                  "w-full px-4 py-3 rounded-xl resize-none",
                   "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                   "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
-                  "focus:outline-none focus:border-[var(--accent-primary)]",
-                  "transition-colors"
+                  "focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/10",
+                  "transition-all duration-200"
                 )}
               />
-            </div>
+            </motion.div>
 
             {/* Smart Parsing Preview */}
             <AnimatePresence>
@@ -522,16 +535,21 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
             )}
 
             {/* Actions */}
-            <div className="mt-4 flex items-center justify-between gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 flex items-center justify-between gap-2"
+            >
               {/* Keyboard shortcut hint - only show on desktop */}
               <p className="hidden md:block text-xs text-[var(--text-muted)] flex-shrink-0">
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px]">
+                <kbd className="px-1.5 py-0.5 rounded-md bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px] border border-[var(--border-subtle)]">
                   {typeof window !== "undefined" && navigator.platform.includes("Mac")
                     ? "Cmd"
                     : "Ctrl"}
                 </kbd>
                 {" + "}
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px]">
+                <kbd className="px-1.5 py-0.5 rounded-md bg-[var(--bg-hover)] text-[var(--text-secondary)] font-mono text-[10px] border border-[var(--border-subtle)]">
                   Enter
                 </kbd>
               </p>
@@ -541,13 +559,15 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
               {/* Action buttons */}
               <div className="flex items-center gap-2">
                 {/* AI Process Button */}
-                <button
+                <motion.button
                   onClick={handleAiProcess}
                   disabled={aiProcessing || !content.trim()}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
+                    "flex items-center gap-2 px-3 py-2.5 sm:py-2 text-sm font-medium rounded-xl",
                     "bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)] border border-[var(--accent-highlight)]/20",
-                    "hover:bg-[var(--accent-highlight)]/20 transition-colors",
+                    "hover:bg-[var(--accent-highlight)]/20 transition-all duration-200",
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
@@ -559,24 +579,27 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                   <span className="hidden sm:inline">
                     {aiProcessing ? "Processing..." : "AI Process"}
                   </span>
-                </button>
+                </motion.button>
 
                 {/* Capture Button */}
-                <button
+                <motion.button
                   onClick={handleCapture}
                   disabled={saving || !content.trim()}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg",
+                    "flex items-center gap-2 px-4 py-2.5 sm:py-2 text-sm font-medium rounded-xl",
                     "bg-[var(--accent-primary)] text-white",
-                    "hover:bg-[var(--accent-primary)]/80 transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                    "hover:bg-[var(--accent-primary)]/90",
+                    "glow-primary transition-all duration-200",
+                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:glow-none"
                   )}
                 >
                   <Zap size={14} />
                   {saving ? "Saving..." : "Capture"}
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         </>
       )}

@@ -247,7 +247,7 @@ export default function CalendarImportCard() {
 
   return (
     <div className={cn(
-      "rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+      "rounded-xl bg-[var(--bg-card)] glass-card border border-[var(--border-subtle)]",
       "overflow-hidden"
     )}>
       {/* Header */}

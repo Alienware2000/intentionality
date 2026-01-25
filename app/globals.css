@@ -273,11 +273,6 @@ body {
   background: var(--border-subtle);
 }
 
-/* Red accent line (for headers) */
-.accent-line {
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary) 0%, transparent 100%);
-}
 
 /* =============================================================================
    ANIMATIONS
@@ -302,7 +297,7 @@ body {
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: pulse-glow 1.2s ease-in-out infinite;
 }
 
 /* Reduced motion support */
@@ -323,7 +318,7 @@ body {
 }
 
 :root.light .animate-pulse-glow {
-  animation: pulse-glow-light 2s ease-in-out infinite;
+  animation: pulse-glow-light 1.2s ease-in-out infinite;
 }
 
 /* Modal backdrop utilities */
@@ -395,7 +390,7 @@ body {
 }
 
 .animate-glow-pulse {
-  animation: glow-pulse-landing 3s ease-in-out infinite;
+  animation: glow-pulse-landing 2s ease-in-out infinite;
 }
 
 /* Counter number animation helper */
@@ -426,7 +421,7 @@ body {
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+  animation: shimmer 1.2s infinite;
 }
 
 /* Light mode landing adjustments */
@@ -449,5 +444,136 @@ body {
   .animate-glow-pulse,
   .animate-shimmer {
     animation: none;
+  }
+}
+
+/* =============================================================================
+   GLASSMORPHISM & GLOW UTILITIES
+   Shared utilities for the UI overhaul
+   ============================================================================= */
+
+/* Glass card - subtle backdrop blur */
+.glass-card {
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Glass card elevated - stronger blur */
+.glass-card-elevated {
+  background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+
+/* Breathing animation for active focus sessions */
+@keyframes breathing {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.25);
+  }
+}
+
+.animate-breathing {
+  animation: breathing 2s ease-in-out infinite;
+}
+
+:root.light .animate-breathing {
+  animation-name: breathing-light;
+}
+
+@keyframes breathing-light {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(37, 99, 235, 0.2);
+  }
+}
+
+/* Gradient border utility */
+.border-gradient {
+  position: relative;
+  border: none;
+  background-clip: padding-box;
+}
+
+.border-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* Subtle card hover lift - snappy */
+.hover-lift {
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Active nav indicator slide */
+@keyframes nav-indicator-slide {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.nav-indicator-animated {
+  animation: nav-indicator-slide 0.2s ease-out forwards;
+  transform-origin: left;
+}
+
+/* Pulsing dot for current time indicator */
+@keyframes pulsing-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.animate-pulsing-dot {
+  animation: pulsing-dot 1.5s ease-in-out infinite;
+}
+
+/* Reduced motion support for new animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathing,
+  .animate-pulsing-dot {
+    animation: none;
+  }
+
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  .nav-indicator-animated {
+    animation: none;
+    transform: scaleX(1);
   }
 }

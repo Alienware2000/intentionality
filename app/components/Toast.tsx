@@ -94,12 +94,12 @@ function ToastItem({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 12, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
+      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg",
+        "flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg",
         "bg-[var(--bg-card)] border border-[var(--border-default)]",
         toast.type === "success" && "border-[var(--accent-success)]/30",
         toast.type === "error" && "border-[var(--accent-primary)]/30"

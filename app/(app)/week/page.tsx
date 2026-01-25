@@ -44,7 +44,6 @@ export default function WeekPage() {
         <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
           Week View
         </h1>
-        <div className="mt-2 h-[2px] w-24 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
       </header>
 
       {/* Week Navigation */}

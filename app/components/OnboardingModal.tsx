@@ -125,7 +125,7 @@ export default function OnboardingModal() {
             className={cn(
               "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]",
               "w-full max-w-md p-6 rounded-xl mx-4 sm:mx-0",
-              "bg-[var(--bg-card)] border border-[var(--border-default)]",
+              "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
               "shadow-2xl"
             )}
           >
@@ -136,7 +136,7 @@ export default function OnboardingModal() {
               className={cn(
                 "absolute top-4 right-4 p-1.5 rounded-lg",
                 "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
-                "hover:bg-[var(--bg-hover)] transition-colors"
+                "hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
               )}
             >
               <X size={18} />

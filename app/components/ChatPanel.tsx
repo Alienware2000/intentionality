@@ -170,7 +170,7 @@ export default function ChatPanel() {
             className={cn(
               "fixed top-0 right-0 h-full z-50",
               "w-full sm:w-[400px]",
-              "bg-[var(--bg-base)] border-l border-[var(--border-subtle)]",
+              "bg-[var(--bg-elevated)] border-l border-[var(--border-subtle)]",
               "flex flex-col shadow-2xl"
             )}
           >

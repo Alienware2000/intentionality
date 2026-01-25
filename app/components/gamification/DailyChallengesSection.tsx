@@ -10,12 +10,6 @@ import { Check, Target, CheckCircle, Clock, Flame, Repeat } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import type { UserDailyChallenge } from "@/app/lib/types";
 
-// Difficulty indicated by left border color (like priority)
-const DIFFICULTY_BORDER = {
-  easy: "border-l-[var(--accent-success)]",
-  medium: "border-l-[var(--priority-medium)]",
-  hard: "border-l-[var(--priority-high)]",
-};
 
 const TYPE_ICONS = {
   tasks: CheckCircle,
@@ -51,12 +45,10 @@ export function DailyChallengesSection({ challenges }: Props) {
               key={challenge.id}
               className={cn(
                 "group flex items-center gap-3 p-3",
-                "border-l-4 rounded-r-lg",
-                "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
-                "transition-colors duration-150",
-                challenge.completed
-                  ? "border-l-[var(--accent-success)] opacity-60"
-                  : DIFFICULTY_BORDER[template.difficulty]
+                "rounded-lg",
+                "bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] hover-lift",
+                "transition-all duration-150",
+                challenge.completed && "opacity-60"
               )}
             >
               {/* Checkbox circle */}
@@ -97,9 +89,9 @@ export function DailyChallengesSection({ challenges }: Props) {
                 </span>
                 {!challenge.completed && (
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-1 bg-[var(--bg-elevated)] rounded-full">
+                    <div className="flex-1 h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                       <div
-                        className="h-1 bg-[var(--accent-primary)] rounded-full transition-all"
+                        className="h-1 bg-[var(--accent-primary)] rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -130,10 +122,10 @@ export function DailyChallengesSection({ challenges }: Props) {
       <div
         className={cn(
           "mt-3 flex items-center justify-between p-3 rounded-lg",
-          "border-l-4",
+          "border border-[var(--border-subtle)]",
           allCompleted
-            ? "border-l-[var(--accent-highlight)] bg-[var(--accent-highlight)]/10"
-            : "border-l-[var(--border-subtle)] bg-[var(--bg-elevated)] opacity-60"
+            ? "bg-[var(--accent-highlight)]/10"
+            : "bg-[var(--bg-elevated)] opacity-60"
         )}
       >
         <div className="flex items-center gap-2">

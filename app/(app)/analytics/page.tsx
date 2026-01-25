@@ -7,7 +7,6 @@ export default async function AnalyticsPage() {
         <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
           Analytics
         </h1>
-        <div className="mt-2 h-[2px] w-24 bg-gradient-to-r from-[var(--accent-primary)] to-transparent" />
         <p className="text-[var(--text-secondary)] text-sm mt-3">
           Track your progress and visualize your productivity.
         </p>

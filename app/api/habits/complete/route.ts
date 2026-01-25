@@ -125,20 +125,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     }
     const newLongestStreak = Math.max(newStreak, habit.longest_streak);
 
-    // Insert completion record
-    const { error: insertError } = await supabase
-      .from("habit_completions")
-      .insert({
-        habit_id: habitId,
-        completed_date: date,
-        xp_awarded: habit.xp_value,
-      });
-
-    if (insertError) {
-      return ApiErrors.serverError(insertError.message);
-    }
-
-    // Update habit streak
+    // Update habit streak first
     await supabase
       .from("habits")
       .update({
@@ -148,13 +135,27 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       })
       .eq("id", habitId);
 
-    // Use gamification v2 system to award XP
+    // Use gamification v2 system to award XP BEFORE inserting completion
+    // so we can store the actual XP awarded (including bonuses)
     const result = await awardXp({
       supabase,
       userId: user.id,
       baseXp: habit.xp_value,
       actionType: "habit",
     });
+
+    // Insert completion record with the actual XP awarded (not base value)
+    const { error: insertError } = await supabase
+      .from("habit_completions")
+      .insert({
+        habit_id: habitId,
+        completed_date: date,
+        xp_awarded: result.actionTotalXp, // Store full action XP for accurate deduction
+      });
+
+    if (insertError) {
+      return ApiErrors.serverError(insertError.message);
+    }
 
     return successResponse({
       xpGained: result.xpBreakdown.totalXp,

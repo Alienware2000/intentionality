@@ -3,13 +3,16 @@
 // =============================================================================
 // HABIT CARD COMPONENT
 // Displays a single habit with completion status, streak, schedule, and actions.
+// Enhanced with glassmorphism, warm streak glow, and smooth animations.
 // =============================================================================
 
-import { memo } from "react";
+import { memo, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check, Pencil, Trash2, Flame, Calendar } from "lucide-react";
+import anime from "animejs";
 import { cn } from "@/app/lib/cn";
-import { PRIORITY_BORDER_COLORS } from "@/app/lib/constants";
 import { isActiveDay } from "@/app/lib/date-utils";
+import { prefersReducedMotion } from "@/app/lib/anime-utils";
 import type { HabitWithStatus, ISODateString, HabitFrequency } from "@/app/lib/types";
 
 type Props = {
@@ -26,7 +29,7 @@ type Props = {
 function getScheduleLabel(frequency: HabitFrequency): string | null {
   switch (frequency) {
     case "daily":
-      return null; // Don't show badge for daily
+      return null;
     case "weekdays":
       return "Mon-Fri";
     case "weekends":
@@ -47,23 +50,49 @@ function HabitCard({
   const activeDays = habit.active_days ?? [1, 2, 3, 4, 5, 6, 7];
   const isActiveToday = isActiveDay(date, activeDays);
   const scheduleLabel = getScheduleLabel(habit.frequency ?? "daily");
+  const hasStreak = habit.current_streak > 0;
+
+  const streakRef = useRef<HTMLDivElement>(null);
+  const prevCompletedRef = useRef(isCompleted);
+
+  // Animate streak badge on completion
+  useEffect(() => {
+    if (isCompleted && !prevCompletedRef.current && streakRef.current && !prefersReducedMotion()) {
+      anime({
+        targets: streakRef.current,
+        scale: [1, 1.2, 1],
+        duration: 400,
+        easing: "easeOutBack",
+      });
+    }
+    prevCompletedRef.current = isCompleted;
+  }, [isCompleted]);
 
   return (
-    <div
+    <motion.div
+      layout
       className={cn(
         "group flex items-center gap-2 sm:gap-3 p-3",
-        "border-l-2 rounded-r-lg",
-        "bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]",
-        "transition-colors duration-150",
-        PRIORITY_BORDER_COLORS[habit.priority],
+        "rounded-xl",
+        "bg-[var(--bg-card)]",
+        "border border-[var(--border-subtle)]",
+        "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
+        "hover-lift",
+        "transition-all duration-200",
         (isCompleted || !isActiveToday) && "opacity-60"
       )}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
     >
       {/* Checkbox - larger touch target on mobile (44px min) */}
-      <button
+      <motion.button
         type="button"
         onClick={() => isActiveToday && onToggle?.(habit.id)}
         disabled={!isActiveToday}
+        whileHover={isActiveToday ? { scale: 1.1 } : {}}
+        whileTap={isActiveToday ? { scale: 0.9 } : {}}
         aria-label={
           !isActiveToday
             ? "Not scheduled today"
@@ -72,19 +101,30 @@ function HabitCard({
             : "Mark habit complete"
         }
         className={cn(
-          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded",
+          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded-lg sm:rounded",
           "border-2 flex items-center justify-center",
-          "transition-colors duration-150",
+          "transition-all duration-200",
           !isActiveToday
             ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] cursor-not-allowed"
             : isCompleted
             ? "bg-[var(--accent-success)] border-[var(--accent-success)] cursor-pointer"
-            : "border-[var(--border-default)] hover:border-[var(--accent-primary)] cursor-pointer"
+            : "border-[var(--border-default)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 cursor-pointer"
         )}
       >
-        {isCompleted && isActiveToday && <Check size={18} className="text-white sm:hidden" />}
-        {isCompleted && isActiveToday && <Check size={14} className="text-white hidden sm:block" />}
-      </button>
+        <AnimatePresence mode="wait">
+          {isCompleted && isActiveToday && (
+            <motion.div
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 45 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Check size={18} className="text-white sm:hidden" />
+              <Check size={14} className="text-white hidden sm:block" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
       {/* Title and schedule info */}
       <button
@@ -96,9 +136,9 @@ function HabitCard({
           isActiveToday ? "cursor-pointer" : "cursor-default"
         )}
       >
-        <span
+        <motion.span
           className={cn(
-            "text-sm truncate block",
+            "text-sm truncate block transition-all duration-200",
             isCompleted
               ? "line-through text-[var(--text-muted)]"
               : !isActiveToday
@@ -107,7 +147,7 @@ function HabitCard({
           )}
         >
           {habit.title}
-        </span>
+        </motion.span>
         {!isActiveToday && (
           <span className="text-xs text-[var(--text-muted)]">
             Not scheduled today
@@ -118,26 +158,30 @@ function HabitCard({
       {/* Action buttons - always visible on mobile, hover on desktop */}
       <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
         {onEdit && (
-          <button
+          <motion.button
             type="button"
             onClick={() => onEdit(habit.id)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             aria-label="Edit habit"
-            className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
           >
             <Pencil size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Pencil size={12} className="text-[var(--text-muted)] hidden sm:block" />
-          </button>
+          </motion.button>
         )}
         {onDelete && (
-          <button
+          <motion.button
             type="button"
             onClick={() => onDelete(habit.id)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             aria-label="Delete habit"
-            className="p-2.5 sm:p-1.5 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
           >
             <Trash2 size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Trash2 size={12} className="text-[var(--text-muted)] hidden sm:block" />
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -146,7 +190,7 @@ function HabitCard({
         <div
           className={cn(
             "hidden sm:flex items-center gap-1",
-            "text-xs px-2 py-0.5 rounded",
+            "text-xs px-2 py-0.5 rounded-full",
             "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
           )}
         >
@@ -155,34 +199,48 @@ function HabitCard({
         </div>
       )}
 
-      {/* Streak indicator */}
-      {habit.current_streak > 0 && (
-        <div
+      {/* Streak indicator with warm glow */}
+      {hasStreak && (
+        <motion.div
+          ref={streakRef}
           className={cn(
-            "flex items-center gap-1",
-            "text-[var(--accent-streak)]"
+            "flex items-center gap-1 px-2 py-1 rounded-lg",
+            "bg-[var(--accent-streak)]/10 text-[var(--accent-streak)]",
+            habit.current_streak >= 7 && "border border-[var(--accent-streak)]/30"
           )}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2 }}
         >
-          <Flame size={14} fill="currentColor" />
+          <Flame
+            size={14}
+            fill="currentColor"
+            className={cn(
+              habit.current_streak >= 7 && "animate-[pulse_2s_ease-in-out_infinite]"
+            )}
+          />
           <span className="text-xs font-mono font-bold">
             {habit.current_streak}
           </span>
-        </div>
+        </motion.div>
       )}
 
       {/* XP badge */}
-      <div
+      <motion.div
         className={cn(
-          "text-xs font-mono px-2 py-0.5 rounded",
-          "bg-[var(--bg-elevated)]",
+          "text-xs font-mono px-2.5 py-1 rounded-lg",
+          "border",
           isCompleted
-            ? "text-[var(--accent-success)]"
-            : "text-[var(--text-muted)]"
+            ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)] border-[var(--accent-success)]/20"
+            : "bg-[var(--bg-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)]"
         )}
+        animate={isCompleted ? { scale: [1, 1.1, 1] } : {}}
+        transition={{ duration: 0.3 }}
       >
-        +{habit.xp_value}
-      </div>
-    </div>
+        {isCompleted && "+"}
+        {habit.xp_value} XP
+      </motion.div>
+    </motion.div>
   );
 }
 

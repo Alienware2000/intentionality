@@ -3,17 +3,37 @@
 // =============================================================================
 // WEEK CLIENT COMPONENT
 // Weekly view showing each day's timeline with unified tasks + schedule blocks.
+// Enhanced with glassmorphism and staggered day column animations.
 // =============================================================================
 
 import { useEffect, useState, useCallback } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
+import { motion } from "framer-motion";
 import type { ISODateString, ScheduleBlock, Quest } from "@/app/lib/types";
-import { formatDayLabel, addDaysISO } from "@/app/lib/date-utils";
+import { formatDayLabel, addDaysISO, getTodayISO } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import DayTimeline from "@/app/components/DayTimeline";
 import AddScheduleModal from "@/app/components/AddScheduleModal";
 import ConfirmModal from "@/app/components/ConfirmModal";
+
+// Animation variants for staggered entrance
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" as const },
+  },
+};
 
 type Props = {
   start: ISODateString;
@@ -99,58 +119,100 @@ export default function WeekClient({ start }: Props) {
     return <p className="text-[var(--accent-primary)]">Error: {error}</p>;
   }
 
+  const today = getTodayISO();
+
   return (
     <>
       {/* Add Schedule Button */}
-      <div className="mb-4">
-        <button
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4"
+      >
+        <motion.button
           onClick={() => {
             setEditingBlock(null);
             setShowScheduleModal(true);
           }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           className={cn(
             "flex items-center gap-2",
-            "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-            "px-4 py-2.5 text-sm text-[var(--text-secondary)]",
-            "hover:bg-[var(--bg-hover)] transition-colors"
+            "rounded-xl glass-card",
+            "border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+            "px-4 py-3 text-sm text-[var(--text-secondary)]",
+            "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
+            "transition-all duration-200"
           )}
         >
-          <Calendar size={16} />
-          <span>Add Schedule Block</span>
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        {days.map((date) => (
-          <div
-            key={date}
-            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]"
-          >
-            {/* Day Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
-              <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                {formatDayLabel(date)}
-              </h2>
-              <span className="text-xs font-mono text-[var(--text-muted)]">
-                {date}
-              </span>
-            </div>
-
-            {/* Day Timeline Content */}
-            <div className="p-3">
-              <DayTimeline
-                key={`${date}-${refreshKey}`}
-                date={date}
-                showOverdue={false}
-                showAddTask={true}
-                compact={true}
-                quests={quests}
-                onRefresh={triggerRefresh}
-              />
-            </div>
+          <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10">
+            <Plus size={14} className="text-[var(--accent-primary)]" />
           </div>
-        ))}
-      </div>
+          <span>Add Schedule Block</span>
+        </motion.button>
+      </motion.div>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-4"
+      >
+        {days.map((date) => {
+          const isToday = date === today;
+
+          return (
+            <motion.div
+              key={date}
+              variants={itemVariants}
+              className={cn(
+                "rounded-xl glass-card",
+                "border border-[var(--border-subtle)] bg-[var(--bg-card)]",
+                "hover:border-[var(--border-default)]",
+                "transition-all duration-200",
+                isToday && "border-[var(--accent-primary)]/30 glow-primary"
+              )}
+            >
+              {/* Day Header */}
+              <div className={cn(
+                "flex items-center justify-between px-4 py-3",
+                "border-b border-[var(--border-subtle)]",
+                isToday && "bg-[var(--accent-primary)]/5"
+              )}>
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className={cn(
+                    "text-[var(--text-muted)]",
+                    isToday && "text-[var(--accent-primary)]"
+                  )} />
+                  <h2 className={cn(
+                    "text-sm font-bold tracking-widest uppercase",
+                    isToday ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"
+                  )}>
+                    {formatDayLabel(date)}
+                    {isToday && <span className="ml-2 text-xs font-normal">(Today)</span>}
+                  </h2>
+                </div>
+                <span className="text-xs font-mono text-[var(--text-muted)]">
+                  {date}
+                </span>
+              </div>
+
+              {/* Day Timeline Content */}
+              <div className="p-3">
+                <DayTimeline
+                  key={`${date}-${refreshKey}`}
+                  date={date}
+                  showOverdue={false}
+                  showAddTask={true}
+                  compact={true}
+                  quests={quests}
+                  onRefresh={triggerRefresh}
+                />
+              </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
 
       {/* Add/Edit Schedule Modal */}
       <AddScheduleModal

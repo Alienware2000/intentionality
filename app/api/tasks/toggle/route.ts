@@ -60,7 +60,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // Only allow toggling non-deleted tasks
   const { data: existing, error: fetchError } = await supabase
     .from("tasks")
-    .select("id, completed, xp_value, priority")
+    .select("id, completed, xp_value, priority, last_xp_awarded")
     .eq("id", taskId)
     .is("deleted_at", null)
     .single();
@@ -101,6 +101,12 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       completionHour,
     });
 
+    // Store the actual XP awarded for accurate deduction when uncompleting
+    await supabase
+      .from("tasks")
+      .update({ last_xp_awarded: result.actionTotalXp })
+      .eq("id", taskId);
+
     // Mark onboarding step complete (fire-and-forget)
     markOnboardingStepComplete(supabase, user.id, "complete_task").catch(() => {});
 
@@ -119,6 +125,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     });
   } else {
     // Deduct XP when unchecking
+    // Use stored XP if available, fallback to base for backwards compatibility
+    const xpToDeduct = existing.last_xp_awarded ?? xpAmount;
+
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("xp_total, level, lifetime_tasks_completed, lifetime_high_priority_completed")
@@ -126,7 +135,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .single();
 
     if (profile) {
-      const newXpTotal = Math.max(0, profile.xp_total - xpAmount);
+      const newXpTotal = Math.max(0, profile.xp_total - xpToDeduct);
       const newLevel = getLevelFromXpV2(newXpTotal);
 
       // Decrement lifetime stats
@@ -148,6 +157,12 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
         .update(updates)
         .eq("user_id", user.id);
 
+      // Clear stored XP when uncompleting
+      await supabase
+        .from("tasks")
+        .update({ last_xp_awarded: null })
+        .eq("id", taskId);
+
       // Update activity log
       const today = getLocalDateString();
       const { data: activityLog } = await supabase
@@ -161,7 +176,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
         await supabase
           .from("user_activity_log")
           .update({
-            xp_earned: Math.max(0, activityLog.xp_earned - xpAmount),
+            xp_earned: Math.max(0, activityLog.xp_earned - xpToDeduct),
             tasks_completed: Math.max(0, activityLog.tasks_completed - 1),
           })
           .eq("id", activityLog.id);
@@ -170,7 +185,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       const levelDecreased = newLevel < profile.level;
       return NextResponse.json({
         ok: true,
-        xpLost: xpAmount,
+        xpLost: xpToDeduct,
         newXpTotal,
         newLevel: levelDecreased ? newLevel : undefined,
         levelDecreased,

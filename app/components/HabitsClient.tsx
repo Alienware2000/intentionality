@@ -13,6 +13,7 @@ import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
 import { useOnboarding } from "./OnboardingProvider";
+import { useCelebration } from "./CelebrationOverlay";
 import HabitCard from "./HabitCard";
 import EditHabitModal from "./EditHabitModal";
 import ConfirmModal from "./ConfirmModal";
@@ -45,6 +46,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
 
   const { refreshProfile } = useProfile();
   const { markStepComplete } = useOnboarding();
+  const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
 
   const refreshHabits = useCallback(async () => {
     setLoading(true);
@@ -143,6 +145,19 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
 
       refreshProfile();
       onHabitToggle?.();
+
+      // Show XP and streak celebrations when completing (not uncompleting)
+      if (!wasCompleted) {
+        if (data.xpGained) {
+          showXpGain(data.xpGained);
+        }
+        if (data.newLevel) {
+          showLevelUp(data.newLevel);
+        }
+        if (data.newStreak && [7, 14, 21, 30, 60, 90, 100, 150, 180, 200, 365].includes(data.newStreak)) {
+          showStreakMilestone(data.newStreak);
+        }
+      }
     } catch {
       // 4. Rollback on error
       setHabits((prev) =>
