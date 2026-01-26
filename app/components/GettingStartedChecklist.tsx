@@ -215,7 +215,7 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
     hasCheckedProgressRef.current = true;
 
     if (completedCount > 0 && !isCollapsed) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setIsCollapsed(true);
     }
   }, [completedCount, loading, isCollapsed]);
@@ -232,7 +232,7 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
       for (const step of STEPS) {
         if (isStepComplete(step.id)) {
           // Show the most recent completion animation
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           setRecentlyCompleted(step.id);
           // Clear after animation
           const timer = setTimeout(() => setRecentlyCompleted(null), 2000);

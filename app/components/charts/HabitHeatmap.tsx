@@ -3,11 +3,13 @@
 // =============================================================================
 // HABIT HEATMAP COMPONENT
 // Shows completion history for individual habits with streak highlighting.
+// Enhanced with anime.js-style grid re-animation and streak pulse effects.
 // =============================================================================
 
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 
 type HabitCompletion = {
@@ -34,8 +36,19 @@ export default function HabitHeatmap({ habits }: Props) {
     habits.length > 0 ? habits[0].id : null
   );
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [animationKey, setAnimationKey] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const legendRef = useRef<HTMLDivElement>(null);
+  const monthLabelsRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotionHook = useReducedMotion();
 
   const selectedHabit = habits.find((h) => h.id === selectedHabitId);
+
+  // Trigger re-animation when habit selection changes
+  const handleHabitChange = (newHabitId: string) => {
+    setSelectedHabitId(newHabitId);
+    setAnimationKey((k) => k + 1);
+  };
 
   // Create a map of date -> completed for quick lookup
   const completionMap = useMemo(() => {
@@ -127,6 +140,72 @@ export default function HabitHeatmap({ habits }: Props) {
     return "bg-[var(--accent-success)]";
   }
 
+  // Grid re-animation on habit selection change
+  useEffect(() => {
+    if (prefersReducedMotionHook || !gridRef.current) return;
+
+    const cells = gridRef.current.querySelectorAll(".habit-heatmap-cell");
+    const cols = weeks.length;
+    const rows = 7;
+
+    // Diagonal wave animation
+    anime({
+      targets: cells,
+      scale: [0.4, 1],
+      opacity: [0, 1],
+      easing: "easeOutBack",
+      duration: 300,
+      delay: (el, i) => {
+        const weekIndex = Math.floor(i / rows);
+        const dayIndex = i % rows;
+        const diagonalIndex = weekIndex + dayIndex;
+        return diagonalIndex * 12 + 50;
+      },
+    });
+
+    // Streak cells pulse animation
+    const streakCells = gridRef.current.querySelectorAll(".streak-cell");
+    if (streakCells.length > 0) {
+      anime({
+        targets: streakCells,
+        boxShadow: [
+          "0 0 0px rgba(var(--accent-streak-rgb), 0)",
+          "0 0 8px rgba(var(--accent-streak-rgb), 0.5)",
+          "0 0 0px rgba(var(--accent-streak-rgb), 0)",
+        ],
+        easing: "easeInOutSine",
+        duration: 800,
+        delay: (el, i) => i * 30 + 400,
+      });
+    }
+
+    // Month labels stagger
+    if (monthLabelsRef.current) {
+      const labels = monthLabelsRef.current.querySelectorAll(".month-label");
+      anime({
+        targets: labels,
+        opacity: [0, 1],
+        translateY: [-6, 0],
+        easing: "easeOutCubic",
+        duration: 250,
+        delay: (el, i) => i * 40 + 100,
+      });
+    }
+
+    // Legend stagger
+    if (legendRef.current) {
+      const legendItems = legendRef.current.querySelectorAll(".legend-item");
+      anime({
+        targets: legendItems,
+        opacity: [0, 1],
+        translateX: [-10, 0],
+        easing: "easeOutCubic",
+        duration: 250,
+        delay: (el, i) => i * 60 + 300,
+      });
+    }
+  }, [animationKey, prefersReducedMotionHook, weeks.length]);
+
   if (habits.length === 0) {
     return (
       <div className="text-center py-8 text-[var(--text-muted)]">
@@ -137,11 +216,11 @@ export default function HabitHeatmap({ habits }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Habit Selector */}
+      {/* Habit Selector with animated transition */}
       <div className="relative">
         <select
           value={selectedHabitId || ""}
-          onChange={(e) => setSelectedHabitId(e.target.value)}
+          onChange={(e) => handleHabitChange(e.target.value)}
           className={cn(
             "w-full appearance-none px-4 py-2.5 pr-10 rounded-xl",
             "bg-[var(--bg-elevated)] border border-[var(--border-subtle)]",
@@ -173,20 +252,27 @@ export default function HabitHeatmap({ habits }: Props) {
       )}
 
       {/* Month Labels */}
-      <div className="flex gap-1 overflow-x-auto pb-1 text-xs text-[var(--text-muted)]">
+      <div ref={monthLabelsRef} className="flex gap-1 overflow-x-auto pb-1 text-xs text-[var(--text-muted)]">
         <div className="w-6 flex-shrink-0" />
         {weeks.map((_, weekIndex) => {
           const monthLabel = monthLabels.find((m) => m.weekIndex === weekIndex);
           return (
             <div key={weekIndex} className="w-3 flex-shrink-0 text-center">
-              {monthLabel ? <span className="font-medium">{monthLabel.label}</span> : null}
+              {monthLabel ? (
+                <span
+                  className="month-label font-medium"
+                  style={{ opacity: prefersReducedMotionHook ? 1 : 0 }}
+                >
+                  {monthLabel.label}
+                </span>
+              ) : null}
             </div>
           );
         })}
       </div>
 
       {/* Heatmap Grid */}
-      <div className="flex gap-1 overflow-x-auto pb-2">
+      <div ref={gridRef} key={animationKey} className="flex gap-1 overflow-x-auto pb-2">
         {/* Day labels */}
         <div className="flex flex-col gap-1 flex-shrink-0 pr-1">
           {["", "M", "", "W", "", "F", ""].map((label, i) => (
@@ -210,13 +296,16 @@ export default function HabitHeatmap({ habits }: Props) {
                 <motion.div
                   key={day.date}
                   className={cn(
-                    "w-3 h-3 rounded-sm cursor-pointer transition-all",
+                    "habit-heatmap-cell w-3 h-3 rounded-sm cursor-pointer transition-all",
                     getColor(day.completed, day.isStreak),
-                    isHovered && "ring-1 ring-[var(--text-primary)]"
+                    day.isStreak && "streak-cell",
+                    isHovered && "ring-1 ring-[var(--text-primary)]",
+                    "cell-hover-pulse"
                   )}
+                  style={{ opacity: prefersReducedMotionHook ? 1 : 0 }}
                   onMouseEnter={() => setHoveredDate(day.date)}
                   onMouseLeave={() => setHoveredDate(null)}
-                  whileHover={{ scale: 1.2 }}
+                  whileHover={{ scale: 1.3 }}
                   title={`${formatDate(day.date)}: ${day.completed ? "Completed" : "Missed"}`}
                 />
               );
@@ -227,27 +316,44 @@ export default function HabitHeatmap({ habits }: Props) {
 
       {/* Legend */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-          <div className="flex items-center gap-1.5">
+        <div ref={legendRef} className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
+          <div
+            className="legend-item flex items-center gap-1.5"
+            style={{ opacity: prefersReducedMotionHook ? 1 : 0 }}
+          >
             <div className="w-3 h-3 rounded-sm bg-[var(--heatmap-empty)]" />
             <span>Missed</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div
+            className="legend-item flex items-center gap-1.5"
+            style={{ opacity: prefersReducedMotionHook ? 1 : 0 }}
+          >
             <div className="w-3 h-3 rounded-sm bg-[var(--accent-success)]" />
             <span>Completed</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div
+            className="legend-item flex items-center gap-1.5"
+            style={{ opacity: prefersReducedMotionHook ? 1 : 0 }}
+          >
             <div className="w-3 h-3 rounded-sm bg-[var(--accent-streak)]" />
             <span>Current Streak</span>
           </div>
         </div>
 
         {/* Hover tooltip */}
-        {hoveredDate && (
-          <div className="text-xs text-[var(--text-secondary)]">
-            {formatDate(hoveredDate)}
-          </div>
-        )}
+        <AnimatePresence>
+          {hoveredDate && (
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs text-[var(--text-secondary)]"
+            >
+              {formatDate(hoveredDate)}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

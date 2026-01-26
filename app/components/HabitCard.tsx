@@ -4,16 +4,18 @@
 // HABIT CARD COMPONENT
 // Displays a single habit with completion status, streak, schedule, and actions.
 // Enhanced with glassmorphism, warm streak glow, and smooth animations.
+// Features anime.js-style checkbox draw and ripple effects.
 // =============================================================================
 
 import { memo, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Pencil, Trash2, Flame, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
+import { Pencil, Trash2, Flame, Calendar } from "lucide-react";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import { isActiveDay } from "@/app/lib/date-utils";
 import { prefersReducedMotion } from "@/app/lib/anime-utils";
 import type { HabitWithStatus, ISODateString, HabitFrequency } from "@/app/lib/types";
+import AnimatedCheckbox from "./ui/AnimatedCheckbox";
 
 type Props = {
   habit: HabitWithStatus;
@@ -86,45 +88,20 @@ function HabitCard({
       exit={{ opacity: 0, y: -8, scale: 0.95 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Checkbox - larger touch target on mobile (44px min) */}
-      <motion.button
-        type="button"
-        onClick={() => isActiveToday && onToggle?.(habit.id)}
+      {/* Checkbox with animated checkmark draw and ripple effect */}
+      <AnimatedCheckbox
+        checked={isCompleted && isActiveToday}
         disabled={!isActiveToday}
-        whileHover={isActiveToday ? { scale: 1.1 } : {}}
-        whileTap={isActiveToday ? { scale: 0.9 } : {}}
-        aria-label={
+        onChange={() => isActiveToday && onToggle?.(habit.id)}
+        size="md"
+        ariaLabel={
           !isActiveToday
             ? "Not scheduled today"
             : isCompleted
             ? "Mark habit incomplete"
             : "Mark habit complete"
         }
-        className={cn(
-          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded-lg sm:rounded",
-          "border-2 flex items-center justify-center",
-          "transition-all duration-200",
-          !isActiveToday
-            ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] cursor-not-allowed"
-            : isCompleted
-            ? "bg-[var(--accent-success)] border-[var(--accent-success)] cursor-pointer"
-            : "border-[var(--border-default)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 cursor-pointer"
-        )}
-      >
-        <AnimatePresence mode="wait">
-          {isCompleted && isActiveToday && (
-            <motion.div
-              initial={{ scale: 0, rotate: -45 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 45 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Check size={18} className="text-white sm:hidden" />
-              <Check size={14} className="text-white hidden sm:block" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
+      />
 
       {/* Title and schedule info */}
       <button

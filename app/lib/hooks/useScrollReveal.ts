@@ -87,7 +87,7 @@ export function useScrollReveal(
   } = options;
 
   const ref = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const isInView = useInView(ref, {
     once,
     margin: margin as any,

@@ -3,7 +3,7 @@
 // =============================================================================
 // ANALYTICS CLIENT COMPONENT
 // Main analytics dashboard with stats, charts, and gamification features.
-// Enhanced with glassmorphism, animated stat cards, and smooth transitions.
+// Enhanced with anime.js-style wave stagger, animated counters, and smooth transitions.
 // =============================================================================
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -62,21 +62,29 @@ type AchievementsResponse = {
   };
 };
 
-// Animation variants - snappy
+// Animation variants - anime.js-style wave stagger with spring physics
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.04 },
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 8 },
+  hidden: { opacity: 0, y: 15, scale: 0.95 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.2, ease: "easeOut" as const },
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 12,
+    },
   },
 };
 
@@ -103,7 +111,6 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
     highlight: "text-[var(--accent-highlight)]",
   };
 
-
   const iconBgColors = {
     primary: "bg-[var(--accent-primary)]/10",
     success: "bg-[var(--accent-success)]/10",
@@ -111,7 +118,7 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
     highlight: "bg-[var(--accent-highlight)]/10",
   };
 
-  // Animate numeric value on mount
+  // Animate numeric value with spring easing
   useEffect(() => {
     if (prefersReducedMotion() || !valueRef.current) return;
 
@@ -123,12 +130,11 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
       targets: { val: 0 },
       val: numericValue,
       round: 1,
-      duration: 500,
-      delay: delay * 50,
-      easing: "easeOutExpo",
+      duration: 800,
+      delay: delay * 80 + 200,
+      easing: "spring(1, 80, 12, 0)",
       update: (anim) => {
         const currentVal = Math.round((anim.animations[0] as unknown as { currentValue: number }).currentValue);
-        // Preserve prefix/suffix from original value
         if (typeof value === "string") {
           const prefix = value.match(/^[^0-9]*/)?.[0] ?? "";
           const suffix = value.match(/[^0-9]*$/)?.[0] ?? "";
@@ -143,8 +149,8 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
   return (
     <motion.div
       variants={itemVariants}
-      whileHover={{ scale: 1.02, y: -2 }}
-      transition={{ duration: 0.2 }}
+      whileHover={{ scale: 1.02, y: -3 }}
+      transition={{ type: "spring" as const, stiffness: 200, damping: 15 }}
       className={cn(
         "rounded-xl glass-card",
         "bg-[var(--bg-card)]",
@@ -160,7 +166,7 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
           </p>
           <p
             ref={valueRef}
-            className={cn("text-2xl font-mono font-bold mt-1", accentColors[accent])}
+            className={cn("text-2xl font-mono font-bold mt-1 rounded", accentColors[accent])}
           >
             {value}
           </p>
@@ -252,10 +258,11 @@ export default function AnalyticsClient() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Time Period Selector */}
+      {/* Time Period Selector with slide indicator */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 15 }}
         className={cn(
           "flex items-center gap-2 p-3 rounded-xl",
           "bg-[var(--bg-card)] glass-card",
@@ -263,20 +270,32 @@ export default function AnalyticsClient() {
         )}
       >
         <span className="text-sm text-[var(--text-muted)]">Period:</span>
-        <div className="flex gap-1">
-          {[7, 14, 30, 60, 90].map((d) => (
+        <div className="relative flex gap-1">
+          {[7, 14, 30, 60, 90].map((d, index) => (
             <motion.button
               key={d}
               onClick={() => setDays(d)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={cn(
-                "px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-all",
+                "relative px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors z-10",
                 days === d
-                  ? "bg-[var(--accent-primary)] text-white"
-                  : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                  ? "text-white"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               )}
             >
+              {/* Active indicator with layout animation */}
+              {days === d && (
+                <motion.div
+                  layoutId="period-indicator"
+                  className="absolute inset-0 bg-[var(--accent-primary)] rounded-lg -z-10"
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 20,
+                  }}
+                />
+              )}
               {d}d
             </motion.button>
           ))}

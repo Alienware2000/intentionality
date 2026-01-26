@@ -6,18 +6,18 @@
 // Enhanced with glassmorphism, animated navigation indicators, and micro-interactions.
 // =============================================================================
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Sparkles, Trophy, Users, UsersRound } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Sparkles, Trophy, Users, UsersRound, Palette } from "lucide-react";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import { useProfile } from "./ProfileProvider";
-import { useTheme } from "./ThemeProvider";
+import { useTheme, ACCENT_THEMES, ACCENT_THEME_ORDER, BASE_THEMES, BASE_THEME_ORDER } from "./ThemeProvider";
 import { useAI } from "./AIProvider";
 import { getTitleForLevel } from "@/app/lib/gamification";
 import { XpBarTooltip, StreakTooltip } from "./HelpTooltip";
@@ -55,10 +55,26 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, loading } = useProfile();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, accent, baseTheme, setTheme, setAccent, setBaseTheme } = useTheme();
   const { openChat } = useAI();
   const xpBarRef = useRef<HTMLDivElement>(null);
   const prevXpRef = useRef<number | null>(null);
+  const themePickerRef = useRef<HTMLDivElement>(null);
+  const [showAccentPicker, setShowAccentPicker] = useState(false);
+
+  // Close theme picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (themePickerRef.current && !themePickerRef.current.contains(event.target as Node)) {
+        setShowAccentPicker(false);
+      }
+    }
+
+    if (showAccentPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showAccentPicker]);
 
   // Animate XP bar on load and changes
   useEffect(() => {
@@ -222,12 +238,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-2">
             {profile && (
               <>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className={cn(
-                    profile.current_streak > 0 && "glow-streak"
-                  )}
-                >
+                <motion.div whileHover={{ scale: 1.05 }}>
                   <StreakBadge streak={profile.current_streak} size="sm" />
                 </motion.div>
                 <StreakTooltip />
@@ -236,22 +247,115 @@ export default function Sidebar() {
           </div>
           {/* Actions on right - icon only with micro-interactions */}
           <div className="flex items-center gap-1">
-            <motion.button
-              type="button"
-              onClick={toggleTheme}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
-            >
-              <motion.div
-                initial={false}
-                animate={{ rotate: theme === "dark" ? 0 : 180 }}
-                transition={{ duration: 0.3 }}
+            {/* Unified theme picker */}
+            <div className="relative" ref={themePickerRef}>
+              <motion.button
+                type="button"
+                onClick={() => setShowAccentPicker(!showAccentPicker)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+                title="Appearance"
               >
-                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-              </motion.div>
-            </motion.button>
+                <Palette size={16} style={{ color: ACCENT_THEMES[accent].primary }} />
+              </motion.button>
+
+              {/* Theme picker popup */}
+              <AnimatePresence>
+                {showAccentPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full left-0 mb-2 p-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-lg z-50 min-w-[180px]"
+                  >
+                    {/* Accent colors */}
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Accent</div>
+                    <div className="flex gap-1.5">
+                      {ACCENT_THEME_ORDER.map((themeKey) => {
+                        const themeData = ACCENT_THEMES[themeKey];
+                        const isActive = accent === themeKey;
+                        return (
+                          <motion.button
+                            key={themeKey}
+                            type="button"
+                            onClick={() => setAccent(themeKey)}
+                            whileHover={{ scale: 1.15 }}
+                            whileTap={{ scale: 0.9 }}
+                            className={cn(
+                              "w-6 h-6 rounded-full transition-all duration-150",
+                              isActive && "ring-2 ring-white/40 ring-offset-1 ring-offset-[var(--bg-card)]"
+                            )}
+                            style={{ backgroundColor: themeData.primary }}
+                            title={`${themeData.name} - ${themeData.description}`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-[var(--border-subtle)] my-2.5" />
+
+                    {/* Base theme - only in dark mode */}
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5 flex items-center gap-1">
+                      Background
+                      {theme === "light" && <span className="text-[9px] normal-case">(dark only)</span>}
+                    </div>
+                    <div className={cn("flex gap-1.5", theme === "light" && "opacity-40 pointer-events-none")}>
+                      {BASE_THEME_ORDER.map((base) => (
+                        <button
+                          key={base}
+                          type="button"
+                          onClick={() => setBaseTheme(base)}
+                          disabled={theme === "light"}
+                          className={cn(
+                            "flex-1 px-2.5 py-1.5 text-xs rounded-md transition-all duration-150",
+                            baseTheme === base && theme === "dark"
+                              ? "bg-[var(--accent-primary)]/20 text-[var(--text-primary)] ring-1 ring-[var(--accent-primary)]/30"
+                              : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+                          )}
+                        >
+                          {BASE_THEMES[base].name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-[var(--border-subtle)] my-2.5" />
+
+                    {/* Theme mode toggle */}
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Mode</div>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setTheme("light")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition-all duration-150",
+                          theme === "light"
+                            ? "bg-[var(--accent-primary)]/20 text-[var(--text-primary)] ring-1 ring-[var(--accent-primary)]/30"
+                            : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+                        )}
+                      >
+                        <Sun size={12} /> Light
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTheme("dark")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition-all duration-150",
+                          theme === "dark"
+                            ? "bg-[var(--accent-primary)]/20 text-[var(--text-primary)] ring-1 ring-[var(--accent-primary)]/30"
+                            : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+                        )}
+                      >
+                        <Moon size={12} /> Dark
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <motion.button
               type="button"
               onClick={handleResetOnboarding}

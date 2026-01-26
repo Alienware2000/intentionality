@@ -2,17 +2,28 @@
 
 // =============================================================================
 // SETTINGS CLIENT COMPONENT
-// Main settings interface with integrations and AI sections.
+// Main settings interface with appearance, integrations and AI sections.
 // =============================================================================
 
 import CalendarImportCard from "./CalendarImportCard";
 import GoogleCalendarCard from "./GoogleCalendarCard";
 import AILearningCard from "./AILearningCard";
 import PrivacySettingsCard from "./PrivacySettingsCard";
+import AppearanceSettingsCard from "./AppearanceSettingsCard";
 
 export default function SettingsClient() {
   return (
     <div className="space-y-8">
+      {/* Appearance Section */}
+      <section>
+        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
+          Appearance
+        </h2>
+        <div className="space-y-4">
+          <AppearanceSettingsCard />
+        </div>
+      </section>
+
       {/* Privacy & Social Section */}
       <section>
         <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">

@@ -1,43 +1,106 @@
 @import "tailwindcss";
 
 /* =============================================================================
-   INTENTIONALITY - DESIGN SYSTEM
-   Inspired by anime.js: dramatic dark theme with high-contrast accents
+   INTENTIONALITY - PREMIUM DESIGN SYSTEM
+   Iron Man HUD-inspired interface with user-selectable accent themes
    ============================================================================= */
 
-/* Dark theme (default) */
+/* =============================================================================
+   ACCENT THEME SYSTEM
+   Dynamic accent colors set by JavaScript via data-accent attribute
+   Default: crimson (refined red)
+   ============================================================================= */
+
+/* Crimson Theme (Default) - Refined red with gold highlights */
+:root,
+:root[data-accent="crimson"] {
+  --accent-primary: #dc2626;
+  --accent-primary-rgb: 220, 38, 38;
+  --accent-primary-glow: rgba(220, 38, 38, 0.35);
+  --accent-highlight: #fbbf24;
+  --accent-highlight-rgb: 251, 191, 36;
+}
+
+/* Teal Theme - Solarpunk nature/tech fusion */
+:root[data-accent="teal"] {
+  --accent-primary: #00d4aa;
+  --accent-primary-rgb: 0, 212, 170;
+  --accent-primary-glow: rgba(0, 212, 170, 0.35);
+  --accent-highlight: #f0c040;
+  --accent-highlight-rgb: 240, 192, 64;
+}
+
+/* Gold Theme - Solar powered warmth */
+:root[data-accent="gold"] {
+  --accent-primary: #f0c040;
+  --accent-primary-rgb: 240, 192, 64;
+  --accent-primary-glow: rgba(240, 192, 64, 0.35);
+  --accent-highlight: #00d4aa;
+  --accent-highlight-rgb: 0, 212, 170;
+}
+
+/* Violet Theme - Deep focus mode */
+:root[data-accent="violet"] {
+  --accent-primary: #7c5cff;
+  --accent-primary-rgb: 124, 92, 255;
+  --accent-primary-glow: rgba(124, 92, 255, 0.35);
+  --accent-highlight: #f0c040;
+  --accent-highlight-rgb: 240, 192, 64;
+}
+
+/* Emerald Theme - Nature growth */
+:root[data-accent="emerald"] {
+  --accent-primary: #10b981;
+  --accent-primary-rgb: 16, 185, 129;
+  --accent-primary-glow: rgba(16, 185, 129, 0.35);
+  --accent-highlight: #fbbf24;
+  --accent-highlight-rgb: 251, 191, 36;
+}
+
+/* =============================================================================
+   DARK THEME (Default)
+   Premium dark mode with true blacks and dramatic contrast
+   ============================================================================= */
+
 :root,
 :root.dark {
-  /* Base colors - true black with dramatic contrast */
-  --bg-base: #000000;
-  --bg-elevated: #0a0a0a;
-  --bg-card: #111111;
-  --bg-hover: #1a1a1a;
+  /* Base colors - Zinc Charcoal with soft warmth */
+  --bg-base: #18181b;
+  --bg-base-rgb: 24, 24, 27;
+  --bg-elevated: #1f1f23;
+  --bg-card: #27272a;
+  --bg-card-rgb: 39, 39, 42;
+  --bg-hover: #3f3f46;
 
   /* Text colors */
   --text-primary: #ffffff;
-  --text-secondary: #a3a3a3;
-  --text-muted: #525252;
+  --text-secondary: #b5b5b5;
+  --text-muted: #71717a;
 
-  /* Accent colors - anime.js inspired */
-  --accent-primary: #ef4444;        /* red-500 - main accent, XP bar */
-  --accent-highlight: #ebffa5;      /* lime-yellow - highlights, level-ups */
-  --accent-success: #22c55e;        /* green - completions */
-  --accent-streak: #f97316;         /* orange - streaks/fire */
+  /* Fixed semantic colors (not affected by accent theme) */
+  --accent-success: #22c55e;
+  --accent-success-rgb: 34, 197, 94;
+  --accent-streak: #f97316;
+  --accent-streak-rgb: 249, 115, 22;
+  --accent-danger: #ef4444;
+  --accent-danger-rgb: 239, 68, 68;
+  --accent-info: #3b82f6;
+  --accent-info-rgb: 59, 130, 246;
 
   /* Priority colors */
-  --priority-high: #ef4444;         /* red */
-  --priority-medium: #eab308;       /* yellow */
-  --priority-low: #525252;          /* grey */
+  --priority-high: #ef4444;
+  --priority-medium: #eab308;
+  --priority-low: #525252;
 
-  /* Borders and lines */
+  /* Borders and lines - boosted accent visibility for grey */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-default: rgba(255, 255, 255, 0.12);
-  --border-accent: rgba(239, 68, 68, 0.4);
+  --border-accent: rgba(var(--accent-primary-rgb), 0.45);
+  --border-hover: rgba(var(--accent-primary-rgb), 0.25);
 
   /* Heatmap & Skeleton */
-  --heatmap-empty: #1a1a1a;
-  --skeleton-bg: #1a1a1a;
+  --heatmap-empty: #27272a;
+  --skeleton-bg: #27272a;
 
   /* Achievement Tiers */
   --tier-bronze-text: #f59e0b;
@@ -48,46 +111,94 @@
   --tier-gold-glow: rgba(250, 204, 21, 0.6);
 
   /* Modal Backdrops */
-  --backdrop-color: rgba(0, 0, 0, 0.80);
-  --backdrop-heavy: rgba(0, 0, 0, 0.90);
+  --backdrop-color: rgba(24, 24, 27, 0.85);
+  --backdrop-heavy: rgba(24, 24, 27, 0.92);
 
-  /* Level-up glow */
-  --levelup-glow: rgba(235, 255, 165, 0.5);
-  --levelup-glow-soft: rgba(235, 255, 165, 0.3);
+  /* Level-up glow - uses accent highlight */
+  --levelup-glow: rgba(var(--accent-highlight-rgb), 0.5);
+  --levelup-glow-soft: rgba(var(--accent-highlight-rgb), 0.3);
+
+  /* Premium glow intensities - refined for grey background */
+  --glow-subtle: 0 0 20px rgba(var(--accent-primary-rgb), 0.12);
+  --glow-medium: 0 0 28px rgba(var(--accent-primary-rgb), 0.20);
+  --glow-strong: 0 0 36px rgba(var(--accent-primary-rgb), 0.30);
 
   /* Legacy - for Tailwind compatibility */
-  --background: #000000;
+  --background: #18181b;
   --foreground: #ffffff;
 }
 
-/* Light theme - Modern clean palette (inspired by Notion, Linear, GitHub) */
+/* =============================================================================
+   MIDNIGHT BASE THEME (True Black)
+   OLED-optimized with enhanced glows for higher contrast
+   ============================================================================= */
+
+:root.dark[data-base="midnight"] {
+  /* Base colors - True black */
+  --bg-base: #09090b;
+  --bg-base-rgb: 9, 9, 11;
+  --bg-elevated: #111113;
+  --bg-card: #18181b;
+  --bg-card-rgb: 24, 24, 27;
+  --bg-hover: #27272a;
+
+  /* Adjusted for darker base */
+  --heatmap-empty: #18181b;
+  --skeleton-bg: #18181b;
+  --backdrop-color: rgba(9, 9, 11, 0.90);
+  --backdrop-heavy: rgba(9, 9, 11, 0.95);
+
+  /* Enhanced glows for higher contrast */
+  --glow-subtle: 0 0 24px rgba(var(--accent-primary-rgb), 0.18);
+  --glow-medium: 0 0 32px rgba(var(--accent-primary-rgb), 0.28);
+  --glow-strong: 0 0 40px rgba(var(--accent-primary-rgb), 0.40);
+
+  /* Borders - more visible on pure black */
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.15);
+
+  --background: #09090b;
+}
+
+/* =============================================================================
+   LIGHT THEME
+   Clean, professional light mode with accent theme support
+   ============================================================================= */
+
 :root.light {
   /* Base colors - clean off-white/white */
-  --bg-base: #fafafa;              /* Off-white background */
-  --bg-elevated: #ffffff;          /* Pure white for elevated surfaces */
-  --bg-card: #ffffff;              /* White cards */
-  --bg-hover: #f3f4f6;             /* gray-100 for hover states */
+  --bg-base: #fafafa;
+  --bg-base-rgb: 250, 250, 250;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-rgb: 255, 255, 255;
+  --bg-hover: #f3f4f6;
 
   /* Text colors - cool gray hierarchy (WCAG AAA compliant) */
-  --text-primary: #111827;         /* gray-900 - 15.8:1 contrast */
-  --text-secondary: #374151;       /* gray-700 - 9.7:1 contrast */
-  --text-muted: #6b7280;           /* gray-500 - 5.4:1 contrast */
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
 
-  /* Accent colors - blue primary for professional feel */
-  --accent-primary: #2563eb;        /* blue-600 */
-  --accent-highlight: #fef08a;      /* yellow-200 */
-  --accent-success: #16a34a;        /* green-600 */
-  --accent-streak: #ea580c;         /* orange-600 */
+  /* Fixed semantic colors (light mode variants) */
+  --accent-success: #16a34a;
+  --accent-success-rgb: 22, 163, 74;
+  --accent-streak: #ea580c;
+  --accent-streak-rgb: 234, 88, 12;
+  --accent-danger: #dc2626;
+  --accent-danger-rgb: 220, 38, 38;
+  --accent-info: #2563eb;
+  --accent-info-rgb: 37, 99, 235;
 
   /* Priority colors */
-  --priority-high: #dc2626;         /* red-600 */
-  --priority-medium: #ca8a04;       /* yellow-600 */
-  --priority-low: #6b7280;          /* gray-500 */
+  --priority-high: #dc2626;
+  --priority-medium: #ca8a04;
+  --priority-low: #6b7280;
 
   /* Borders and lines - stronger for visibility */
-  --border-subtle: rgba(0, 0, 0, 0.12);
-  --border-default: rgba(0, 0, 0, 0.20);
-  --border-accent: rgba(37, 99, 235, 0.30);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-default: rgba(0, 0, 0, 0.15);
+  --border-accent: rgba(var(--accent-primary-rgb), 0.25);
+  --border-hover: rgba(var(--accent-primary-rgb), 0.15);
 
   /* Heatmap & Skeleton - visible gray */
   --heatmap-empty: #e5e7eb;
@@ -105,13 +216,49 @@
   --backdrop-color: rgba(0, 0, 0, 0.50);
   --backdrop-heavy: rgba(0, 0, 0, 0.60);
 
-  /* Level-up glow - blue tinted */
-  --levelup-glow: rgba(37, 99, 235, 0.35);
-  --levelup-glow-soft: rgba(37, 99, 235, 0.15);
+  /* Level-up glow - uses accent */
+  --levelup-glow: rgba(var(--accent-highlight-rgb), 0.4);
+  --levelup-glow-soft: rgba(var(--accent-highlight-rgb), 0.2);
+
+  /* Premium glow intensities (softer for light mode) */
+  --glow-subtle: 0 0 16px rgba(var(--accent-primary-rgb), 0.12);
+  --glow-medium: 0 0 24px rgba(var(--accent-primary-rgb), 0.18);
+  --glow-strong: 0 0 32px rgba(var(--accent-primary-rgb), 0.25);
 
   /* Legacy - for Tailwind compatibility */
   --background: #fafafa;
   --foreground: #111827;
+}
+
+/* Light mode accent theme adjustments for better contrast */
+:root.light[data-accent="crimson"] {
+  --accent-primary: #dc2626;
+  --accent-primary-rgb: 220, 38, 38;
+  --accent-primary-glow: rgba(220, 38, 38, 0.25);
+}
+
+:root.light[data-accent="teal"] {
+  --accent-primary: #0d9488;
+  --accent-primary-rgb: 13, 148, 136;
+  --accent-primary-glow: rgba(13, 148, 136, 0.25);
+}
+
+:root.light[data-accent="gold"] {
+  --accent-primary: #b45309;
+  --accent-primary-rgb: 180, 83, 9;
+  --accent-primary-glow: rgba(180, 83, 9, 0.25);
+}
+
+:root.light[data-accent="violet"] {
+  --accent-primary: #6d28d9;
+  --accent-primary-rgb: 109, 40, 217;
+  --accent-primary-glow: rgba(109, 40, 217, 0.25);
+}
+
+:root.light[data-accent="emerald"] {
+  --accent-primary: #059669;
+  --accent-primary-rgb: 5, 150, 105;
+  --accent-primary-glow: rgba(5, 150, 105, 0.25);
 }
 
 @theme inline {
@@ -128,8 +275,8 @@ body {
 }
 
 /* =============================================================================
-   BACKGROUND EFFECTS
-   Subtle grid pattern with red accent glows
+   PREMIUM HUD BACKGROUND
+   Iron Man-inspired layered background with hexagonal tech grid
    ============================================================================= */
 
 .intentionality-bg {
@@ -137,51 +284,101 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  overflow: hidden;
 }
 
-/* Grid layer - subtle geometric pattern */
+/* Layer 1: Hexagonal tech grid pattern - slightly more visible on grey */
 .intentionality-bg::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
-  opacity: 0.4;
+    /* Hexagonal dot pattern */
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    /* Primary grid lines */
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px, 48px 48px, 48px 48px;
+  background-position: 0 0, 0 0, 0 0;
+  opacity: 0.7;
 }
 
-/* Glow layer - red accent glows at corners (dark mode) */
+/* Layer 2: Accent-aware corner glows with reduced vignette for grey base */
 .intentionality-bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    /* Top-left red glow */
-    radial-gradient(600px circle at 10% 10%, rgba(239, 68, 68, 0.08), transparent 50%),
-    /* Bottom-right subtle glow */
-    radial-gradient(800px circle at 90% 90%, rgba(239, 68, 68, 0.05), transparent 50%),
-    /* Vignette for depth */
-    radial-gradient(1400px circle at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
+    /* Top-left accent glow */
+    radial-gradient(700px circle at 5% 5%, rgba(var(--accent-primary-rgb), 0.12), transparent 50%),
+    /* Top-right subtle accent glow */
+    radial-gradient(500px circle at 95% 10%, rgba(var(--accent-primary-rgb), 0.06), transparent 50%),
+    /* Bottom-left subtle highlight */
+    radial-gradient(400px circle at 10% 90%, rgba(var(--accent-highlight-rgb), 0.04), transparent 50%),
+    /* Bottom-right accent glow */
+    radial-gradient(600px circle at 90% 85%, rgba(var(--accent-primary-rgb), 0.08), transparent 50%),
+    /* Center darkening for depth - reduced for grey background */
+    radial-gradient(1600px circle at 50% 50%, transparent 20%, rgba(0, 0, 0, 0.35) 100%);
   opacity: 1;
+  transition: background 0.5s ease-out;
 }
 
-/* Light mode background adjustments - subtle cool tones */
+/* Midnight base - enhanced ambient glows and deeper vignette */
+:root.dark[data-base="midnight"] .intentionality-bg::before {
+  background-image:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  opacity: 0.6;
+}
+
+:root.dark[data-base="midnight"] .intentionality-bg::after {
+  background:
+    radial-gradient(700px circle at 5% 5%, rgba(var(--accent-primary-rgb), 0.16), transparent 50%),
+    radial-gradient(500px circle at 95% 10%, rgba(var(--accent-primary-rgb), 0.08), transparent 50%),
+    radial-gradient(400px circle at 10% 90%, rgba(var(--accent-highlight-rgb), 0.06), transparent 50%),
+    radial-gradient(600px circle at 90% 85%, rgba(var(--accent-primary-rgb), 0.10), transparent 50%),
+    radial-gradient(1600px circle at 50% 50%, transparent 15%, rgba(0, 0, 0, 0.50) 100%);
+}
+
+/* HUD scan line element - requires JavaScript to animate */
+.hud-scan-line {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0) 20%,
+    rgba(var(--accent-primary-rgb), 0.5) 50%,
+    rgba(var(--accent-primary-rgb), 0) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Light mode background adjustments */
 :root.light .intentionality-bg::before {
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-  opacity: 0.3;
+    radial-gradient(circle at center, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to right, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+  opacity: 0.5;
 }
 
 :root.light .intentionality-bg::after {
   background:
-    /* Top-left subtle blue glow */
-    radial-gradient(600px circle at 10% 10%, rgba(37, 99, 235, 0.04), transparent 50%),
-    /* Bottom-right subtle accent glow */
-    radial-gradient(800px circle at 90% 90%, rgba(37, 99, 235, 0.02), transparent 50%),
-    /* Very subtle vignette */
-    radial-gradient(1400px circle at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.02) 100%);
+    /* Top-left subtle accent glow */
+    radial-gradient(600px circle at 5% 5%, rgba(var(--accent-primary-rgb), 0.06), transparent 50%),
+    /* Top-right */
+    radial-gradient(400px circle at 95% 10%, rgba(var(--accent-primary-rgb), 0.03), transparent 50%),
+    /* Bottom glow */
+    radial-gradient(500px circle at 90% 85%, rgba(var(--accent-primary-rgb), 0.04), transparent 50%),
+    /* Very subtle edge darkening */
+    radial-gradient(1600px circle at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.03) 100%);
 }
 
 /* =============================================================================
@@ -239,32 +436,65 @@ body {
   font-feature-settings: "tnum" on, "lnum" on;
 }
 
-/* Red glow effect for important elements (dark mode) */
+/* =============================================================================
+   ACCENT-AWARE GLOW UTILITIES
+   Dynamic glows that respond to the selected accent theme
+   ============================================================================= */
+
+/* Primary accent glow - uses current theme accent */
+.glow-primary {
+  box-shadow: var(--glow-subtle);
+}
+
+.glow-primary-hover:hover {
+  box-shadow: var(--glow-medium);
+}
+
+.glow-primary-active {
+  box-shadow: var(--glow-strong);
+}
+
+/* Legacy glow classes (still work, now accent-aware) */
 .glow-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.3);
 }
 
-/* Orange glow for streaks (dark mode) */
-.glow-orange {
-  box-shadow: 0 0 15px rgba(249, 115, 22, 0.4);
+/* Orange glow for streaks */
+.glow-orange,
+.glow-streak {
+  box-shadow: 0 0 15px rgba(var(--accent-streak-rgb), 0.4);
 }
 
-/* Lime highlight glow (dark mode) */
+/* Highlight glow */
 .glow-highlight {
-  box-shadow: 0 0 20px rgba(235, 255, 165, 0.4);
+  box-shadow: 0 0 20px rgba(var(--accent-highlight-rgb), 0.4);
 }
 
-/* Light mode glow variants - softer, more subtle */
+/* Success glow */
+.glow-success {
+  box-shadow: 0 0 15px rgba(var(--accent-success-rgb), 0.35);
+}
+
+/* Light mode glow adjustments - softer, more subtle */
+:root.light .glow-primary {
+  box-shadow: var(--glow-subtle);
+}
+
 :root.light .glow-red {
-  box-shadow: 0 0 16px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 16px rgba(var(--accent-primary-rgb), 0.18);
 }
 
-:root.light .glow-orange {
-  box-shadow: 0 0 12px rgba(234, 88, 12, 0.2);
+:root.light .glow-orange,
+:root.light .glow-streak {
+  box-shadow: 0 0 12px rgba(var(--accent-streak-rgb), 0.2);
 }
 
 :root.light .glow-highlight {
-  box-shadow: 0 0 16px rgba(202, 138, 4, 0.2);
+  box-shadow: 0 0 16px rgba(var(--accent-highlight-rgb), 0.25);
+}
+
+:root.light .glow-success {
+  box-shadow: 0 0 12px rgba(var(--accent-success-rgb), 0.2);
 }
 
 /* Thin divider line */
@@ -275,18 +505,30 @@ body {
 
 
 /* =============================================================================
-   ANIMATIONS
+   PREMIUM ANIMATIONS
+   Iron Man HUD-inspired animations with accent theme awareness
    ============================================================================= */
 
+/* Accent-aware pulse glow */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(235, 255, 165, 0.2);
+    box-shadow: 0 0 20px rgba(var(--accent-highlight-rgb), 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(235, 255, 165, 0.5);
+    box-shadow: 0 0 30px rgba(var(--accent-highlight-rgb), 0.5);
   }
 }
 
+@keyframes pulse-glow-accent {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(var(--accent-primary-rgb), 0.15);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(var(--accent-primary-rgb), 0.35);
+  }
+}
+
+/* XP bar fill animation */
 @keyframes xp-fill {
   from {
     transform: scaleX(0);
@@ -296,29 +538,128 @@ body {
   }
 }
 
+/* HUD scan line sweep - for periodic ambient effect */
+@keyframes hud-scan {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.6;
+  }
+  95% {
+    opacity: 0.6;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+/* Holographic flicker effect */
+@keyframes holo-flicker {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.92; }
+  50% { opacity: 1; }
+  75% { opacity: 0.95; }
+}
+
+/* Data stream animation for loading states */
+@keyframes data-stream {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 -100px;
+  }
+}
+
+/* Ambient float for decorative elements */
+@keyframes ambient-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-5px) translateX(2px);
+  }
+  50% {
+    transform: translateY(-2px) translateX(-2px);
+  }
+  75% {
+    transform: translateY(-7px) translateX(1px);
+  }
+}
+
+/* Border glow animation */
+@keyframes border-glow {
+  0%, 100% {
+    border-color: rgba(var(--accent-primary-rgb), 0.2);
+  }
+  50% {
+    border-color: rgba(var(--accent-primary-rgb), 0.4);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 1.2s ease-in-out infinite;
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .animate-pulse-glow {
-    animation: none;
-  }
+.animate-pulse-accent {
+  animation: pulse-glow-accent 2s ease-in-out infinite;
 }
 
-/* Light mode pulse-glow animation - blue tinted */
+.animate-hud-scan {
+  animation: hud-scan 3s linear;
+}
+
+.animate-holo-flicker {
+  animation: holo-flicker 0.15s steps(5);
+}
+
+.animate-data-stream {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(var(--accent-primary-rgb), 0.03) 2px,
+    rgba(var(--accent-primary-rgb), 0.03) 4px
+  );
+  animation: data-stream 2s linear infinite;
+}
+
+.animate-ambient-float {
+  animation: ambient-float 8s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: border-glow 2s ease-in-out infinite;
+}
+
+/* Light mode animation adjustments */
 @keyframes pulse-glow-light {
   0%, 100% {
-    box-shadow: 0 0 12px var(--levelup-glow-soft);
+    box-shadow: 0 0 12px rgba(var(--accent-highlight-rgb), 0.15);
   }
   50% {
-    box-shadow: 0 0 20px var(--levelup-glow);
+    box-shadow: 0 0 20px rgba(var(--accent-highlight-rgb), 0.3);
   }
 }
 
 :root.light .animate-pulse-glow {
   animation: pulse-glow-light 1.2s ease-in-out infinite;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-glow,
+  .animate-pulse-accent,
+  .animate-hud-scan,
+  .animate-holo-flicker,
+  .animate-data-stream,
+  .animate-ambient-float,
+  .animate-border-glow {
+    animation: none;
+  }
 }
 
 /* Modal backdrop utilities */
@@ -379,13 +720,13 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
-/* Glow pulse for active elements */
+/* Glow pulse for active elements - accent aware */
 @keyframes glow-pulse-landing {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.2);
   }
   50% {
-    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 40px rgba(var(--accent-primary-rgb), 0.4);
   }
 }
 
@@ -431,10 +772,10 @@ body {
 
 @keyframes glow-pulse-landing-light {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.12);
   }
   50% {
-    box-shadow: 0 0 40px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 0 40px rgba(var(--accent-primary-rgb), 0.2);
   }
 }
 
@@ -448,15 +789,18 @@ body {
 }
 
 /* =============================================================================
-   GLASSMORPHISM & GLOW UTILITIES
-   Shared utilities for the UI overhaul
+   PREMIUM GLASSMORPHISM
+   Iron Man HUD-inspired glass effects with depth and dimension
    ============================================================================= */
 
-/* Glass card - subtle backdrop blur */
+/* Glass card - subtle backdrop blur with improved shadows for grey */
 .glass-card {
   background: color-mix(in srgb, var(--bg-card) 80%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Glass card elevated - stronger blur */
@@ -466,14 +810,91 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Premium glass card - Iron Man HUD style */
+.glass-card-premium {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--bg-card-rgb), 0.9) 0%,
+    rgba(var(--bg-card-rgb), 0.75) 100%
+  );
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.25),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  transition: all 0.2s ease-out;
+}
 
-/* Breathing animation for active focus sessions */
+.glass-card-premium:hover {
+  border-color: rgba(var(--accent-primary-rgb), 0.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 28px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(var(--accent-primary-rgb), 0.1);
+}
+
+/* Light mode glass adjustments */
+:root.light .glass-card-premium {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--bg-card-rgb), 0.95) 0%,
+    rgba(var(--bg-card-rgb), 0.85) 100%
+  );
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+:root.light .glass-card-premium:hover {
+  border-color: rgba(var(--accent-primary-rgb), 0.15);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+/* Interactive card 3D tilt effect - controlled via JavaScript */
+.card-3d-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out;
+}
+
+.card-3d-tilt:hover {
+  transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1.02);
+}
+
+/* Light reflection overlay for 3D cards */
+.card-light-reflection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.card-light-reflection:hover::before {
+  opacity: 1;
+}
+
+
+/* Breathing animation for active focus sessions - accent aware */
 @keyframes breathing {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.15);
   }
   50% {
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 30px rgba(var(--accent-primary-rgb), 0.25);
   }
 }
 
@@ -487,10 +908,10 @@ body {
 
 @keyframes breathing-light {
   0%, 100% {
-    box-shadow: 0 0 16px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 0 16px rgba(var(--accent-primary-rgb), 0.1);
   }
   50% {
-    box-shadow: 0 0 24px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 0 24px rgba(var(--accent-primary-rgb), 0.18);
   }
 }
 
@@ -521,13 +942,32 @@ body {
   pointer-events: none;
 }
 
-/* Subtle card hover lift - snappy */
+/* Subtle card hover lift - smooth */
 .hover-lift {
-  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
 }
 
 .hover-lift:hover {
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-1px);
+}
+
+/* Premium hover lift with glow */
+.hover-lift-glow {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+
+.hover-lift-glow:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.18),
+    0 0 12px rgba(var(--accent-primary-rgb), 0.08);
+  border-color: rgba(var(--accent-primary-rgb), 0.18);
+}
+
+:root.light .hover-lift-glow:hover {
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.1),
+    0 0 16px rgba(var(--accent-primary-rgb), 0.08);
 }
 
 /* Active nav indicator slide */
@@ -568,12 +1008,475 @@ body {
     animation: none;
   }
 
-  .hover-lift:hover {
+  .hover-lift:hover,
+  .hover-lift-glow:hover {
     transform: none;
   }
 
   .nav-indicator-animated {
     animation: none;
     transform: scaleX(1);
+  }
+
+  .card-3d-tilt:hover {
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   PREMIUM ACCENT UTILITIES
+   Quick utility classes for accent-aware styling
+   ============================================================================= */
+
+/* Accent text color */
+.text-accent {
+  color: var(--accent-primary);
+}
+
+.text-accent-highlight {
+  color: var(--accent-highlight);
+}
+
+/* Accent backgrounds with opacity */
+.bg-accent-subtle {
+  background-color: rgba(var(--accent-primary-rgb), 0.1);
+}
+
+.bg-accent-medium {
+  background-color: rgba(var(--accent-primary-rgb), 0.2);
+}
+
+/* Accent borders */
+.border-accent-subtle {
+  border-color: rgba(var(--accent-primary-rgb), 0.2);
+}
+
+.border-accent-medium {
+  border-color: rgba(var(--accent-primary-rgb), 0.4);
+}
+
+/* Accent gradient backgrounds */
+.gradient-accent {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-primary-rgb), 0.15) 0%,
+    rgba(var(--accent-primary-rgb), 0.05) 100%
+  );
+}
+
+/* Premium button states */
+.btn-accent {
+  background-color: var(--accent-primary);
+  color: white;
+  transition: all 0.15s ease-out;
+}
+
+.btn-accent:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb), 0.3);
+}
+
+.btn-accent:active {
+  filter: brightness(0.95);
+  transform: translateY(1px);
+}
+
+/* Accent ring for focus states */
+.ring-accent {
+  box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.4);
+}
+
+/* Icon accent glow */
+.icon-glow {
+  filter: drop-shadow(0 0 6px rgba(var(--accent-primary-rgb), 0.4));
+}
+
+/* Streak-specific accent (uses streak color, not theme accent) */
+.text-streak {
+  color: var(--accent-streak);
+}
+
+.bg-streak-subtle {
+  background-color: rgba(var(--accent-streak-rgb), 0.1);
+}
+
+.glow-streak-active {
+  box-shadow: 0 0 20px rgba(var(--accent-streak-rgb), 0.4);
+}
+
+/* =============================================================================
+   ANIME.JS STYLE ANIMATIONS
+   Dramatic entrance animations and micro-interactions
+   ============================================================================= */
+
+/* Icon entrance pulse animation */
+@keyframes icon-entrance-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-icon-entrance {
+  animation: icon-entrance-pulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Value highlight flash */
+@keyframes value-highlight-flash {
+  0% {
+    background-color: rgba(var(--accent-primary-rgb), 0.25);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-value-flash {
+  animation: value-highlight-flash 0.5s ease-out forwards;
+}
+
+/* Spring scale animation */
+@keyframes spring-scale-in {
+  0% {
+    transform: scale(0.95) translateY(12px);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.02) translateY(-2px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-spring-in {
+  animation: spring-scale-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Counter number pop */
+@keyframes counter-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-counter-pop {
+  animation: counter-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* SVG checkmark draw animation */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 50;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.animate-checkmark-draw {
+  stroke-dasharray: 50;
+  animation: checkmark-draw 0.35s ease-out forwards;
+}
+
+/* Completion ripple effect */
+@keyframes completion-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-completion-ripple {
+  animation: completion-ripple 0.4s ease-out forwards;
+}
+
+/* Line draw animation */
+@keyframes line-draw-left {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.animate-line-draw {
+  transform-origin: left center;
+  animation: line-draw-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Section cascade entrance */
+@keyframes section-cascade {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-section-cascade {
+  animation: section-cascade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered entrance delays */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 60ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 180ms; }
+.stagger-5 { animation-delay: 240ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 360ms; }
+.stagger-8 { animation-delay: 420ms; }
+
+/* Grid stagger for heatmaps - diagonal wave */
+.grid-stagger-1 { animation-delay: 0ms; }
+.grid-stagger-2 { animation-delay: 20ms; }
+.grid-stagger-3 { animation-delay: 40ms; }
+.grid-stagger-4 { animation-delay: 60ms; }
+.grid-stagger-5 { animation-delay: 80ms; }
+.grid-stagger-6 { animation-delay: 100ms; }
+.grid-stagger-7 { animation-delay: 120ms; }
+.grid-stagger-8 { animation-delay: 140ms; }
+.grid-stagger-9 { animation-delay: 160ms; }
+.grid-stagger-10 { animation-delay: 180ms; }
+
+/* Area chart mask reveal */
+@keyframes area-reveal {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.animate-area-reveal {
+  animation: area-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Point fade in */
+@keyframes point-fade {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-point-fade {
+  animation: point-fade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Cell reveal for heatmaps */
+@keyframes cell-reveal {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-cell-reveal {
+  animation: cell-reveal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hover intensity pulse for heatmap cells */
+@keyframes cell-hover-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+.cell-hover-pulse:hover {
+  animation: cell-hover-pulse 0.4s ease-out;
+}
+
+/* Tab indicator slide */
+@keyframes tab-indicator-slide {
+  0% {
+    transform: scaleX(0.3);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.animate-tab-indicator {
+  animation: tab-indicator-slide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* XP bar spring fill */
+@keyframes xp-spring-fill {
+  0% {
+    transform: scaleX(var(--from-percent, 0));
+  }
+  70% {
+    transform: scaleX(calc(var(--to-percent, 1) * 1.02));
+  }
+  100% {
+    transform: scaleX(var(--to-percent, 1));
+  }
+}
+
+.animate-xp-spring-fill {
+  transform-origin: left center;
+  animation: xp-spring-fill 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Level pop animation */
+@keyframes level-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-level-pop {
+  animation: level-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Near level-up shimmer */
+@keyframes near-levelup-shimmer {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.xp-bar-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: near-levelup-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Toast entrance animation */
+@keyframes toast-enter {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-exit {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-toast-enter {
+  animation: toast-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-exit {
+  animation: toast-exit 0.2s ease-in forwards;
+}
+
+/* Reduced motion support for new animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-icon-entrance,
+  .animate-value-flash,
+  .animate-spring-in,
+  .animate-counter-pop,
+  .animate-checkmark-draw,
+  .animate-completion-ripple,
+  .animate-line-draw,
+  .animate-section-cascade,
+  .animate-area-reveal,
+  .animate-point-fade,
+  .animate-cell-reveal,
+  .animate-tab-indicator,
+  .animate-xp-spring-fill,
+  .animate-level-pop,
+  .animate-toast-enter,
+  .animate-toast-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+    clip-path: none;
+  }
+
+  .xp-bar-shimmer {
+    display: none;
+  }
+
+  .cell-hover-pulse:hover {
+    animation: none;
   }
 }

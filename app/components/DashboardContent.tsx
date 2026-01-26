@@ -5,11 +5,12 @@
 // Client wrapper for dashboard that coordinates state updates between
 // DashboardStats and TodayClient when tasks/habits are modified.
 // Includes onboarding checklist and daily briefing for new/returning users.
-// Enhanced with scroll-reveal animations and section styling.
+// Enhanced with anime.js-style cascade animations and line draw dividers.
 // =============================================================================
 
-import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import anime from "animejs";
 import TodayClient from "./TodayClient";
 import HabitsClient from "./HabitsClient";
 import DashboardStats from "./DashboardStats";
@@ -24,33 +25,69 @@ type Props = {
   date: ISODateString;
 };
 
-// Animation variants for staggered sections
+// Anime.js-style cascade animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.05,
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
     },
   },
 };
 
 const sectionVariants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
   visible: {
     opacity: 1,
     y: 0,
+    filter: "blur(0px)",
     transition: {
-      duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
+      type: "spring" as const,
+      stiffness: 80,
+      damping: 15,
     },
   },
 };
 
+// Animated divider line component
+function AnimatedDivider() {
+  const dividerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotionHook = useReducedMotion();
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (hasAnimated || prefersReducedMotionHook || !dividerRef.current) return;
+
+    dividerRef.current.style.transform = "scaleX(0)";
+    dividerRef.current.style.transformOrigin = "left center";
+
+    anime({
+      targets: dividerRef.current,
+      scaleX: [0, 1],
+      easing: "easeOutExpo",
+      duration: 600,
+      delay: 400,
+      complete: () => setHasAnimated(true),
+    });
+  }, [hasAnimated, prefersReducedMotionHook]);
+
+  return (
+    <motion.div variants={sectionVariants}>
+      <div
+        ref={dividerRef}
+        className="h-px bg-gradient-to-r from-[var(--accent-primary)]/30 via-[var(--border-subtle)] to-transparent"
+        style={{ transform: prefersReducedMotionHook ? "scaleX(1)" : "scaleX(0)" }}
+      />
+    </motion.div>
+  );
+}
+
 export default function DashboardContent({ date }: Props) {
   const [statsTrigger, setStatsTrigger] = useState(0);
   const { isOnboardingDone, loading: onboardingLoading } = useOnboarding();
+  const prefersReducedMotionHook = useReducedMotion();
 
   const refreshStats = useCallback(() => {
     setStatsTrigger((k) => k + 1);
@@ -104,11 +141,8 @@ export default function DashboardContent({ date }: Props) {
         </motion.section>
       </div>
 
-      {/* Divider */}
-      <motion.div
-        variants={sectionVariants}
-        className="h-px bg-[var(--border-subtle)]"
-      />
+      {/* Animated Divider */}
+      <AnimatedDivider />
 
       {/* Today's Timeline Section (full width) */}
       <motion.section variants={sectionVariants}>

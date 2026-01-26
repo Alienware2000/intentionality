@@ -3,7 +3,7 @@
 // =============================================================================
 // DASHBOARD STATS COMPONENT
 // Displays key stats with icons: habits, tasks, XP, streak, quests.
-// Enhanced with GlowCard styling, staggered animations, and animated counters.
+// Enhanced with GlowCard styling, anime.js-inspired animations, and spring counters.
 // =============================================================================
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
@@ -22,55 +22,75 @@ type Props = {
 };
 
 // -----------------------------------------------------------------------------
-// Animated Number Component
+// Animated Number Component - Spring easing with highlight flash
 // -----------------------------------------------------------------------------
 
 function AnimatedNumber({
   value,
-  duration = 600,
+  duration = 800,
+  onComplete,
 }: {
   value: number;
   duration?: number;
+  onComplete?: () => void;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const prevValue = useRef<number>(0);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (ref.current && !prefersReducedMotion() && !isFirstRender.current) {
-      const start = prevValue.current;
-      anime({
-        targets: { val: start },
-        val: value,
-        round: 1,
-        duration,
-        easing: "easeOutCubic",
-        update: function (anim) {
-          const animatable = anim.animatables[0];
-          if (ref.current && animatable) {
-            const target = animatable.target as unknown as { val: number };
-            ref.current.textContent = Math.round(target.val).toLocaleString();
-          }
-        },
-      });
+    if (ref.current && !prefersReducedMotion()) {
+      const start = isFirstRender.current ? 0 : prevValue.current;
+      const shouldAnimate = isFirstRender.current || prevValue.current !== value;
+
+      if (shouldAnimate) {
+        // Spring-based counter animation
+        anime({
+          targets: { val: start },
+          val: value,
+          round: 1,
+          duration,
+          easing: "spring(1, 80, 12, 0)",
+          update: function (anim) {
+            const animatable = anim.animatables[0];
+            if (ref.current && animatable) {
+              const target = animatable.target as unknown as { val: number };
+              ref.current.textContent = Math.round(target.val).toLocaleString();
+            }
+          },
+          complete: onComplete,
+        });
+
+        // Value change highlight flash (only on update, not first render)
+        if (!isFirstRender.current && ref.current.parentElement) {
+          ref.current.parentElement.classList.add("animate-value-flash");
+          setTimeout(() => {
+            ref.current?.parentElement?.classList.remove("animate-value-flash");
+          }, 500);
+        }
+      }
     } else if (ref.current) {
       ref.current.textContent = value.toLocaleString();
     }
     prevValue.current = value;
     isFirstRender.current = false;
-  }, [value, duration]);
+  }, [value, duration, onComplete]);
 
-  return <span ref={ref}>{value.toLocaleString()}</span>;
+  return (
+    <span ref={ref} className="relative">
+      {value.toLocaleString()}
+    </span>
+  );
 }
 
 // -----------------------------------------------------------------------------
-// Stat Card Component
+// Stat Card Component - Enhanced with anime.js-style animations
 // -----------------------------------------------------------------------------
 
 type StatCardProps = {
   value: string | number;
   label: string;
-  icon: React.ComponentType<{ size: number }>;
+  icon: React.ComponentType<{ size: number; className?: string }>;
   accent?: boolean;
   accentColor?: "primary" | "success" | "streak" | "highlight";
   index: number;
@@ -86,6 +106,8 @@ function StatCard({
   index,
   numericValue,
 }: StatCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const textColorMap = {
     primary: "text-[var(--accent-primary)]",
     success: "text-[var(--accent-success)]",
@@ -95,15 +117,28 @@ function StatCard({
 
   const glowColor = accent ? accentColor : "none";
 
+  // Spring scale animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 15, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring" as const,
+        stiffness: 80,
+        damping: 12,
+        delay: index * 0.06,
+      },
+    },
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.3,
-        delay: index * 0.06,
-        ease: [0.25, 0.1, 0.25, 1],
-      }}
+      ref={cardRef}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
     >
       <GlowCard
         glowColor={glowColor}
@@ -118,7 +153,7 @@ function StatCard({
           <div className="min-w-0 flex-1">
             <p
               className={cn(
-                "text-xl font-mono font-bold leading-tight",
+                "text-xl font-mono font-bold leading-tight rounded-md transition-colors",
                 accent ? textColorMap[accentColor] : "text-[var(--text-primary)]"
               )}
             >

@@ -4,13 +4,15 @@
 // TASK CARD COMPONENT
 // Enhanced task display with priority indicator and XP value.
 // Glassmorphism background, soft priority glow, smooth animations.
+// Features anime.js-style checkbox draw and ripple effects.
 // =============================================================================
 
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Pencil, Trash2, Calendar, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { Pencil, Trash2, Calendar, Clock } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import type { Task } from "@/app/lib/types";
 import PriorityPill from "./ui/PriorityPill";
+import AnimatedCheckbox from "./ui/AnimatedCheckbox";
 
 type Props = {
   task: Task;
@@ -54,35 +56,13 @@ export default function TaskCard({
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Checkbox with animated checkmark */}
-      <motion.button
-        type="button"
-        onClick={() => onToggle?.(task.id)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className={cn(
-          "flex-shrink-0 w-11 h-11 sm:w-6 sm:h-6 rounded-lg sm:rounded",
-          "border-2 flex items-center justify-center",
-          "transition-all duration-200 cursor-pointer",
-          isCompleted
-            ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
-            : "border-[var(--border-default)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
-        )}
-      >
-        <AnimatePresence mode="wait">
-          {isCompleted && (
-            <motion.div
-              initial={{ scale: 0, rotate: -45 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 45 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Check size={18} className="text-white sm:hidden" />
-              <Check size={14} className="text-white hidden sm:block" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
+      {/* Checkbox with animated checkmark draw and ripple effect */}
+      <AnimatedCheckbox
+        checked={isCompleted}
+        onChange={() => onToggle?.(task.id)}
+        size="md"
+        ariaLabel={isCompleted ? "Mark task incomplete" : "Mark task complete"}
+      />
 
       {/* Task content - clickable to toggle */}
       <button

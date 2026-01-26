@@ -2,8 +2,8 @@
 
 // =============================================================================
 // STAT CARD COMPONENT
-// Enhanced stat display card with icon support.
-// anime.js inspired: large monospace numbers, dramatic accents.
+// Premium stat display card with icon support and accent-aware styling.
+// Features glass effect, hover animations, and dynamic accent colors.
 // =============================================================================
 
 import { cn } from "@/app/lib/cn";
@@ -16,13 +16,24 @@ type Props = {
   accent?: boolean;
   accentColor?: "primary" | "success" | "streak" | "highlight";
   className?: string;
+  /** Use premium glass variant */
+  premium?: boolean;
 };
 
+// CSS variable based accent colors
 const ACCENT_COLORS = {
   primary: "var(--accent-primary)",
   success: "var(--accent-success)",
   streak: "var(--accent-streak)",
   highlight: "var(--accent-highlight)",
+};
+
+// Background classes for icon containers - using CSS variable syntax for dynamic colors
+const ICON_BG_CLASSES = {
+  primary: "bg-[rgba(var(--accent-primary-rgb),0.12)]",
+  success: "bg-[rgba(var(--accent-success-rgb),0.12)]",
+  streak: "bg-[rgba(var(--accent-streak-rgb),0.12)]",
+  highlight: "bg-[rgba(var(--accent-highlight-rgb),0.12)]",
 };
 
 export default function StatCard({
@@ -32,6 +43,7 @@ export default function StatCard({
   accent = false,
   accentColor = "primary",
   className,
+  premium = false,
 }: Props) {
   const color = ACCENT_COLORS[accentColor];
 
@@ -40,18 +52,20 @@ export default function StatCard({
       className={cn(
         "relative p-4 rounded-xl",
         "border border-[var(--border-subtle)]",
-        "bg-[var(--bg-card)] glass-card",
-        "transition-all duration-150 hover-lift",
-        "hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)]",
+        premium ? "glass-card-premium" : "bg-[var(--bg-card)] glass-card",
+        "transition-all duration-150",
+        premium ? "hover-lift-glow" : "hover-lift",
+        "hover:border-[var(--border-default)]",
+        !premium && "hover:bg-[var(--bg-hover)]",
         className
       )}
     >
-      {/* Optional accent line at top */}
+      {/* Optional accent line at top with gradient */}
       {accent && (
         <div
-          className="absolute top-0 left-0 right-0 h-[2px] rounded-t-lg"
+          className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl overflow-hidden"
           style={{
-            background: `linear-gradient(90deg, ${color} 0%, transparent 100%)`,
+            background: `linear-gradient(90deg, ${color} 0%, color-mix(in srgb, ${color} 30%, transparent) 100%)`,
           }}
         />
       )}
@@ -67,10 +81,16 @@ export default function StatCard({
         </div>
         {Icon && (
           <div
-            className="p-2 rounded-lg opacity-60"
-            style={{ backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)` }}
+            className={cn(
+              "p-2.5 rounded-lg transition-colors duration-200",
+              ICON_BG_CLASSES[accentColor]
+            )}
           >
-            <Icon size={18} style={{ color }} />
+            <Icon
+              size={18}
+              style={{ color }}
+              className="transition-transform duration-200 group-hover:scale-110"
+            />
           </div>
         )}
       </div>

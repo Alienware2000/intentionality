@@ -4,9 +4,10 @@
 // XP CHART COMPONENT
 // Line chart showing XP earned over time.
 // Uses recharts for rendering. Theme-aware for dark/light modes.
+// Enhanced with anime.js-style area reveal and animated tooltips.
 // =============================================================================
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   XAxis,
   YAxis,
@@ -15,6 +16,8 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import anime from "animejs";
 import { useTheme } from "@/app/components/ThemeProvider";
 
 type Props = {
@@ -27,7 +30,7 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// Custom tooltip component (moved outside to avoid re-creation during render)
+// Custom tooltip component with spring animation
 function CustomTooltip({
   active,
   payload,
@@ -40,23 +43,40 @@ function CustomTooltip({
   if (!active || !payload || !payload.length || !label) return null;
 
   return (
-    <div className="rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] p-2 shadow-lg">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{
+        type: "spring",
+        stiffness: 200,
+        damping: 15,
+      }}
+      className="rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] p-2 shadow-lg"
+    >
       <p className="text-xs text-[var(--text-muted)]">{formatDate(label)}</p>
-      <p className="text-sm font-mono font-bold text-[var(--accent-primary)]">
+      <motion.p
+        initial={{ opacity: 0, x: -5 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.05 }}
+        className="text-sm font-mono font-bold text-[var(--accent-primary)]"
+      >
         +{payload[0].value} XP
-      </p>
-    </div>
+      </motion.p>
+    </motion.div>
   );
 }
 
 export default function XpChart({ data }: Props) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const prefersReducedMotionHook = useReducedMotion();
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  // Theme-aware colors
+  // Theme-aware colors - use CSS variables for accent awareness
   const colors = useMemo(() => ({
-    primary: isDark ? "#ef4444" : "#2563eb",       // red-500 (dark) / blue-600 (light)
-    tickFill: isDark ? "#525252" : "#6b7280",      // neutral-600 (dark) / gray-500 (light)
+    primary: "var(--accent-primary)",
+    tickFill: isDark ? "#525252" : "#6b7280",
     axisLine: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
   }), [isDark]);
 
@@ -75,8 +95,60 @@ export default function XpChart({ data }: Props) {
   // Use unique gradient ID to avoid conflicts when theme changes
   const gradientId = `xpGradient-${isDark ? "dark" : "light"}`;
 
+  // Anime.js-style area reveal animation
+  useEffect(() => {
+    if (hasAnimated || prefersReducedMotionHook || !chartRef.current) return;
+
+    // Area sweep reveal from left to right
+    const chart = chartRef.current;
+    chart.style.clipPath = "inset(0 100% 0 0)";
+
+    anime({
+      targets: chart,
+      clipPath: ["inset(0 100% 0 0)", "inset(0 0% 0 0)"],
+      easing: "easeOutExpo",
+      duration: 1000,
+      delay: 200,
+      complete: () => {
+        chart.style.clipPath = "";
+        setHasAnimated(true);
+      },
+    });
+
+    // Animate axis labels
+    const xAxisLabels = chart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick");
+    const yAxisLabels = chart.querySelectorAll(".recharts-yAxis .recharts-cartesian-axis-tick");
+
+    anime({
+      targets: [...Array.from(xAxisLabels), ...Array.from(yAxisLabels)],
+      opacity: [0, 1],
+      translateY: [8, 0],
+      easing: "easeOutCubic",
+      duration: 400,
+      delay: (el, i) => i * 50 + 300,
+    });
+  }, [hasAnimated, prefersReducedMotionHook]);
+
+  // Chart container animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        delay: 0.1,
+      },
+    },
+  };
+
   return (
-    <div className="h-48 sm:h-64">
+    <motion.div
+      ref={chartRef}
+      variants={containerVariants}
+      initial={prefersReducedMotionHook ? "visible" : "hidden"}
+      animate="visible"
+      className="h-48 sm:h-64"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={cumulativeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
@@ -106,9 +178,11 @@ export default function XpChart({ data }: Props) {
             stroke={colors.primary}
             strokeWidth={2}
             fill={`url(#${gradientId})`}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 }

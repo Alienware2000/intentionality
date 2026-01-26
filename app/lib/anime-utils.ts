@@ -1,7 +1,8 @@
 // =============================================================================
 // ANIME.JS UTILITIES
-// Helper functions for anime.js animations used across landing page components.
-// Provides consistent easing, timing, and animation patterns.
+// Helper functions for anime.js animations used across the app.
+// Includes Iron Man HUD-inspired effects, premium micro-interactions,
+// and consistent easing/timing patterns.
 // =============================================================================
 
 import type { AnimeParams } from "animejs";
@@ -13,14 +14,21 @@ export const EASING = {
   snappy: "easeOutQuart",
   gentle: "easeInOutSine",
   linear: "linear",
+  // Premium easing curves
+  premium: "cubicBezier(0.16, 1, 0.3, 1)",  // iOS-like smooth
+  dramatic: "cubicBezier(0.68, -0.55, 0.265, 1.55)",  // Overshoot bounce
 } as const;
 
 // Duration presets (in ms) - snappy, responsive feel
 export const DURATION = {
+  instant: 100,
   fast: 180,
   normal: 350,
   slow: 500,
   reveal: 400,
+  // HUD-specific timings
+  hudScan: 2000,
+  hudFlicker: 150,
 } as const;
 
 // Stagger presets for sequential animations - tight for snappy cascade
@@ -28,6 +36,8 @@ export const STAGGER = {
   fast: 30,
   normal: 50,
   slow: 80,
+  // Page reveal stagger
+  page: 60,
 } as const;
 
 // Common animation patterns
@@ -115,7 +125,7 @@ export function createTimerRingAnimation(
 }
 
 // Particle explosion animation (for level up, task complete)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export function createParticleAnimation(targetSelector: string): AnimeParams {
   return {
     targets: targetSelector,
@@ -368,4 +378,669 @@ export function getAnimationConfig<T extends AnimeParams>(
     };
   }
   return config;
+}
+
+// =============================================================================
+// IRON MAN HUD ANIMATIONS
+// Premium, immersive animation effects inspired by sci-fi interfaces
+// =============================================================================
+
+/**
+ * Creates a HUD scan line effect.
+ * A horizontal line that sweeps across the target element.
+ */
+export function createHudScan(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+  } = {}
+): AnimeParams {
+  const { duration = DURATION.hudScan, delay = 0 } = options;
+
+  return {
+    targets: targetSelector,
+    translateX: ["-100%", "100%"],
+    opacity: [0, 0.6, 0.6, 0],
+    easing: "linear",
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a holographic flicker effect.
+ * Quick opacity flicker for interactive element feedback.
+ */
+export function createHoloFlicker(
+  targetSelector: string,
+  options: {
+    intensity?: number;
+  } = {}
+): AnimeParams {
+  const { intensity = 0.2 } = options;
+  const min = 1 - intensity;
+
+  return {
+    targets: targetSelector,
+    opacity: [1, min, 1, min * 0.9, 1],
+    duration: DURATION.hudFlicker,
+    easing: "steps(5)",
+  };
+}
+
+/**
+ * Creates a data stream loading effect.
+ * Vertical lines streaming down for loading states.
+ */
+export function createDataStream(
+  targetSelector: string,
+  options: {
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 2000 } = options;
+
+  return {
+    targets: targetSelector,
+    backgroundPositionY: ["0px", "-100px"],
+    easing: "linear",
+    duration,
+    loop: true,
+  };
+}
+
+/**
+ * Creates a page enter animation.
+ * Fade in with subtle scale and blur clear.
+ */
+export function createPageEnter(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 300, delay = 0 } = options;
+
+  return {
+    targets: targetSelector,
+    opacity: [0, 1],
+    scale: [0.98, 1],
+    filter: ["blur(4px)", "blur(0px)"],
+    easing: EASING.premium,
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a section reveal animation.
+ * Staggered reveal for dashboard sections.
+ */
+export function createSectionReveal(
+  targetSelector: string,
+  options: {
+    stagger?: number;
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const { stagger = STAGGER.page, duration = 400 } = options;
+
+  return {
+    targets: targetSelector,
+    opacity: [0, 1],
+    translateY: [20, 0],
+    easing: "easeOutCubic",
+    duration,
+    delay: (_el: Element, i: number) => i * stagger,
+  };
+}
+
+/**
+ * Creates a value change animation with highlight.
+ * For animating number changes with visual feedback.
+ */
+export function createValueChange(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    highlightColor?: string;
+  } = {}
+): AnimeParams {
+  const { duration = 300 } = options;
+
+  return {
+    targets: targetSelector,
+    scale: [1, 1.05, 1],
+    easing: "easeOutBack",
+    duration,
+  };
+}
+
+/**
+ * Creates a button press animation.
+ * Quick scale down and back up for tactile feedback.
+ */
+export function createButtonPress(targetSelector: string): AnimeParams {
+  return {
+    targets: targetSelector,
+    scale: [1, 0.95, 1],
+    duration: DURATION.instant,
+    easing: "easeOutQuad",
+  };
+}
+
+/**
+ * Creates a success celebration animation.
+ * Scale up with slight bounce for positive feedback.
+ */
+export function createSuccessCelebration(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    scale?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 400, scale = 1.1 } = options;
+
+  return {
+    targets: targetSelector,
+    scale: [1, scale, 1],
+    easing: EASING.bounce,
+    duration,
+  };
+}
+
+/**
+ * Creates a shake animation for errors.
+ * Horizontal shake to indicate error or invalid action.
+ */
+export function createErrorShake(targetSelector: string): AnimeParams {
+  return {
+    targets: targetSelector,
+    translateX: [0, -8, 8, -6, 6, -4, 4, 0],
+    duration: 400,
+    easing: "easeOutQuad",
+  };
+}
+
+/**
+ * Creates ambient glow pulse animation.
+ * Subtle pulsing glow for active/highlighted elements.
+ */
+export function createAmbientGlow(
+  targetSelector: string,
+  options: {
+    color?: string;
+    minSize?: number;
+    maxSize?: number;
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const {
+    color = "var(--accent-primary-rgb)",
+    minSize = 20,
+    maxSize = 35,
+    duration = 2000,
+  } = options;
+
+  return {
+    targets: targetSelector,
+    boxShadow: [
+      `0 0 ${minSize}px rgba(${color}, 0.15)`,
+      `0 0 ${maxSize}px rgba(${color}, 0.3)`,
+      `0 0 ${minSize}px rgba(${color}, 0.15)`,
+    ],
+    easing: "easeInOutSine",
+    duration,
+    loop: true,
+  };
+}
+
+// =============================================================================
+// 3D TILT EFFECT
+// Mouse-tracking perspective transform for premium hover effect
+// =============================================================================
+
+type TiltCleanup = () => void;
+
+/**
+ * Applies 3D tilt effect to an element based on mouse position.
+ * Returns cleanup function to remove event listeners.
+ */
+export function apply3DTilt(
+  element: HTMLElement,
+  options: {
+    maxTilt?: number;
+    perspective?: number;
+    scale?: number;
+    transitionDuration?: number;
+  } = {}
+): TiltCleanup {
+  const {
+    maxTilt = 8,
+    perspective = 1000,
+    scale = 1.02,
+    transitionDuration = 150,
+  } = options;
+
+  // Don't apply if user prefers reduced motion
+  if (prefersReducedMotion()) {
+    return () => {};
+  }
+
+  let animationFrame: number | null = null;
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+
+    animationFrame = requestAnimationFrame(() => {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const mouseX = e.clientX - centerX;
+      const mouseY = e.clientY - centerY;
+
+      const tiltX = (mouseY / (rect.height / 2)) * -maxTilt;
+      const tiltY = (mouseX / (rect.width / 2)) * maxTilt;
+
+      element.style.transform = `perspective(${perspective}px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(${scale})`;
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+    element.style.transform = "";
+  };
+
+  // Set up transition
+  element.style.transition = `transform ${transitionDuration}ms ease-out`;
+  element.style.transformStyle = "preserve-3d";
+
+  element.addEventListener("mousemove", handleMouseMove);
+  element.addEventListener("mouseleave", handleMouseLeave);
+
+  // Return cleanup function
+  return () => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+    element.removeEventListener("mousemove", handleMouseMove);
+    element.removeEventListener("mouseleave", handleMouseLeave);
+    element.style.transform = "";
+    element.style.transition = "";
+  };
+}
+
+// =============================================================================
+// ANIME.JS GRID STAGGER UTILITIES
+// Diagonal wave patterns and grid-based animations
+// =============================================================================
+
+/**
+ * Creates a grid stagger delay function for anime.js.
+ * Elements animate in diagonal wave pattern from specified corner.
+ */
+export function createGridStagger(
+  rows: number,
+  cols: number,
+  options: {
+    from?: "first" | "last" | "center";
+    baseDelay?: number;
+    axis?: "x" | "y" | "both";
+  } = {}
+): (el: Element, i: number) => number {
+  const { from = "first", baseDelay = 30, axis = "both" } = options;
+
+  return (_el: Element, i: number) => {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+
+    let distance: number;
+    if (from === "first") {
+      distance = axis === "x" ? col : axis === "y" ? row : row + col;
+    } else if (from === "last") {
+      distance =
+        axis === "x" ? cols - 1 - col : axis === "y" ? rows - 1 - row : (rows - 1 - row) + (cols - 1 - col);
+    } else {
+      // center
+      const centerRow = (rows - 1) / 2;
+      const centerCol = (cols - 1) / 2;
+      distance =
+        axis === "x"
+          ? Math.abs(col - centerCol)
+          : axis === "y"
+          ? Math.abs(row - centerRow)
+          : Math.abs(row - centerRow) + Math.abs(col - centerCol);
+    }
+
+    return distance * baseDelay;
+  };
+}
+
+/**
+ * Creates a stagger animation for stat cards with scale effect.
+ */
+export function createStatCardEntrance(
+  targetSelector: string,
+  options: {
+    stagger?: number;
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const { stagger = 60, duration = 450 } = options;
+
+  return {
+    targets: targetSelector,
+    opacity: [0, 1],
+    translateY: [15, 0],
+    scale: [0.95, 1],
+    easing: "spring(1, 80, 10, 0)",
+    duration,
+    delay: (_el: Element, i: number) => i * stagger,
+  };
+}
+
+/**
+ * Creates an icon pulse animation for entrance effects.
+ */
+export function createIconPulse(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+    scale?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 400, delay = 0, scale = 1.2 } = options;
+
+  return {
+    targets: targetSelector,
+    scale: [0.8, scale, 1],
+    opacity: [0, 1, 1],
+    easing: "easeOutBack",
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a value highlight flash animation.
+ */
+export function createValueFlash(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 300, delay = 0 } = options;
+
+  return {
+    targets: targetSelector,
+    backgroundColor: [
+      "rgba(var(--accent-primary-rgb), 0.3)",
+      "rgba(var(--accent-primary-rgb), 0)",
+    ],
+    easing: "easeOutQuad",
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a spring-based counter animation.
+ */
+export function createSpringCounter(
+  targetSelector: string,
+  endValue: number,
+  options: {
+    startValue?: number;
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const { startValue = 0, duration = 800 } = options;
+
+  return {
+    targets: { val: startValue },
+    val: endValue,
+    round: 1,
+    easing: "spring(1, 80, 12, 0)",
+    duration,
+    update: function (anim) {
+      const target = document.querySelector(targetSelector);
+      if (target) {
+        const animatable = anim.animatables[0];
+        if (animatable) {
+          const obj = animatable.target as unknown as { val: number };
+          target.textContent = Math.round(obj.val).toLocaleString();
+        }
+      }
+    },
+  };
+}
+
+/**
+ * Creates an SVG checkmark draw animation.
+ */
+export function createSvgCheckDraw(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 350, delay = 0 } = options;
+
+  return {
+    targets: targetSelector,
+    strokeDashoffset: [50, 0],
+    opacity: [0, 1],
+    easing: "easeOutQuad",
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a completion ripple animation.
+ */
+export function createCompletionRipple(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    scale?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 400, scale = 2 } = options;
+
+  return {
+    targets: targetSelector,
+    scale: [0, scale],
+    opacity: [0.6, 0],
+    easing: "easeOutExpo",
+    duration,
+  };
+}
+
+/**
+ * Creates a line draw animation (for dividers).
+ */
+export function createLineDraw(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+    direction?: "left" | "right" | "center";
+  } = {}
+): AnimeParams {
+  const { duration = 400, delay = 0, direction = "left" } = options;
+
+  const scaleX = direction === "center" ? { scaleX: [0, 1] } : { scaleX: [0, 1] };
+  const origin =
+    direction === "left"
+      ? "left center"
+      : direction === "right"
+      ? "right center"
+      : "center center";
+
+  return {
+    targets: targetSelector,
+    ...scaleX,
+    easing: "easeOutExpo",
+    duration,
+    delay,
+    begin: (anim) => {
+      const target = anim.animatables[0]?.target as HTMLElement;
+      if (target) {
+        target.style.transformOrigin = origin;
+      }
+    },
+  };
+}
+
+/**
+ * Creates a section cascade animation for dashboard.
+ */
+export function createSectionCascade(
+  targetSelector: string,
+  options: {
+    stagger?: number;
+    duration?: number;
+  } = {}
+): AnimeParams {
+  const { stagger = 80, duration = 500 } = options;
+
+  return {
+    targets: targetSelector,
+    opacity: [0, 1],
+    translateY: [30, 0],
+    filter: ["blur(4px)", "blur(0px)"],
+    easing: "easeOutCubic",
+    duration,
+    delay: (_el: Element, i: number) => i * stagger,
+  };
+}
+
+/**
+ * Creates an area chart reveal animation.
+ */
+export function createAreaChartReveal(
+  targetSelector: string,
+  options: {
+    duration?: number;
+    delay?: number;
+  } = {}
+): AnimeParams {
+  const { duration = 800, delay = 0 } = options;
+
+  return {
+    targets: targetSelector,
+    opacity: [0, 1],
+    translateX: ["-100%", "0%"],
+    easing: "easeOutExpo",
+    duration,
+    delay,
+  };
+}
+
+/**
+ * Creates a spring-back animation for value changes.
+ */
+export function createSpringBounce(
+  targetSelector: string,
+  options: {
+    scale?: number;
+  } = {}
+): AnimeParams {
+  const { scale = 1.1 } = options;
+
+  return {
+    targets: targetSelector,
+    scale: [1, scale, 1],
+    easing: "spring(1, 80, 10, 0)",
+    duration: 400,
+  };
+}
+
+// =============================================================================
+// AMBIENT PARTICLES
+// Subtle floating particles for premium ambient effect
+// =============================================================================
+
+type ParticleCleanup = () => void;
+
+/**
+ * Creates ambient floating particles in a container.
+ * Returns cleanup function to remove particles.
+ */
+export function createAmbientParticles(
+  container: HTMLElement,
+  options: {
+    count?: number;
+    color?: string;
+    size?: number;
+    speed?: number;
+  } = {}
+): ParticleCleanup {
+  const {
+    count = 15,
+    color = "var(--accent-primary)",
+    size = 2,
+    speed = 20000,
+  } = options;
+
+  // Don't create particles if user prefers reduced motion
+  if (prefersReducedMotion()) {
+    return () => {};
+  }
+
+  const particles: HTMLElement[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const particle = document.createElement("div");
+    particle.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      border-radius: 50%;
+      opacity: ${0.1 + Math.random() * 0.15};
+      pointer-events: none;
+      left: ${Math.random() * 100}%;
+      top: ${Math.random() * 100}%;
+    `;
+
+    container.style.position = "relative";
+    container.style.overflow = "hidden";
+    container.appendChild(particle);
+    particles.push(particle);
+
+    // Animate each particle
+    const animateParticle = () => {
+      const duration = speed + Math.random() * speed;
+      const xDrift = (Math.random() - 0.5) * 100;
+      const yDrift = (Math.random() - 0.5) * 100;
+
+      particle.animate(
+        [
+          { transform: "translate(0, 0)" },
+          { transform: `translate(${xDrift}px, ${yDrift}px)` },
+        ],
+        {
+          duration,
+          easing: "ease-in-out",
+          iterations: Infinity,
+          direction: "alternate",
+        }
+      );
+    };
+
+    animateParticle();
+  }
+
+  // Return cleanup function
+  return () => {
+    particles.forEach((p) => p.remove());
+  };
 }
