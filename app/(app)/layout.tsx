@@ -1,7 +1,7 @@
 // =============================================================================
 // APP LAYOUT
 // Main layout for authenticated app pages.
-// Wraps children with ThemeProvider, ProfileProvider, FocusProvider, BrainDumpProvider, and AIProvider.
+// Wraps children with ThemeProvider, ProfileProvider, FocusProvider, BrainDumpProvider, AIProvider, and SocialProvider.
 // Includes responsive navigation: Sidebar on desktop, MobileNav on mobile.
 // =============================================================================
 
@@ -17,6 +17,7 @@ import { CelebrationProvider } from "../components/CelebrationOverlay";
 import { ToastProvider } from "../components/Toast";
 import { OnboardingProvider } from "../components/OnboardingProvider";
 import { AIProvider } from "../components/AIProvider";
+import { SocialProvider } from "../components/SocialProvider";
 
 export default async function AppLayout({
   children,
@@ -33,26 +34,28 @@ export default async function AppLayout({
               <OnboardingProvider>
                 <BrainDumpProvider>
                   <AIProvider>
-                    <div className="relative z-10 flex h-screen overflow-hidden">
-                      {/* Desktop sidebar - hidden on mobile */}
-                      <Sidebar />
+                    <SocialProvider>
+                      <div className="relative z-10 flex h-screen overflow-hidden">
+                        {/* Desktop sidebar - hidden on mobile */}
+                        <Sidebar />
 
-                      {/* Main content area with bottom padding for mobile nav */}
-                      <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pb-20 md:pb-0">
-                        <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                          {children}
+                        {/* Main content area with bottom padding for mobile nav */}
+                        <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pb-20 md:pb-0">
+                          <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+                            {children}
+                          </div>
                         </div>
+
+                        {/* Mobile bottom navigation */}
+                        <MobileNav />
+
+                        {/* Onboarding modal for first-time users */}
+                        <OnboardingModal />
+
+                        {/* AI Chat Panel (slide-out) */}
+                        <ChatPanel />
                       </div>
-
-                      {/* Mobile bottom navigation */}
-                      <MobileNav />
-
-                      {/* Onboarding modal for first-time users */}
-                      <OnboardingModal />
-
-                      {/* AI Chat Panel (slide-out) */}
-                      <ChatPanel />
-                    </div>
+                    </SocialProvider>
                   </AIProvider>
                 </BrainDumpProvider>
               </OnboardingProvider>

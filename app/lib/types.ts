@@ -1478,3 +1478,442 @@ export type AILearnUpdateRequest = {
   quiet_hours?: string[];
   learning_enabled?: boolean;
 };
+
+// =============================================================================
+// SOCIAL FEATURES TYPES
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// PRIVACY SETTINGS
+// -----------------------------------------------------------------------------
+
+/** Profile visibility level */
+export type ProfileVisibility = 'private' | 'friends' | 'public';
+
+/**
+ * User's privacy settings for social features.
+ * Privacy-first: everything is private by default.
+ */
+export type UserPrivacySettings = {
+  id: Id;
+  user_id: string;
+  show_on_global_leaderboard: boolean;
+  show_xp: boolean;
+  show_level: boolean;
+  show_streak: boolean;
+  show_achievements: boolean;
+  show_activity_feed: boolean;
+  allow_friend_requests: boolean;
+  profile_visibility: ProfileVisibility;
+  created_at: string;
+  updated_at: string;
+};
+
+// -----------------------------------------------------------------------------
+// FRIENDSHIPS
+// -----------------------------------------------------------------------------
+
+/** Friendship status */
+export type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
+
+/**
+ * Friendship record between two users.
+ * user_id = requester, friend_id = recipient.
+ */
+export type Friendship = {
+  id: Id;
+  user_id: string;
+  friend_id: string;
+  status: FriendshipStatus;
+  requested_at: string;
+  responded_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Friend with their profile information.
+ * Used for displaying friends list and leaderboards.
+ */
+export type FriendWithProfile = {
+  friendship_id: Id;
+  user_id: string;
+  status: FriendshipStatus;
+  display_name: string | null;
+  xp_total: number;
+  level: number;
+  current_streak: number;
+  longest_streak: number;
+  title: LevelTitle;
+  is_requester: boolean; // True if the current user sent the request
+  requested_at: string;
+  responded_at: string | null;
+};
+
+/**
+ * Friend request for the pending requests list.
+ */
+export type FriendRequest = {
+  id: Id;
+  from_user_id: string;
+  from_display_name: string | null;
+  from_level: number;
+  from_current_streak: number;
+  requested_at: string;
+};
+
+// -----------------------------------------------------------------------------
+// GROUPS
+// -----------------------------------------------------------------------------
+
+/**
+ * Accountability group for mutual support.
+ */
+export type Group = {
+  id: Id;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  invite_code: string;
+  max_members: number;
+  is_public: boolean;
+  member_count: number;
+  total_xp: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Group member role */
+export type GroupMemberRole = 'owner' | 'admin' | 'member';
+
+/**
+ * Group membership record.
+ */
+export type GroupMember = {
+  id: Id;
+  group_id: Id;
+  user_id: string;
+  role: GroupMemberRole;
+  weekly_xp: number;
+  joined_at: string;
+};
+
+/**
+ * Group member with profile information.
+ * Used for displaying group members list.
+ */
+export type GroupMemberWithProfile = GroupMember & {
+  display_name: string | null;
+  xp_total: number;
+  level: number;
+  current_streak: number;
+  title: LevelTitle;
+};
+
+/**
+ * Group with user's membership info.
+ * Used for displaying user's groups list.
+ */
+export type GroupWithMembership = Group & {
+  my_role: GroupMemberRole;
+  my_weekly_xp: number;
+  joined_at: string;
+};
+
+// -----------------------------------------------------------------------------
+// LEADERBOARDS
+// -----------------------------------------------------------------------------
+
+/** Leaderboard type */
+export type LeaderboardType = 'global' | 'weekly' | 'monthly';
+
+/** Leaderboard metric */
+export type LeaderboardMetric = 'xp' | 'streak' | 'level' | 'tasks' | 'focus';
+
+/**
+ * Single entry in a leaderboard.
+ */
+export type LeaderboardEntry = {
+  rank: number;
+  user_id: string;
+  display_name: string | null;
+  value: number;
+  level?: number;
+  current_streak?: number;
+  is_current_user: boolean;
+  is_friend?: boolean;
+};
+
+/**
+ * Cached leaderboard entry from database.
+ */
+export type LeaderboardCacheEntry = {
+  id: Id;
+  leaderboard_type: LeaderboardType;
+  metric: LeaderboardMetric;
+  user_id: string;
+  rank: number;
+  value: number;
+  display_name: string | null;
+  computed_at: string;
+  period_start: ISODateString | null;
+};
+
+/**
+ * Full leaderboard response.
+ */
+export type LeaderboardResponse = {
+  ok: true;
+  leaderboard_type: LeaderboardType;
+  metric: LeaderboardMetric;
+  period_start: ISODateString | null;
+  entries: LeaderboardEntry[];
+  my_rank: number | null;
+  my_value: number | null;
+  total_participants: number;
+};
+
+// -----------------------------------------------------------------------------
+// ACTIVITY FEED
+// -----------------------------------------------------------------------------
+
+/** Activity types for the feed */
+export type ActivityType =
+  | 'task_completed'
+  | 'quest_completed'
+  | 'level_up'
+  | 'achievement_unlocked'
+  | 'streak_milestone'
+  | 'habit_streak'
+  | 'joined_group'
+  | 'focus_milestone';
+
+/**
+ * Single activity in the feed.
+ */
+export type ActivityFeedItem = {
+  id: Id;
+  user_id: string;
+  activity_type: ActivityType;
+  metadata: Record<string, unknown>;
+  message: string;
+  reference_type: string | null;
+  reference_id: Id | null;
+  created_at: string;
+};
+
+/**
+ * Activity with user info for display.
+ */
+export type ActivityFeedItemWithUser = ActivityFeedItem & {
+  display_name: string | null;
+  level: number;
+};
+
+// -----------------------------------------------------------------------------
+// NOTIFICATIONS
+// -----------------------------------------------------------------------------
+
+/** Social notification types */
+export type SocialNotificationType =
+  | 'friend_request'
+  | 'friend_accepted'
+  | 'group_invite'
+  | 'group_joined'
+  | 'nudge'
+  | 'achievement_shared'
+  | 'streak_milestone_friend'
+  | 'level_up_friend';
+
+/**
+ * Social notification.
+ */
+export type SocialNotification = {
+  id: Id;
+  user_id: string;
+  type: SocialNotificationType;
+  title: string;
+  body: string | null;
+  from_user_id: string | null;
+  metadata: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Notification with sender info.
+ */
+export type NotificationWithSender = SocialNotification & {
+  from_display_name: string | null;
+  from_level: number | null;
+};
+
+// -----------------------------------------------------------------------------
+// NUDGES
+// -----------------------------------------------------------------------------
+
+/** Nudge types for different encouragement contexts */
+export type NudgeType = 'encouragement' | 'streak_reminder' | 'challenge' | 'celebration';
+
+/**
+ * Nudge between friends.
+ */
+export type Nudge = {
+  id: Id;
+  from_user_id: string;
+  to_user_id: string;
+  message: string | null;
+  nudge_type: NudgeType;
+  created_at: string;
+};
+
+/**
+ * Nudge with sender info for display.
+ */
+export type NudgeWithSender = Nudge & {
+  from_display_name: string | null;
+  from_level: number;
+  from_current_streak: number;
+};
+
+// -----------------------------------------------------------------------------
+// API RESPONSES
+// -----------------------------------------------------------------------------
+
+/**
+ * Response from friends list endpoint.
+ */
+export type FriendsListResponse = {
+  ok: true;
+  friends: FriendWithProfile[];
+  pending_requests: FriendRequest[];
+  sent_requests: FriendWithProfile[];
+};
+
+/**
+ * Response from send friend request endpoint.
+ */
+export type FriendRequestResponse = {
+  ok: true;
+  friendship: Friendship;
+  message: string;
+};
+
+/**
+ * Response from groups list endpoint.
+ */
+export type GroupsListResponse = {
+  ok: true;
+  groups: GroupWithMembership[];
+};
+
+/**
+ * Response from group detail endpoint.
+ */
+export type GroupDetailResponse = {
+  ok: true;
+  group: Group;
+  members: GroupMemberWithProfile[];
+  my_membership: GroupMember | null;
+};
+
+/**
+ * Response from group join endpoint.
+ */
+export type GroupJoinResponse = {
+  ok: true;
+  group: Group;
+  membership: GroupMember;
+  message: string;
+};
+
+/**
+ * Response from activity feed endpoint.
+ */
+export type ActivityFeedResponse = {
+  ok: true;
+  activities: ActivityFeedItemWithUser[];
+  has_more: boolean;
+  next_cursor: string | null;
+};
+
+/**
+ * Response from notifications endpoint.
+ */
+export type NotificationsResponse = {
+  ok: true;
+  notifications: NotificationWithSender[];
+  unread_count: number;
+};
+
+/**
+ * Response from nudge endpoint.
+ */
+export type NudgeResponse = {
+  ok: true;
+  nudge: Nudge;
+  message: string;
+};
+
+/**
+ * Response from user search endpoint.
+ */
+export type UserSearchResult = {
+  user_id: string;
+  display_name: string | null;
+  level: number;
+  current_streak: number;
+  title: LevelTitle;
+  is_friend: boolean;
+  has_pending_request: boolean;
+};
+
+export type UserSearchResponse = {
+  ok: true;
+  users: UserSearchResult[];
+};
+
+// -----------------------------------------------------------------------------
+// SOCIAL CONTEXT FOR PROVIDERS
+// -----------------------------------------------------------------------------
+
+/**
+ * Social state for the SocialProvider context.
+ */
+export type SocialState = {
+  friends: FriendWithProfile[];
+  pendingRequests: FriendRequest[];
+  sentRequests: FriendWithProfile[];
+  groups: GroupWithMembership[];
+  notifications: NotificationWithSender[];
+  unreadNotificationCount: number;
+  isLoading: boolean;
+  error: string | null;
+};
+
+/**
+ * Social actions available in the SocialProvider.
+ */
+export type SocialActions = {
+  // Friends
+  refreshFriends: () => Promise<void>;
+  sendFriendRequest: (userId: string) => Promise<boolean>;
+  acceptFriendRequest: (friendshipId: Id) => Promise<boolean>;
+  rejectFriendRequest: (friendshipId: Id) => Promise<boolean>;
+  removeFriend: (friendshipId: Id) => Promise<boolean>;
+  blockUser: (userId: string) => Promise<boolean>;
+
+  // Groups
+  refreshGroups: () => Promise<void>;
+  createGroup: (name: string, description?: string) => Promise<Group | null>;
+  joinGroup: (inviteCode: string) => Promise<boolean>;
+  leaveGroup: (groupId: Id) => Promise<boolean>;
+
+  // Notifications
+  refreshNotifications: () => Promise<void>;
+
+  // Nudges
+  sendNudge: (toUserId: string, message?: string, nudgeType?: NudgeType) => Promise<boolean>;
+
+  // Search
+  searchUsers: (query: string) => Promise<UserSearchResult[]>;
+};

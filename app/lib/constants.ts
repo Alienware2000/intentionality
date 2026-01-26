@@ -100,3 +100,54 @@ export const SMOOTH_TRANSITION = {
   duration: 0.3,
   ease: "easeInOut",
 } as const;
+
+// -----------------------------------------------------------------------------
+// Social Feature Limits
+// -----------------------------------------------------------------------------
+
+export const SOCIAL_LIMITS = {
+  /** Maximum length for group name */
+  GROUP_NAME_MAX_LENGTH: 50,
+  /** Maximum length for group description */
+  GROUP_DESCRIPTION_MAX_LENGTH: 200,
+  /** Length of invite codes */
+  INVITE_CODE_LENGTH: 8,
+  /** Default limit for leaderboard results */
+  LEADERBOARD_DEFAULT_LIMIT: 50,
+  /** Maximum limit for leaderboard results */
+  LEADERBOARD_MAX_LIMIT: 100,
+  /** Default limit for activity feed */
+  ACTIVITY_FEED_DEFAULT_LIMIT: 20,
+  /** Notification polling interval in milliseconds */
+  NOTIFICATION_POLL_INTERVAL_MS: 60000,
+  /** Search debounce delay in milliseconds */
+  SEARCH_DEBOUNCE_MS: 300,
+  /** Maximum length for nudge messages */
+  NUDGE_MESSAGE_MAX_LENGTH: 200,
+  /** Minimum characters for user search */
+  SEARCH_MIN_CHARS: 2,
+} as const;
+
+// -----------------------------------------------------------------------------
+// Supabase Error Codes
+// -----------------------------------------------------------------------------
+
+export const SUPABASE_ERROR_CODES = {
+  /** Row not found (PGRST116) */
+  NOT_FOUND: "PGRST116",
+  /** Unique constraint violation */
+  UNIQUE_VIOLATION: "23505",
+} as const;
+
+// -----------------------------------------------------------------------------
+// Group Limits
+// -----------------------------------------------------------------------------
+
+export const GROUP_LIMITS = {
+  /** Minimum members allowed in a group */
+  MIN_MEMBERS: 2,
+  /** Maximum members allowed in a group */
+  MAX_MEMBERS: 50,
+  /** Default max members for new groups */
+  DEFAULT_MAX_MEMBERS: 20,
+} as const;

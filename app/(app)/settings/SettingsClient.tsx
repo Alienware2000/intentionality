@@ -8,10 +8,21 @@
 import CalendarImportCard from "./CalendarImportCard";
 import GoogleCalendarCard from "./GoogleCalendarCard";
 import AILearningCard from "./AILearningCard";
+import PrivacySettingsCard from "./PrivacySettingsCard";
 
 export default function SettingsClient() {
   return (
     <div className="space-y-8">
+      {/* Privacy & Social Section */}
+      <section>
+        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
+          Privacy & Social
+        </h2>
+        <div className="space-y-4">
+          <PrivacySettingsCard />
+        </div>
+      </section>
+
       {/* AI Assistant Section */}
       <section>
         <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">

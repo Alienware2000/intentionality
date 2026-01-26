@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { useState, useMemo, useRef, useEffect, useCallback, memo } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -405,7 +406,7 @@ export default function DayTimeline({
               : "Create a Quest first, then add tasks"}
           </p>
           {quests.length === 0 && (
-            <a
+            <Link
               href="/quests"
               className={cn(
                 "inline-block mt-3 px-3 py-1.5 rounded-lg text-xs font-medium",
@@ -414,7 +415,7 @@ export default function DayTimeline({
               )}
             >
               Create Quest
-            </a>
+            </Link>
           )}
         </div>
       )}

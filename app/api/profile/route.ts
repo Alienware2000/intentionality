@@ -58,6 +58,12 @@ export const GET = withAuth(async ({ user, supabase }) => {
 
   // If profile doesn't exist (PGRST116 = no rows returned), create one
   if (fetchError?.code === "PGRST116") {
+    // Generate a default display name from user metadata or email
+    const defaultDisplayName =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      (user.email ? user.email.split("@")[0] : null);
+
     const { data: newProfile, error: createError } = await supabase
       .from("user_profiles")
       .insert({
@@ -67,6 +73,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
         current_streak: 0,
         longest_streak: 0,
         last_active_date: null,
+        display_name: defaultDisplayName,
       })
       .select()
       .single();
