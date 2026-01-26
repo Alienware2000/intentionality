@@ -166,99 +166,99 @@
    ============================================================================= */
 
 :root.light {
-  /* Base colors - clean off-white/white */
-  --bg-base: #fafafa;
-  --bg-base-rgb: 250, 250, 250;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-rgb: 255, 255, 255;
-  --bg-hover: #f3f4f6;
+  /* Base colors - tactical warm cream palette (HUD-inspired) */
+  --bg-base: #f0ece4;
+  --bg-base-rgb: 240, 236, 228;
+  --bg-elevated: #f5f2ec;
+  --bg-card: #faf8f4;
+  --bg-card-rgb: 250, 248, 244;
+  --bg-hover: #e8e4dc;
 
-  /* Text colors - cool gray hierarchy (WCAG AAA compliant) */
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6b7280;
+  /* Text colors - warm undertones for cream harmony (WCAG AAA compliant) */
+  --text-primary: #1a1814;
+  --text-secondary: #3d3830;
+  --text-muted: #6b6358;
 
-  /* Fixed semantic colors (light mode variants) */
-  --accent-success: #16a34a;
-  --accent-success-rgb: 22, 163, 74;
-  --accent-streak: #ea580c;
-  --accent-streak-rgb: 234, 88, 12;
-  --accent-danger: #dc2626;
-  --accent-danger-rgb: 220, 38, 38;
-  --accent-info: #2563eb;
-  --accent-info-rgb: 37, 99, 235;
+  /* Fixed semantic colors - deeper tones for cream background visibility */
+  --accent-success: #0d7a3e;
+  --accent-success-rgb: 13, 122, 62;
+  --accent-streak: #c94a14;
+  --accent-streak-rgb: 201, 74, 20;
+  --accent-danger: #c42b2b;
+  --accent-danger-rgb: 196, 43, 43;
+  --accent-info: #1d5aa8;
+  --accent-info-rgb: 29, 90, 168;
 
-  /* Priority colors */
-  --priority-high: #dc2626;
-  --priority-medium: #ca8a04;
-  --priority-low: #6b7280;
+  /* Priority colors - adjusted for cream backgrounds */
+  --priority-high: #c42b2b;
+  --priority-medium: #a67108;
+  --priority-low: #6b6358;
 
-  /* Borders and lines - stronger for visibility */
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-default: rgba(0, 0, 0, 0.15);
-  --border-accent: rgba(var(--accent-primary-rgb), 0.25);
-  --border-hover: rgba(var(--accent-primary-rgb), 0.15);
+  /* Borders and lines - stronger HUD panel definition */
+  --border-subtle: rgba(30, 25, 20, 0.12);
+  --border-default: rgba(30, 25, 20, 0.22);
+  --border-accent: rgba(var(--accent-primary-rgb), 0.35);
+  --border-hover: rgba(var(--accent-primary-rgb), 0.20);
 
-  /* Heatmap & Skeleton - visible gray */
-  --heatmap-empty: #e5e7eb;
-  --skeleton-bg: #e5e7eb;
+  /* Heatmap & Skeleton - warm cream tones */
+  --heatmap-empty: #e4e0d8;
+  --skeleton-bg: #e4e0d8;
 
-  /* Achievement Tiers - darker for contrast */
-  --tier-bronze-text: #b45309;
-  --tier-bronze-glow: rgba(180, 83, 9, 0.4);
-  --tier-silver-text: #475569;
-  --tier-silver-glow: rgba(71, 85, 105, 0.4);
-  --tier-gold-text: #b45309;
-  --tier-gold-glow: rgba(180, 83, 9, 0.4);
+  /* Achievement Tiers - warm tones for cream background */
+  --tier-bronze-text: #9a5e0d;
+  --tier-bronze-glow: rgba(154, 94, 13, 0.45);
+  --tier-silver-text: #4a453d;
+  --tier-silver-glow: rgba(74, 69, 61, 0.45);
+  --tier-gold-text: #9a5e0d;
+  --tier-gold-glow: rgba(154, 94, 13, 0.45);
 
-  /* Modal Backdrops - lighter */
-  --backdrop-color: rgba(0, 0, 0, 0.50);
-  --backdrop-heavy: rgba(0, 0, 0, 0.60);
+  /* Modal Backdrops - warmer tactical overlays */
+  --backdrop-color: rgba(30, 25, 20, 0.55);
+  --backdrop-heavy: rgba(30, 25, 20, 0.70);
 
   /* Level-up glow - uses accent */
   --levelup-glow: rgba(var(--accent-highlight-rgb), 0.4);
   --levelup-glow-soft: rgba(var(--accent-highlight-rgb), 0.2);
 
-  /* Premium glow intensities (softer for light mode) */
-  --glow-subtle: 0 0 16px rgba(var(--accent-primary-rgb), 0.12);
-  --glow-medium: 0 0 24px rgba(var(--accent-primary-rgb), 0.18);
-  --glow-strong: 0 0 32px rgba(var(--accent-primary-rgb), 0.25);
+  /* Premium glow intensities - boosted visibility on cream backgrounds */
+  --glow-subtle: 0 0 20px rgba(var(--accent-primary-rgb), 0.20);
+  --glow-medium: 0 0 28px rgba(var(--accent-primary-rgb), 0.30);
+  --glow-strong: 0 0 40px rgba(var(--accent-primary-rgb), 0.40);
 
   /* Legacy - for Tailwind compatibility */
-  --background: #fafafa;
-  --foreground: #111827;
+  --background: #f0ece4;
+  --foreground: #1a1814;
 }
 
-/* Light mode accent theme adjustments for better contrast */
+/* Light mode accent theme adjustments - darkened for tactical cream backgrounds */
 :root.light[data-accent="crimson"] {
-  --accent-primary: #dc2626;
-  --accent-primary-rgb: 220, 38, 38;
-  --accent-primary-glow: rgba(220, 38, 38, 0.25);
+  --accent-primary: #c42020;
+  --accent-primary-rgb: 196, 32, 32;
+  --accent-primary-glow: rgba(196, 32, 32, 0.30);
 }
 
 :root.light[data-accent="teal"] {
-  --accent-primary: #0d9488;
-  --accent-primary-rgb: 13, 148, 136;
-  --accent-primary-glow: rgba(13, 148, 136, 0.25);
+  --accent-primary: #0a8a74;
+  --accent-primary-rgb: 10, 138, 116;
+  --accent-primary-glow: rgba(10, 138, 116, 0.30);
 }
 
 :root.light[data-accent="gold"] {
-  --accent-primary: #b45309;
-  --accent-primary-rgb: 180, 83, 9;
-  --accent-primary-glow: rgba(180, 83, 9, 0.25);
+  --accent-primary: #9a5e0d;
+  --accent-primary-rgb: 154, 94, 13;
+  --accent-primary-glow: rgba(154, 94, 13, 0.30);
 }
 
 :root.light[data-accent="violet"] {
-  --accent-primary: #6d28d9;
-  --accent-primary-rgb: 109, 40, 217;
-  --accent-primary-glow: rgba(109, 40, 217, 0.25);
+  --accent-primary: #5a32a3;
+  --accent-primary-rgb: 90, 50, 163;
+  --accent-primary-glow: rgba(90, 50, 163, 0.30);
 }
 
 :root.light[data-accent="emerald"] {
-  --accent-primary: #059669;
-  --accent-primary-rgb: 5, 150, 105;
-  --accent-primary-glow: rgba(5, 150, 105, 0.25);
+  --accent-primary: #047857;
+  --accent-primary-rgb: 4, 120, 87;
+  --accent-primary-glow: rgba(4, 120, 87, 0.30);
 }
 
 @theme inline {
@@ -360,25 +360,27 @@ body {
   opacity: 0;
 }
 
-/* Light mode background adjustments */
+/* Light mode background adjustments - tactical HUD grid and glows */
 :root.light .intentionality-bg::before {
   background-image:
-    radial-gradient(circle at center, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-    linear-gradient(to right, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.015) 1px, transparent 1px);
-  opacity: 0.5;
+    radial-gradient(circle at center, rgba(30, 25, 20, 0.04) 1px, transparent 1px),
+    linear-gradient(to right, rgba(30, 25, 20, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 25, 20, 0.03) 1px, transparent 1px);
+  opacity: 0.8;
 }
 
 :root.light .intentionality-bg::after {
   background:
-    /* Top-left subtle accent glow */
-    radial-gradient(600px circle at 5% 5%, rgba(var(--accent-primary-rgb), 0.06), transparent 50%),
-    /* Top-right */
-    radial-gradient(400px circle at 95% 10%, rgba(var(--accent-primary-rgb), 0.03), transparent 50%),
-    /* Bottom glow */
-    radial-gradient(500px circle at 90% 85%, rgba(var(--accent-primary-rgb), 0.04), transparent 50%),
-    /* Very subtle edge darkening */
-    radial-gradient(1600px circle at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.03) 100%);
+    /* Top-left accent glow - visible on cream */
+    radial-gradient(600px circle at 5% 5%, rgba(var(--accent-primary-rgb), 0.10), transparent 50%),
+    /* Top-right accent glow */
+    radial-gradient(400px circle at 95% 10%, rgba(var(--accent-primary-rgb), 0.06), transparent 50%),
+    /* Bottom-left highlight */
+    radial-gradient(350px circle at 10% 90%, rgba(var(--accent-highlight-rgb), 0.05), transparent 50%),
+    /* Bottom-right accent glow */
+    radial-gradient(500px circle at 90% 85%, rgba(var(--accent-primary-rgb), 0.08), transparent 50%),
+    /* Subtle vignette for depth */
+    radial-gradient(1600px circle at 50% 50%, transparent 50%, rgba(30, 25, 20, 0.06) 100%);
 }
 
 /* =============================================================================
@@ -475,26 +477,26 @@ body {
   box-shadow: 0 0 15px rgba(var(--accent-success-rgb), 0.35);
 }
 
-/* Light mode glow adjustments - softer, more subtle */
+/* Light mode glow adjustments - boosted visibility for cream backgrounds */
 :root.light .glow-primary {
   box-shadow: var(--glow-subtle);
 }
 
 :root.light .glow-red {
-  box-shadow: 0 0 16px rgba(var(--accent-primary-rgb), 0.18);
+  box-shadow: 0 0 18px rgba(var(--accent-primary-rgb), 0.25);
 }
 
 :root.light .glow-orange,
 :root.light .glow-streak {
-  box-shadow: 0 0 12px rgba(var(--accent-streak-rgb), 0.2);
+  box-shadow: 0 0 15px rgba(var(--accent-streak-rgb), 0.28);
 }
 
 :root.light .glow-highlight {
-  box-shadow: 0 0 16px rgba(var(--accent-highlight-rgb), 0.25);
+  box-shadow: 0 0 18px rgba(var(--accent-highlight-rgb), 0.32);
 }
 
 :root.light .glow-success {
-  box-shadow: 0 0 12px rgba(var(--accent-success-rgb), 0.2);
+  box-shadow: 0 0 15px rgba(var(--accent-success-rgb), 0.28);
 }
 
 /* Thin divider line */
@@ -635,13 +637,13 @@ body {
   animation: border-glow 2s ease-in-out infinite;
 }
 
-/* Light mode animation adjustments */
+/* Light mode animation adjustments - boosted for cream backgrounds */
 @keyframes pulse-glow-light {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(var(--accent-highlight-rgb), 0.15);
+    box-shadow: 0 0 16px rgba(var(--accent-highlight-rgb), 0.22);
   }
   50% {
-    box-shadow: 0 0 20px rgba(var(--accent-highlight-rgb), 0.3);
+    box-shadow: 0 0 26px rgba(var(--accent-highlight-rgb), 0.40);
   }
 }
 
@@ -765,17 +767,17 @@ body {
   animation: shimmer 1.2s infinite;
 }
 
-/* Light mode landing adjustments */
+/* Light mode landing adjustments - visible on cream backgrounds */
 :root.light .animate-glow-pulse {
   animation-name: glow-pulse-landing-light;
 }
 
 @keyframes glow-pulse-landing-light {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.12);
+    box-shadow: 0 0 24px rgba(var(--accent-primary-rgb), 0.20);
   }
   50% {
-    box-shadow: 0 0 40px rgba(var(--accent-primary-rgb), 0.2);
+    box-shadow: 0 0 48px rgba(var(--accent-primary-rgb), 0.35);
   }
 }
 
@@ -834,24 +836,26 @@ body {
     0 0 0 1px rgba(var(--accent-primary-rgb), 0.1);
 }
 
-/* Light mode glass adjustments */
+/* Light mode glass adjustments - tactical panel appearance */
 :root.light .glass-card-premium {
   background: linear-gradient(
     135deg,
-    rgba(var(--bg-card-rgb), 0.95) 0%,
-    rgba(var(--bg-card-rgb), 0.85) 100%
+    rgba(var(--bg-card-rgb), 0.92) 0%,
+    rgba(var(--bg-card-rgb), 0.88) 100%
   );
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(30, 25, 20, 0.15);
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    0 4px 20px rgba(30, 25, 20, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    inset 0 -1px 0 rgba(30, 25, 20, 0.05);
 }
 
 :root.light .glass-card-premium:hover {
-  border-color: rgba(var(--accent-primary-rgb), 0.15);
+  border-color: rgba(var(--accent-primary-rgb), 0.25);
   box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    0 8px 28px rgba(30, 25, 20, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 0 0 1px rgba(var(--accent-primary-rgb), 0.12);
 }
 
 /* Interactive card 3D tilt effect - controlled via JavaScript */
@@ -908,10 +912,10 @@ body {
 
 @keyframes breathing-light {
   0%, 100% {
-    box-shadow: 0 0 16px rgba(var(--accent-primary-rgb), 0.1);
+    box-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.18);
   }
   50% {
-    box-shadow: 0 0 24px rgba(var(--accent-primary-rgb), 0.18);
+    box-shadow: 0 0 32px rgba(var(--accent-primary-rgb), 0.30);
   }
 }
 
@@ -966,8 +970,8 @@ body {
 
 :root.light .hover-lift-glow:hover {
   box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.1),
-    0 0 16px rgba(var(--accent-primary-rgb), 0.08);
+    0 12px 36px rgba(30, 25, 20, 0.12),
+    0 0 20px rgba(var(--accent-primary-rgb), 0.15);
 }
 
 /* Active nav indicator slide */
