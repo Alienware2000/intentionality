@@ -13,6 +13,7 @@ import type { ScheduleBlock, DayOfWeek, ISODateString, Priority } from "@/app/li
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { XP_VALUES } from "@/app/lib/gamification";
+import ModalPortal from "./ModalPortal";
 
 type DefaultValues = {
   start_time?: string;
@@ -170,17 +171,18 @@ export default function AddScheduleModal({
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 modal-backdrop z-50"
-            onClick={onClose}
-          />
+    <ModalPortal>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 modal-backdrop z-50"
+              onClick={onClose}
+            />
 
           {/* Modal */}
           <motion.div
@@ -455,8 +457,9 @@ export default function AddScheduleModal({
               </button>
             </div>
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </>
+        )}
+      </AnimatePresence>
+    </ModalPortal>
   );
 }

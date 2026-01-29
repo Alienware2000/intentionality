@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Plus, MapPin, Clock, Trash2, Calendar } from "lucide-react";
+import { Check, Plus, MapPin, Clock, Trash2 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { formatTime, getTodayISO, getDayOfWeek } from "@/app/lib/date-utils";
 import type { ISODateString, ScheduleBlock, DayOfWeek } from "@/app/lib/types";
@@ -388,6 +388,7 @@ const HourLine = memo(function HourLine({
 
 /**
  * Current time "NOW" indicator line.
+ * Clean, minimal design without excessive glow effects.
  */
 const NowIndicator = memo(function NowIndicator({
   topPx,
@@ -421,50 +422,34 @@ const NowIndicator = memo(function NowIndicator({
       animate={{ opacity: 1, scaleX: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      {/* Subtle background glow strip */}
+      {/* Left circle marker - solid, no glow */}
       <div
-        className="absolute inset-0 -inset-y-1 pointer-events-none"
-        style={{
-          background: `linear-gradient(90deg, transparent 0%, rgba(var(--accent-primary-rgb), 0.06) 30%, rgba(var(--accent-primary-rgb), 0.06) 70%, transparent 100%)`
-        }}
-      />
-
-      {/* Left circle marker */}
-      <div
-        className="flex justify-end pr-1 relative z-10"
+        className="flex justify-end pr-1"
         style={{ width: timeLabelWidth }}
       >
-        <div className="relative">
-          <div
-            className={cn(
-              "rounded-full bg-[var(--accent-primary)]",
-              compact ? "w-2 h-2" : "w-3 h-3"
-            )}
-            style={{ boxShadow: "0 0 8px var(--accent-primary), 0 0 16px var(--accent-primary-glow)" }}
-          />
-          <div className={cn(
-            "absolute inset-0 rounded-full bg-[var(--accent-primary)] animate-pulsing-dot",
+        <div
+          className={cn(
+            "rounded-full bg-[var(--accent-primary)]",
             compact ? "w-2 h-2" : "w-3 h-3"
-          )} />
-        </div>
+          )}
+        />
       </div>
 
-      {/* Line with gradient glow effect */}
+      {/* Line - solid gradient, no glow shadow */}
       <div
-        className="flex-1 h-[2px] relative z-10"
+        className="flex-1 h-[2px]"
         style={{
-          background: `linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-primary) 70%, rgba(var(--accent-primary-rgb), 0.3) 100%)`,
-          boxShadow: "0 0 6px var(--accent-primary-glow)"
+          background: `linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-primary) 70%, rgba(var(--accent-primary-rgb), 0.3) 100%)`
         }}
       />
 
-      {/* Time label - right aligned */}
+      {/* Time label - minimal shadow */}
       <span
         className={cn(
-          "ml-2 px-2 py-0.5 rounded bg-[var(--accent-primary)] text-white font-mono font-medium whitespace-nowrap relative z-10",
+          "ml-2 px-2 py-0.5 rounded bg-[var(--accent-primary)] text-white font-mono font-medium whitespace-nowrap",
           compact ? "text-[10px] px-1.5" : "text-xs"
         )}
-        style={{ boxShadow: "0 2px 8px var(--accent-primary-glow)" }}
+        style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
       >
         {formatTime12h(currentTime)}
       </span>
@@ -526,11 +511,11 @@ const CalendarBlock = memo(function CalendarBlock({
         borderLeftColor: block.color,
         boxShadow: completed
           ? "none"
-          : `0 2px 8px ${block.color}20, 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.04)`,
+          : "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
       }}
       whileHover={{
-        y: -2,
-        boxShadow: `0 6px 16px ${block.color}30, 0 2px 4px rgba(0,0,0,0.08)`,
+        y: -1,
+        boxShadow: "0 3px 6px rgba(0,0,0,0.1)",
       }}
       onClick={onEdit}
     >
@@ -619,6 +604,7 @@ const CalendarBlock = memo(function CalendarBlock({
 
 /**
  * Ghost block preview for empty slot hover.
+ * Clean dashed border without pulsing animation.
  */
 const GhostBlock = memo(function GhostBlock({
   top,
@@ -628,7 +614,6 @@ const GhostBlock = memo(function GhostBlock({
   startTime,
   endTime,
   onClick,
-  isEmpty,
 }: {
   top: number;
   height: number;
@@ -637,7 +622,6 @@ const GhostBlock = memo(function GhostBlock({
   startTime: string;
   endTime: string;
   onClick: () => void;
-  isEmpty?: boolean;
 }) {
   return (
     <motion.div
@@ -646,14 +630,10 @@ const GhostBlock = memo(function GhostBlock({
       exit={{ opacity: 0, scale: 0.98 }}
       className={cn(
         "absolute",
-        "border-2 border-dashed",
-        isEmpty
-          ? "border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5"
-          : "border-[var(--border-default)] bg-[var(--bg-hover)]/50",
+        "border-2 border-dashed border-[var(--border-default)]",
         "flex flex-col items-center justify-center gap-1",
         "cursor-cell transition-colors duration-150",
-        "hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10",
-        isEmpty && "animate-pulse-subtle"
+        "hover:border-[var(--accent-primary)]"
       )}
       style={{
         top,
@@ -664,14 +644,8 @@ const GhostBlock = memo(function GhostBlock({
       }}
       onClick={onClick}
     >
-      <Plus size={18} className={cn(
-        "transition-colors",
-        isEmpty ? "text-[var(--accent-primary)]/70" : "text-[var(--text-muted)]"
-      )} />
-      <span className={cn(
-        "text-xs font-medium",
-        isEmpty ? "text-[var(--accent-primary)]/70" : "text-[var(--text-muted)]"
-      )}>
+      <Plus size={18} className="text-[var(--text-muted)]" />
+      <span className="text-xs font-medium text-[var(--text-muted)]">
         Click to add
       </span>
       <span className="text-[10px] text-[var(--text-muted)]">
@@ -924,7 +898,6 @@ export default function CalendarDayView({
               startTime={minutesToTimeString(hoverSlot.startMinutes)}
               endTime={minutesToTimeString(hoverSlot.endMinutes)}
               onClick={handleAddBlockClick}
-              isEmpty={blocks.length === 0}
             />
           )}
         </AnimatePresence>
@@ -940,34 +913,13 @@ export default function CalendarDayView({
         )}
       </div>
 
-      {/* Welcoming empty state */}
+      {/* Minimal empty state hint */}
       {blocks.length === 0 && (
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-        >
-          <div className="text-center p-6 max-w-[200px]">
-            <div className={cn(
-              "mx-auto mb-3 w-12 h-12 rounded-xl",
-              "bg-[rgba(var(--accent-primary-rgb),0.1)]",
-              "border border-[rgba(var(--accent-primary-rgb),0.15)]",
-              "flex items-center justify-center"
-            )}>
-              <Calendar size={22} className="text-[var(--accent-primary)]" />
-            </div>
-            <h4 className="text-sm font-medium text-[var(--text-primary)] mb-1">
-              Plan Your Day
-            </h4>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Add time blocks for classes, study, or breaks
-            </p>
-            <p className="text-[10px] mt-3 px-2 py-1 rounded-full inline-block bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-              Click anywhere to add
-            </p>
-          </div>
-        </motion.div>
+        <div className="sticky top-2 left-0 right-0 flex justify-center pointer-events-none z-10">
+          <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-elevated)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
+            Click any time slot to add a block
+          </span>
+        </div>
       )}
     </div>
   );
