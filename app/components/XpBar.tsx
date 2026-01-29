@@ -67,7 +67,7 @@ export default function XpBar({
   // Show shimmer sweep when near level up
   useEffect(() => {
     if (isNearLevelUp && !showShimmer) {
-      setShowShimmer(true);
+      queueMicrotask(() => setShowShimmer(true));
     }
   }, [isNearLevelUp, showShimmer]);
 

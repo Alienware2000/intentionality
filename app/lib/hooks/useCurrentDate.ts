@@ -28,7 +28,8 @@ export function useCurrentDate(): ISODateString {
   const [date, setDate] = useState<ISODateString>(getTodayISO());
 
   useEffect(() => {
-    // Update date immediately on mount (in case server date was stale)
+    // Intentional: correct stale server-rendered date on hydration
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDate(getTodayISO());
 
     // Calculate ms until next midnight

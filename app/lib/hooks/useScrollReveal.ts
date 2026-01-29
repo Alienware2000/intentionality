@@ -87,10 +87,10 @@ export function useScrollReveal(
   } = options;
 
   const ref = useRef<HTMLDivElement>(null);
-   
+
   const isInView = useInView(ref, {
     once,
-    margin: margin as any,
+    margin: margin as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     amount: threshold,
   });
   const controls = useAnimation();

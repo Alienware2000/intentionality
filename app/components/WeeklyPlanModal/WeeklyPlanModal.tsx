@@ -219,7 +219,7 @@ function ChoiceView({
 // -----------------------------------------------------------------------------
 
 function GuidanceCard({ card }: { card: GuidanceCardType }) {
-  const Icon = getIconForGuidance(card.icon);
+  const IconComponent = getIconForGuidance(card.icon);
 
   return (
     <div
@@ -230,7 +230,8 @@ function GuidanceCard({ card }: { card: GuidanceCardType }) {
       )}
     >
       <div className="flex items-center gap-2 mb-1.5">
-        <Icon size={14} style={{ color: card.color }} />
+        {/* eslint-disable-next-line react-hooks/static-components -- Dynamic icon selection based on prop */}
+        {IconComponent && <IconComponent size={14} style={{ color: card.color }} />}
         <span
           className="text-xs font-semibold uppercase tracking-wide"
           style={{ color: card.color }}
@@ -247,7 +248,7 @@ function GuidanceCard({ card }: { card: GuidanceCardType }) {
             key={i}
             className="text-xs text-[var(--text-secondary)] truncate"
           >
-            "{example}"
+            &quot;{example}&quot;
           </p>
         ))}
       </div>
@@ -283,7 +284,7 @@ function AIInputView({
   }, []);
 
   const currentTip = AI_TIPS[currentTipIndex];
-  const TipIcon = getIconForTip(currentTip.icon);
+  const TipIconComponent = getIconForTip(currentTip.icon);
 
   const canSubmit = brainDumpText.trim().length >= AI_BRAIN_DUMP.minLength;
 
@@ -357,7 +358,8 @@ function AIInputView({
 
       {/* Rotating tip */}
       <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-[var(--accent-highlight)]/10 border border-[var(--accent-highlight)]/30">
-        <TipIcon size={16} className="text-[var(--accent-highlight)] flex-shrink-0" />
+        {/* eslint-disable-next-line react-hooks/static-components -- Dynamic icon selection based on tip */}
+        {TipIconComponent && <TipIconComponent size={16} className="text-[var(--accent-highlight)] flex-shrink-0" />}
         <p className="text-sm text-[var(--text-secondary)]">{currentTip.text}</p>
       </div>
 
@@ -750,12 +752,13 @@ function TaskGroup({
   priority: Priority;
 }) {
   const config = PRIORITY_CONFIG[priority];
-  const Icon = getPriorityIcon(priority);
+  const IconComponent = getPriorityIcon(priority);
 
   return (
     <div className={cn("rounded-xl border p-4", config.bgClass, config.borderClass)}>
       <div className="flex items-center gap-2 mb-3">
-        <Icon size={14} style={{ color: config.color }} />
+        {/* eslint-disable-next-line react-hooks/static-components -- Dynamic icon selection based on priority */}
+        {IconComponent && <IconComponent size={14} style={{ color: config.color }} />}
         <span
           className="text-xs font-semibold uppercase tracking-wide"
           style={{ color: config.color }}

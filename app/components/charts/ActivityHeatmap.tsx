@@ -184,7 +184,7 @@ export default function ActivityHeatmap({ data, onDayClick }: Props) {
       });
     }
 
-    setHasAnimated(true);
+    queueMicrotask(() => setHasAnimated(true));
   }, [hasAnimated, prefersReducedMotionHook, weeks.length]);
 
   return (

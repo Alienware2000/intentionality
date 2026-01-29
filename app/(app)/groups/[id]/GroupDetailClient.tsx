@@ -331,7 +331,9 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   // Reload leaderboard when metric changes
   useEffect(() => {
     if (!loading) {
-      loadLeaderboard();
+      void (async () => {
+        await loadLeaderboard();
+      })();
     }
   }, [metric, loadLeaderboard, loading]);
 

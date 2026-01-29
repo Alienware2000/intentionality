@@ -18,6 +18,7 @@ export default function ModalPortal({ children }: Props) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe portal mounting pattern
     setMounted(true);
     return () => setMounted(false);
   }, []);

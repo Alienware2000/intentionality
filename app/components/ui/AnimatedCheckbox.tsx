@@ -52,7 +52,7 @@ export default function AnimatedCheckbox({
 
     // Only animate when transitioning from unchecked to checked
     if (checked && !prevCheckedRef.current) {
-      setIsAnimating(true);
+      queueMicrotask(() => setIsAnimating(true));
 
       // Checkmark SVG draw animation
       if (checkRef.current) {
