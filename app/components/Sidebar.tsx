@@ -158,23 +158,25 @@ export default function Sidebar() {
               ref={xpBarRef}
               className="space-y-3 p-3 -mx-3 rounded-lg transition-all duration-200 group-hover:bg-[var(--bg-hover)] group-hover:shadow-lg"
             >
-              <div className="flex items-baseline justify-between">
-                <div className="flex items-center gap-1">
-                  <motion.span
-                    className="text-2xl font-mono font-bold text-[var(--text-primary)]"
-                    initial={false}
-                    animate={{ scale: 1 }}
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    LVL {profile.level}
-                  </motion.span>
-                  <span className="ml-1 text-xs text-[var(--accent-highlight)]">
-                    {getTitleForLevel(profile.level)}
+              <div className="space-y-1">
+                <div className="flex items-baseline justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <motion.span
+                      className="text-2xl font-mono font-bold text-[var(--text-primary)]"
+                      initial={false}
+                      animate={{ scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      LVL {profile.level}
+                    </motion.span>
+                    <XpBarTooltip />
+                  </div>
+                  <span className="text-xs font-mono text-[var(--text-muted)]">
+                    {profile.xp_total.toLocaleString()} XP
                   </span>
-                  <XpBarTooltip />
                 </div>
-                <span className="text-xs font-mono text-[var(--text-muted)]">
-                  {profile.xp_total.toLocaleString()} XP
+                <span className="text-xs font-medium text-[var(--accent-highlight)]">
+                  {getTitleForLevel(profile.level)}
                 </span>
               </div>
               <XpBar totalXp={profile.xp_total} showLevel={false} size="sm" />

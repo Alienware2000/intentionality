@@ -31,6 +31,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
+import { getTitleForLevel } from "@/app/lib/gamification";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { useBrainDump } from "./BrainDumpProvider";
@@ -225,12 +226,17 @@ export default function MobileNav() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-3xl font-mono font-bold text-[var(--text-primary)]">
-                        LVL {profile.level}
-                      </span>
-                      <span className="text-sm font-mono text-[var(--text-muted)]">
-                        {profile.xp_total} XP
+                    <div className="space-y-1">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-3xl font-mono font-bold text-[var(--text-primary)]">
+                          LVL {profile.level}
+                        </span>
+                        <span className="text-sm font-mono text-[var(--text-muted)]">
+                          {profile.xp_total.toLocaleString()} XP
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-[var(--accent-highlight)]">
+                        {getTitleForLevel(profile.level)}
                       </span>
                     </div>
                     <XpBar totalXp={profile.xp_total} showLevel={false} size="sm" />
