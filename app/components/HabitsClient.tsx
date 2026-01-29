@@ -25,24 +25,15 @@ type Props = {
 
 type HabitsResponse = { ok: true; habits: HabitWithStatus[] };
 
-// Frequency options for the add form dropdown
-const frequencyOptions: { value: HabitFrequency; label: string }[] = [
-  { value: "daily", label: "Daily" },
-  { value: "weekdays", label: "Mon-Fri" },
-  { value: "weekends", label: "Sat-Sun" },
-];
-
 export default function HabitsClient({ date, onHabitToggle }: Props) {
-  const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [frequency, setFrequency] = useState<HabitFrequency>("daily");
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit/Delete state
+  // Edit/Delete/Add state
   const [editingHabit, setEditingHabit] = useState<HabitWithStatus | null>(null);
   const [deletingHabitId, setDeletingHabitId] = useState<Id | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const { refreshProfile } = useProfile();
   const { markStepComplete } = useOnboarding();
@@ -171,24 +162,24 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
     }
   }
 
-  async function handleAdd() {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-
+  async function handleCreate(data: {
+    title: string;
+    priority: Priority;
+    frequency: HabitFrequency;
+    active_days: DayOfWeek[];
+  }) {
     setError(null);
 
     try {
       await fetchApi("/api/habits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed, priority, frequency }),
+        body: JSON.stringify(data),
       });
 
-      setTitle("");
-      setFrequency("daily");
       await refreshHabits();
-      // Mark onboarding step complete
       markStepComplete("create_habit");
+      setIsAddModalOpen(false);
     } catch (e) {
       setError(getErrorMessage(e));
     }
@@ -253,69 +244,10 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Add Habit Form - stacks on mobile */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex gap-2">
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as Priority)}
-            className={cn(
-              "flex-1 sm:flex-initial rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
-              "outline-none focus:border-[var(--accent-primary)]"
-            )}
-          >
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <select
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value as HabitFrequency)}
-            className={cn(
-              "flex-1 sm:flex-initial rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
-              "outline-none focus:border-[var(--accent-primary)]"
-            )}
-          >
-            {frequencyOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex gap-2 flex-1">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAdd();
-            }}
-            placeholder="Add a daily habit..."
-            className={cn(
-              "flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-              "px-3 py-2.5 text-sm text-[var(--text-primary)]",
-              "placeholder:text-[var(--text-muted)]",
-              "outline-none focus:border-[var(--accent-primary)]"
-            )}
-          />
-
-          <button
-            type="button"
-            onClick={handleAdd}
-            className={cn(
-              "flex items-center justify-center",
-              "rounded-lg border border-[var(--accent-primary)] bg-[var(--accent-primary)]/10",
-              "px-4 py-2.5 text-sm text-[var(--accent-primary)]",
-              "hover:bg-[var(--accent-primary)]/20 transition-colors"
-            )}
-          >
-            <Plus size={18} />
-          </button>
-        </div>
-      </div>
+      {/* Section Header */}
+      <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+        Daily Habits
+      </h2>
 
       {error && (
         <p className="text-sm text-[var(--accent-primary)]">Error: {error}</p>
@@ -341,11 +273,38 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
         )}
       </div>
 
+      {/* Add Habit Button */}
+      <button
+        type="button"
+        onClick={() => setIsAddModalOpen(true)}
+        className={cn(
+          "w-full flex items-center justify-center gap-2",
+          "py-2.5 rounded-lg",
+          "border border-dashed border-[var(--border-subtle)]",
+          "text-sm text-[var(--text-muted)]",
+          "hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]",
+          "hover:bg-[var(--accent-primary)]/5",
+          "transition-colors"
+        )}
+      >
+        <Plus size={16} />
+        <span>Add Habit</span>
+      </button>
+
       {/* Edit Habit Modal */}
       <EditHabitModal
         habit={editingHabit}
         onSave={handleEditHabit}
         onClose={() => setEditingHabit(null)}
+      />
+
+      {/* Add Habit Modal */}
+      <EditHabitModal
+        habit={null}
+        isOpen={isAddModalOpen}
+        onCreate={handleCreate}
+        onSave={handleEditHabit}
+        onClose={() => setIsAddModalOpen(false)}
       />
 
       {/* Delete Confirmation Modal */}

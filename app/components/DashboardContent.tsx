@@ -134,9 +134,6 @@ export default function DashboardContent({ date }: Props) {
 
         {/* Daily Habits Section */}
         <motion.section variants={sectionVariants}>
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3 ">
-            Daily Habits
-          </h2>
           <HabitsClient date={date} onHabitToggle={refreshStats} />
         </motion.section>
       </div>

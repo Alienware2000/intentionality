@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { HabitWithStatus, Priority, HabitFrequency, DayOfWeek } from "@/app/lib/types";
 import { cn } from "@/app/lib/cn";
+import ModalPortal from "./ModalPortal";
 
 type Props = {
   habit: HabitWithStatus | null;
@@ -22,7 +23,14 @@ type Props = {
       active_days?: DayOfWeek[];
     }
   ) => Promise<void>;
+  onCreate?: (data: {
+    title: string;
+    priority: Priority;
+    frequency: HabitFrequency;
+    active_days: DayOfWeek[];
+  }) => Promise<void>;
   onClose: () => void;
+  isOpen?: boolean; // Explicit open state for create mode
 };
 
 const priorityOptions: { value: Priority; label: string; color: string }[] = [
@@ -48,22 +56,43 @@ const dayLabels: { value: DayOfWeek; label: string; short: string }[] = [
   { value: 7, label: "Sunday", short: "S" },
 ];
 
-export default function EditHabitModal({ habit, onSave, onClose }: Props) {
+export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpen }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [frequency, setFrequency] = useState<HabitFrequency>("daily");
   const [activeDays, setActiveDays] = useState<DayOfWeek[]>([1, 2, 3, 4, 5, 6, 7]);
   const [saving, setSaving] = useState(false);
 
-  // Sync state when habit changes
+  // Determine if modal should be visible
+  const isVisible = habit !== null || isOpen === true;
+  const isCreateMode = habit === null;
+
+  // Sync state when habit changes or modal opens for create
   useEffect(() => {
     if (habit) {
+      // Edit mode: populate with existing habit data
       setTitle(habit.title);
       setPriority(habit.priority);
       setFrequency(habit.frequency ?? "daily");
       setActiveDays(habit.active_days ?? [1, 2, 3, 4, 5, 6, 7]);
+    } else if (isOpen) {
+      // Create mode: reset to defaults
+      setTitle("");
+      setPriority("medium");
+      setFrequency("daily");
+      setActiveDays([1, 2, 3, 4, 5, 6, 7]);
     }
-  }, [habit]);
+  }, [habit, isOpen]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [isVisible]);
 
   function handleFrequencyChange(newFrequency: HabitFrequency) {
     setFrequency(newFrequency);
@@ -87,15 +116,26 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
   }
 
   async function handleSave() {
-    if (!habit || !title.trim() || activeDays.length === 0) return;
+    if (!title.trim() || activeDays.length === 0) return;
     setSaving(true);
     try {
-      await onSave(habit.id, {
-        title: title.trim(),
-        priority,
-        frequency,
-        active_days: activeDays,
-      });
+      if (habit) {
+        // Edit mode
+        await onSave(habit.id, {
+          title: title.trim(),
+          priority,
+          frequency,
+          active_days: activeDays,
+        });
+      } else if (onCreate) {
+        // Create mode
+        await onCreate({
+          title: title.trim(),
+          priority,
+          frequency,
+          active_days: activeDays,
+        });
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -109,15 +149,16 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
   }
 
   return (
-    <AnimatePresence>
-      {habit && (
+    <ModalPortal>
+      <AnimatePresence>
+        {isVisible && (
         <>
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 modal-backdrop z-50"
+            className="fixed inset-0 modal-backdrop z-[60]"
             onClick={onClose}
           />
 
@@ -128,9 +169,9 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50",
+              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]",
               "w-full max-w-md p-4 sm:p-6 rounded-xl mx-4 sm:mx-0",
-              "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
+              "bg-[var(--bg-card)] border border-[var(--border-default)]",
               "max-h-[90vh] overflow-y-auto"
             )}
             onKeyDown={handleKeyDown}
@@ -138,7 +179,7 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                Edit Habit
+                {isCreateMode ? "Add Habit" : "Edit Habit"}
               </h2>
               <button
                 onClick={onClose}
@@ -273,12 +314,13 @@ export default function EditHabitModal({ habit, onSave, onClose }: Props) {
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? (isCreateMode ? "Adding..." : "Saving...") : (isCreateMode ? "Add" : "Save")}
               </button>
             </div>
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </ModalPortal>
   );
 }
