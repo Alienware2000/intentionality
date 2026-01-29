@@ -804,7 +804,9 @@ export type DailyReflection = {
   mood: number | null;         // 1-5 scale
   energy: number | null;       // 1-5 scale
   notes: string | null;
-  xp_awarded: number;
+  xp_awarded: number;          // XP for completing review/reflection
+  planning_completed: boolean; // Whether 3+ tasks were created for tomorrow
+  planning_xp_awarded: number; // XP for completing planning
   created_at: string;
 };
 

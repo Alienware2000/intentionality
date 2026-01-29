@@ -33,10 +33,11 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   const date = (params.get("date") ?? getLocalDateString()) as ISODateString;
 
   // Fetch tasks for the day
+  // Note: Tasks don't have user_id directly - they relate through quests.
+  // RLS policies handle user scoping via quest_id → quests.user_id
   const { data: tasks } = await supabase
     .from("tasks")
     .select("id, completed, completed_at, xp_value")
-    .eq("user_id", user.id)
     .eq("due_date", date)
     .is("deleted_at", null);
 

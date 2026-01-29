@@ -2,10 +2,11 @@
 
 // =============================================================================
 // REVIEW CLIENT COMPONENT
-// Multi-step daily review flow:
+// Multi-step daily review flow (4 steps):
 // 1. Today's Summary - Auto-generated stats
-// 2. Reflection - What went well/challenges + mood/energy
-// 3. Tomorrow Setup - Set priorities for tomorrow
+// 2. Reflection - What went well/challenges + mood/energy (awards 10 XP)
+// 3. Plan Tomorrow - Create tasks (manual or AI) (awards 10 XP for 3+ tasks)
+// 4. Completion - XP celebration with breakdown
 // =============================================================================
 
 import { useState, useEffect, useCallback } from "react";
@@ -28,21 +29,42 @@ import {
   BatteryMedium,
   BatteryFull,
   Sparkles,
-  ListPlus,
   Loader2,
+  Brain,
+  List,
+  ArrowRight,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "@/app/components/ProfileProvider";
 import { useCelebration } from "@/app/components/CelebrationOverlay";
 import { getTodayISO } from "@/app/lib/date-utils";
-import type { DailySummary, DailyReflection, Task } from "@/app/lib/types";
+import { PLANNING_XP } from "@/app/lib/gamification";
+import type { DailySummary, DailyReflection, Task, Quest, Priority } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-type Step = "summary" | "reflection" | "tomorrow";
+type Step = "summary" | "reflection" | "planning" | "completion";
+
+type PlanningMode = "manual" | "ai";
+
+type TaskDraft = {
+  id: string;
+  title: string;
+  priority: Priority;
+  quest_id: string | null;
+};
+
+type AISuggestion = {
+  title: string;
+  priority: Priority;
+  time_of_day?: "morning" | "afternoon" | "evening";
+  original_text: string;
+  accepted?: boolean;
+};
 
 // -----------------------------------------------------------------------------
 // Step Components
@@ -385,23 +407,70 @@ function ReflectionStep({
   );
 }
 
-function TomorrowStep({
-  priorities,
-  setPriorities,
+function PlanningStep({
+  mode,
+  setMode,
+  taskDrafts,
+  setTaskDrafts,
+  quests,
   tomorrowTasks,
+  aiSuggestions,
+  setAiSuggestions,
+  brainDumpText,
+  setBrainDumpText,
+  isParsingAI,
+  onParseAI,
+  aiAdvice,
 }: {
-  priorities: string[];
-  setPriorities: (priorities: string[]) => void;
+  mode: PlanningMode;
+  setMode: (mode: PlanningMode) => void;
+  taskDrafts: TaskDraft[];
+  setTaskDrafts: (drafts: TaskDraft[]) => void;
+  quests: Quest[];
   tomorrowTasks: Task[];
+  aiSuggestions: AISuggestion[];
+  setAiSuggestions: (suggestions: AISuggestion[]) => void;
+  brainDumpText: string;
+  setBrainDumpText: (text: string) => void;
+  isParsingAI: boolean;
+  onParseAI: () => void;
+  aiAdvice: string | null;
 }) {
-  const [newPriority, setNewPriority] = useState("");
+  const defaultQuestId = quests.length > 0 ? quests[0].id : null;
 
-  const addPriority = () => {
-    if (newPriority.trim() && priorities.length < 3) {
-      setPriorities([...priorities, newPriority.trim()]);
-      setNewPriority("");
-    }
+  const updateTaskDraft = (id: string, updates: Partial<TaskDraft>) => {
+    setTaskDrafts(
+      taskDrafts.map((d) => (d.id === id ? { ...d, ...updates } : d))
+    );
   };
+
+  const removeTaskDraft = (id: string) => {
+    setTaskDrafts(taskDrafts.filter((d) => d.id !== id));
+  };
+
+  const addEmptyTaskDraft = () => {
+    setTaskDrafts([
+      ...taskDrafts,
+      {
+        id: `draft-${Date.now()}`,
+        title: "",
+        priority: "medium",
+        quest_id: defaultQuestId,
+      },
+    ]);
+  };
+
+  const toggleAiSuggestion = (index: number) => {
+    setAiSuggestions(
+      aiSuggestions.map((s, i) =>
+        i === index ? { ...s, accepted: !s.accepted } : s
+      )
+    );
+  };
+
+  const acceptedCount = mode === "ai"
+    ? aiSuggestions.filter((s) => s.accepted).length
+    : taskDrafts.filter((d) => d.title.trim()).length;
 
   return (
     <div className="space-y-6">
@@ -410,96 +479,402 @@ function TomorrowStep({
           Plan Tomorrow
         </h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Set your top 3 priorities for tomorrow
+          Set up tasks for tomorrow to earn +{PLANNING_XP.daily_planning} XP
         </p>
       </div>
 
-      {/* Tomorrow's Tasks Preview */}
+      {/* Mode Toggle */}
+      <div className="flex gap-2 p-1 bg-[var(--bg-elevated)] rounded-lg">
+        <button
+          onClick={() => setMode("manual")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            mode === "manual"
+              ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          )}
+        >
+          <List size={16} />
+          Quick Add
+        </button>
+        <button
+          onClick={() => setMode("ai")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+            mode === "ai"
+              ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          )}
+        >
+          <Brain size={16} />
+          AI Assist
+        </button>
+      </div>
+
+      {/* Tomorrow's Existing Tasks */}
       {tomorrowTasks.length > 0 && (
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-            Tasks scheduled for tomorrow ({tomorrowTasks.length})
-          </label>
-          <div className="max-h-40 overflow-y-auto space-y-1">
-            {tomorrowTasks.slice(0, 5).map((task) => (
-              <div
-                key={task.id}
-                className={cn(
-                  "flex items-center gap-2 p-2 rounded-lg",
-                  "bg-[var(--bg-elevated)]"
-                )}
-              >
-                <span className="text-sm text-[var(--text-primary)] truncate">
-                  {task.title}
-                </span>
+        <div className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar size={14} className="text-[var(--text-muted)]" />
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+              {tomorrowTasks.length} task{tomorrowTasks.length !== 1 ? "s" : ""} already scheduled
+            </span>
+          </div>
+          <div className="space-y-1">
+            {tomorrowTasks.slice(0, 3).map((task) => (
+              <div key={task.id} className="text-sm text-[var(--text-muted)] truncate">
+                {task.title}
               </div>
             ))}
-            {tomorrowTasks.length > 5 && (
-              <p className="text-xs text-[var(--text-muted)] text-center py-1">
-                +{tomorrowTasks.length - 5} more tasks
-              </p>
+            {tomorrowTasks.length > 3 && (
+              <div className="text-xs text-[var(--text-muted)]">
+                +{tomorrowTasks.length - 3} more
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Top Priorities */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-          Top 3 priorities for tomorrow
-        </label>
-        <div className="space-y-2">
-          {priorities.map((priority, i) => (
+      {/* Manual Mode */}
+      {mode === "manual" && (
+        <div className="space-y-3">
+          {taskDrafts.map((draft) => (
             <div
-              key={i}
-              className="flex items-center gap-2 p-3 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30"
+              key={draft.id}
+              className="flex items-start gap-2 p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
             >
-              <span className="w-6 h-6 rounded-full bg-[var(--accent-primary)] text-white text-xs font-bold flex items-center justify-center">
-                {i + 1}
-              </span>
-              <span className="flex-1 text-sm text-[var(--text-primary)]">{priority}</span>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="text"
+                  value={draft.title}
+                  onChange={(e) => updateTaskDraft(draft.id, { title: e.target.value })}
+                  placeholder="Task title..."
+                  className={cn(
+                    "w-full px-2 py-1 rounded text-sm",
+                    "bg-transparent border-0",
+                    "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+                    "focus:outline-none"
+                  )}
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={draft.priority}
+                    onChange={(e) => updateTaskDraft(draft.id, { priority: e.target.value as Priority })}
+                    className={cn(
+                      "px-2 py-1 rounded text-xs",
+                      "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                      "text-[var(--text-secondary)]",
+                      "focus:outline-none focus:border-[var(--accent-primary)]"
+                    )}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                  {quests.length > 0 && (
+                    <select
+                      value={draft.quest_id ?? ""}
+                      onChange={(e) => updateTaskDraft(draft.id, { quest_id: e.target.value || null })}
+                      className={cn(
+                        "flex-1 px-2 py-1 rounded text-xs truncate",
+                        "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                        "text-[var(--text-secondary)]",
+                        "focus:outline-none focus:border-[var(--accent-primary)]"
+                      )}
+                    >
+                      {quests.map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
               <button
-                onClick={() => setPriorities(priorities.filter((_, j) => j !== i))}
+                onClick={() => removeTaskDraft(draft.id)}
                 className="p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
             </div>
           ))}
-          {priorities.length < 3 && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newPriority}
-                onChange={(e) => setNewPriority(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addPriority()}
-                placeholder={`Priority ${priorities.length + 1}...`}
+          {taskDrafts.length < 5 && (
+            <button
+              onClick={addEmptyTaskDraft}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg",
+                "border border-dashed border-[var(--border-subtle)]",
+                "text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+                "hover:border-[var(--accent-primary)] transition-colors"
+              )}
+            >
+              <Plus size={16} />
+              Add task
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* AI Mode */}
+      {mode === "ai" && (
+        <div className="space-y-4">
+          {aiSuggestions.length === 0 ? (
+            <>
+              <textarea
+                value={brainDumpText}
+                onChange={(e) => setBrainDumpText(e.target.value)}
+                placeholder="What do you want to get done tomorrow? Just type your thoughts..."
+                rows={4}
                 className={cn(
-                  "flex-1 px-3 py-2 rounded-lg text-sm",
+                  "w-full px-3 py-2 rounded-lg text-sm",
                   "bg-[var(--bg-elevated)] border border-[var(--border-subtle)]",
                   "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
-                  "focus:outline-none focus:border-[var(--accent-primary)]"
+                  "focus:outline-none focus:border-[var(--accent-primary)]",
+                  "resize-none"
                 )}
               />
               <button
-                onClick={addPriority}
-                disabled={!newPriority.trim()}
+                onClick={onParseAI}
+                disabled={!brainDumpText.trim() || isParsingAI}
                 className={cn(
-                  "px-3 py-2 rounded-lg",
+                  "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg",
                   "bg-[var(--accent-primary)] text-white",
-                  "hover:bg-[var(--accent-primary)]/80",
+                  "hover:bg-[var(--accent-primary)]/80 transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
-                <Plus size={16} />
+                {isParsingAI ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Brain size={16} />
+                    Generate Tasks
+                  </>
+                )}
               </button>
-            </div>
+            </>
+          ) : (
+            <>
+              {aiAdvice && (
+                <div className="p-3 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30">
+                  <div className="flex items-start gap-2">
+                    <Sparkles size={14} className="text-[var(--accent-primary)] mt-0.5" />
+                    <p className="text-sm text-[var(--text-secondary)]">{aiAdvice}</p>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                {aiSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => toggleAiSuggestion(index)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
+                      suggestion.accepted
+                        ? "bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/30"
+                        : "bg-[var(--bg-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-primary)]"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
+                        suggestion.accepted
+                          ? "bg-[var(--accent-success)] text-white"
+                          : "border border-[var(--border-default)]"
+                      )}
+                    >
+                      {suggestion.accepted && <Check size={12} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {suggestion.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={cn(
+                            "text-xs px-1.5 py-0.5 rounded",
+                            suggestion.priority === "high"
+                              ? "bg-red-500/10 text-red-500"
+                              : suggestion.priority === "medium"
+                              ? "bg-yellow-500/10 text-yellow-600"
+                              : "bg-green-500/10 text-green-600"
+                          )}
+                        >
+                          {suggestion.priority}
+                        </span>
+                        {suggestion.time_of_day && (
+                          <span className="text-xs text-[var(--text-muted)]">
+                            {suggestion.time_of_day}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setAiSuggestions([]);
+                  setBrainDumpText("");
+                }}
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              >
+                Start over
+              </button>
+            </>
           )}
         </div>
-        <p className="text-xs text-[var(--text-muted)]">
-          {3 - priorities.length} slot{3 - priorities.length !== 1 ? "s" : ""} remaining
-        </p>
+      )}
+
+      {/* Task Count Indicator */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-[var(--text-muted)]">
+          {acceptedCount < 3
+            ? `Add ${3 - acceptedCount} more task${3 - acceptedCount !== 1 ? "s" : ""} to earn planning XP`
+            : "Planning bonus unlocked!"}
+        </span>
+        <span
+          className={cn(
+            "font-medium",
+            acceptedCount >= 3 ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
+          )}
+        >
+          {acceptedCount}/3
+        </span>
       </div>
+    </div>
+  );
+}
+
+function CompletionStep({
+  reviewXP,
+  planningXP,
+  tasksCreated,
+  newDailyReviewStreak,
+  isNew,
+}: {
+  reviewXP: number;
+  planningXP: number;
+  tasksCreated: number;
+  newDailyReviewStreak?: number;
+  isNew: boolean;
+}) {
+  const totalXP = reviewXP + planningXP;
+
+  return (
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center"
+      >
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--accent-success)]/10 flex items-center justify-center">
+          <Sparkles size={32} className="text-[var(--accent-success)]" />
+        </div>
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
+          {isNew ? "Review Complete!" : "Review Updated!"}
+        </h2>
+        {isNew && totalXP > 0 && (
+          <p className="text-sm text-[var(--text-muted)]">
+            You earned {totalXP} XP today!
+          </p>
+        )}
+      </motion.div>
+
+      {/* XP Breakdown */}
+      {isNew && (
+        <div className="space-y-3">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-elevated)]"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle size={16} className="text-[var(--accent-primary)]" />
+              <span className="text-sm text-[var(--text-primary)]">Daily Review</span>
+            </div>
+            <span className="font-mono font-medium text-[var(--accent-highlight)]">
+              +{reviewXP} XP
+            </span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className={cn(
+              "flex items-center justify-between p-3 rounded-lg",
+              planningXP > 0 ? "bg-[var(--accent-success)]/10" : "bg-[var(--bg-elevated)]"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className={planningXP > 0 ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"} />
+              <span className="text-sm text-[var(--text-primary)]">
+                Planning ({tasksCreated} task{tasksCreated !== 1 ? "s" : ""})
+              </span>
+            </div>
+            <span className={cn(
+              "font-mono font-medium",
+              planningXP > 0 ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
+            )}>
+              {planningXP > 0 ? `+${planningXP} XP` : "Not earned"}
+            </span>
+          </motion.div>
+
+          {newDailyReviewStreak && newDailyReviewStreak > 1 && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-center justify-between p-3 rounded-lg bg-[var(--accent-streak)]/10"
+            >
+              <div className="flex items-center gap-2">
+                <Flame size={16} className="text-[var(--accent-streak)]" />
+                <span className="text-sm text-[var(--text-primary)]">
+                  Review Streak: {newDailyReviewStreak} days
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex gap-3 justify-center"
+      >
+        <Link
+          href="/"
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium",
+            "bg-[var(--accent-primary)] text-white",
+            "hover:bg-[var(--accent-primary)]/80 transition-colors"
+          )}
+        >
+          Back to Dashboard
+          <ArrowRight size={16} />
+        </Link>
+        {tasksCreated > 0 && (
+          <Link
+            href="/week"
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium",
+              "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
+              "hover:text-[var(--text-primary)] transition-colors"
+            )}
+          >
+            View Tomorrow
+          </Link>
+        )}
+      </motion.div>
     </div>
   );
 }
@@ -515,7 +890,7 @@ export default function ReviewClient() {
   const [step, setStep] = useState<Step>("summary");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [creatingTasks, setCreatingTasks] = useState(false);
 
   // Summary data
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -527,38 +902,60 @@ export default function ReviewClient() {
   const [energy, setEnergy] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
 
-  // Tomorrow data
-  const [priorities, setPriorities] = useState<string[]>([]);
+  // Planning data
+  const [planningMode, setPlanningMode] = useState<PlanningMode>("manual");
+  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [tomorrowTasks, setTomorrowTasks] = useState<Task[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [brainDumpText, setBrainDumpText] = useState("");
+  const [isParsingAI, setIsParsingAI] = useState(false);
+  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
+
+  // Completion data
+  const [reviewXPAwarded, setReviewXPAwarded] = useState(0);
+  const [planningXPAwarded, setPlanningXPAwarded] = useState(0);
+  const [tasksCreatedCount, setTasksCreatedCount] = useState(0);
+  const [newDailyReviewStreak, setNewDailyReviewStreak] = useState<number | undefined>();
 
   // Existing reflection
   const [existingReflection, setExistingReflection] = useState<DailyReflection | null>(null);
 
-  // Priority to task conversion
-  const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, "pending" | "created" | "exists" | "creating">>({});
-  const [creatingAllTasks, setCreatingAllTasks] = useState(false);
-
   const today = getTodayISO();
+  const tomorrow = getTomorrowISO();
 
   // Load initial data
   useEffect(() => {
     async function loadData() {
       try {
-        // Fetch summary, existing reflection, and tomorrow tasks in parallel
-        const [summaryRes, reflectionRes, tomorrowRes] = await Promise.all([
+        // Fetch summary, existing reflection, tomorrow tasks, and quests in parallel
+        const [summaryRes, reflectionRes, tomorrowRes, questsRes] = await Promise.all([
           fetch(`/api/daily-review/summary?date=${today}`),
           fetch(`/api/daily-review?date=${today}`),
-          fetch(`/api/tasks/for-today?date=${getTomorrowISO()}`),
+          fetch(`/api/tasks/for-today?date=${tomorrow}`),
+          fetch("/api/quests"),
         ]);
 
-        const [summaryData, reflectionData, tomorrowData] = await Promise.all([
+        const [summaryData, reflectionData, tomorrowData, questsData] = await Promise.all([
           summaryRes.json(),
           reflectionRes.json(),
           tomorrowRes.json(),
+          questsRes.json(),
         ]);
 
         if (summaryData.ok) setSummary(summaryData.summary);
         if (tomorrowData.ok) setTomorrowTasks(tomorrowData.tasks ?? []);
+        if (questsData.ok) setQuests(questsData.quests ?? []);
+
+        // Initialize task drafts with default quest
+        if (questsData.ok && questsData.quests?.length > 0) {
+          const defaultQuestId = questsData.quests[0].id;
+          setTaskDrafts([
+            { id: "draft-1", title: "", priority: "medium", quest_id: defaultQuestId },
+            { id: "draft-2", title: "", priority: "medium", quest_id: defaultQuestId },
+            { id: "draft-3", title: "", priority: "medium", quest_id: defaultQuestId },
+          ]);
+        }
 
         if (reflectionData.ok && reflectionData.reflection) {
           const r = reflectionData.reflection as DailyReflection;
@@ -568,8 +965,12 @@ export default function ReviewClient() {
           setMood(r.mood);
           setEnergy(r.energy);
           setNotes(r.notes ?? "");
-          setPriorities(r.tomorrow_priorities ?? []);
-          setCompleted(true);
+          setReviewXPAwarded(r.xp_awarded ?? 0);
+          setPlanningXPAwarded(r.planning_xp_awarded ?? 0);
+          // If already completed, go to completion step
+          if (r.xp_awarded > 0) {
+            setStep("completion");
+          }
         }
       } catch {
         // Silent fail
@@ -579,9 +980,41 @@ export default function ReviewClient() {
     }
 
     loadData();
-  }, [today]);
+  }, [today, tomorrow]);
 
-  const handleSave = useCallback(async () => {
+  // Parse AI brain dump
+  const handleParseAI = useCallback(async () => {
+    if (!brainDumpText.trim()) return;
+
+    setIsParsingAI(true);
+    try {
+      const res = await fetch("/api/ai/daily-plan/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brain_dump_text: brainDumpText,
+          target_date: tomorrow,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok && data.suggestions) {
+        // Pre-select all suggestions
+        setAiSuggestions(
+          data.suggestions.map((s: AISuggestion) => ({ ...s, accepted: true }))
+        );
+        setAiAdvice(data.advice || null);
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setIsParsingAI(false);
+    }
+  }, [brainDumpText, tomorrow]);
+
+  // Save reflection (awards review XP)
+  const saveReflection = useCallback(async () => {
     setSaving(true);
 
     try {
@@ -594,7 +1027,7 @@ export default function ReviewClient() {
           date: today,
           wins,
           challenges,
-          tomorrow_priorities: priorities,
+          tomorrow_priorities: [], // No longer using text priorities
           mood,
           energy,
           notes: notes || null,
@@ -604,142 +1037,150 @@ export default function ReviewClient() {
       const data = await res.json();
 
       if (data.ok) {
-        setCompleted(true);
         setExistingReflection(data.reflection);
-        refreshProfile();
 
         if (data.xpGained) {
+          setReviewXPAwarded(data.xpGained);
           showXpGain(data.xpGained);
         }
         if (data.newLevel) {
           showLevelUp(data.newLevel);
         }
+        if (data.newDailyReviewStreak) {
+          setNewDailyReviewStreak(data.newDailyReviewStreak);
+        }
+
+        return true;
       }
     } catch {
       // Silent fail
     } finally {
       setSaving(false);
     }
+    return false;
   }, [
     existingReflection,
     today,
     wins,
     challenges,
-    priorities,
     mood,
     energy,
     notes,
-    refreshProfile,
     showXpGain,
     showLevelUp,
   ]);
 
-  // Create a single priority as a task
-  const createPriorityAsTask = useCallback(async (priority: string) => {
-    const tomorrow = getTomorrowISO();
-    setPriorityTaskStatus((prev) => ({ ...prev, [priority]: "creating" }));
+  // Create tasks and award planning XP
+  const createTasksAndAwardXP = useCallback(async () => {
+    // Gather tasks to create
+    const tasksToCreate: { title: string; priority: Priority; quest_id: string | null }[] = [];
 
-    try {
-      const res = await fetch("/api/tasks/from-priorities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priorities: [priority],
-          date: tomorrow,
-          priority: "high",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok && data.results?.[0]) {
-        const result = data.results[0];
-        setPriorityTaskStatus((prev) => ({
-          ...prev,
-          [priority]: result.status === "created" ? "created" : "exists",
-        }));
-      }
-    } catch {
-      setPriorityTaskStatus((prev) => ({ ...prev, [priority]: "pending" }));
-    }
-  }, []);
-
-  // Create all priorities as tasks
-  const createAllPrioritiesAsTasks = useCallback(async () => {
-    if (priorities.length === 0) return;
-
-    const tomorrow = getTomorrowISO();
-    setCreatingAllTasks(true);
-
-    // Set all to creating
-    const creatingStatus: Record<string, "creating"> = {};
-    priorities.forEach((p) => {
-      if (priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists") {
-        creatingStatus[p] = "creating";
-      }
-    });
-    setPriorityTaskStatus((prev) => ({ ...prev, ...creatingStatus }));
-
-    try {
-      const prioritiesToCreate = priorities.filter(
-        (p) => priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists"
-      );
-
-      if (prioritiesToCreate.length === 0) {
-        setCreatingAllTasks(false);
-        return;
-      }
-
-      const res = await fetch("/api/tasks/from-priorities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priorities: prioritiesToCreate,
-          date: tomorrow,
-          priority: "high",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok && data.results) {
-        const newStatus: Record<string, "created" | "exists"> = {};
-        data.results.forEach((result: { priority: string; status: string }) => {
-          if (result.status === "created" || result.status === "exists") {
-            newStatus[result.priority] = result.status as "created" | "exists";
-          }
-        });
-        setPriorityTaskStatus((prev) => ({ ...prev, ...newStatus }));
-      }
-    } catch {
-      // Reset to pending on error
-      const resetStatus: Record<string, "pending"> = {};
-      priorities.forEach((p) => {
-        if (priorityTaskStatus[p] === "creating") {
-          resetStatus[p] = "pending";
+    if (planningMode === "manual") {
+      taskDrafts.forEach((draft) => {
+        if (draft.title.trim()) {
+          tasksToCreate.push({
+            title: draft.title.trim(),
+            priority: draft.priority,
+            quest_id: draft.quest_id,
+          });
         }
       });
-      setPriorityTaskStatus((prev) => ({ ...prev, ...resetStatus }));
-    } finally {
-      setCreatingAllTasks(false);
+    } else {
+      const defaultQuestId = quests.length > 0 ? quests[0].id : null;
+      aiSuggestions.forEach((s) => {
+        if (s.accepted) {
+          tasksToCreate.push({
+            title: s.title,
+            priority: s.priority,
+            quest_id: defaultQuestId,
+          });
+        }
+      });
     }
-  }, [priorities, priorityTaskStatus]);
 
-  const steps: Step[] = ["summary", "reflection", "tomorrow"];
+    if (tasksToCreate.length === 0) {
+      return { tasksCreated: 0, planningXP: 0 };
+    }
+
+    setCreatingTasks(true);
+    let successCount = 0;
+
+    try {
+      // Create tasks in parallel
+      const results = await Promise.all(
+        tasksToCreate.map((task) =>
+          fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: task.title,
+              due_date: tomorrow,
+              priority: task.priority,
+              quest_id: task.quest_id,
+            }),
+          }).then((r) => r.json())
+        )
+      );
+
+      successCount = results.filter((r) => r.ok).length;
+      setTasksCreatedCount(successCount);
+
+      // Award planning XP if 3+ tasks created
+      if (successCount >= 3) {
+        // Call API to award planning XP
+        const xpRes = await fetch("/api/daily-review/planning-xp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: today, tasks_created: successCount }),
+        });
+
+        const xpData = await xpRes.json();
+        if (xpData.ok && xpData.xpGained) {
+          setPlanningXPAwarded(xpData.xpGained);
+          showXpGain(xpData.xpGained);
+        }
+      }
+
+      refreshProfile();
+    } catch {
+      // Silent fail
+    } finally {
+      setCreatingTasks(false);
+    }
+
+    return { tasksCreated: successCount, planningXP: successCount >= 3 ? PLANNING_XP.daily_planning : 0 };
+  }, [planningMode, taskDrafts, aiSuggestions, quests, tomorrow, today, refreshProfile, showXpGain]);
+
+  // Navigation
+  const steps: Step[] = ["summary", "reflection", "planning", "completion"];
   const currentIndex = steps.indexOf(step);
 
-  const goNext = () => {
-    if (currentIndex < steps.length - 1) {
+  const goNext = async () => {
+    if (step === "reflection") {
+      // Save reflection and move to planning
+      const saved = await saveReflection();
+      if (saved) {
+        setStep("planning");
+      }
+    } else if (step === "planning") {
+      // Create tasks and move to completion
+      await createTasksAndAwardXP();
+      setStep("completion");
+    } else if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
-    } else {
-      handleSave();
     }
   };
 
   const goBack = () => {
-    if (currentIndex > 0) {
+    if (currentIndex > 0 && step !== "completion") {
       setStep(steps[currentIndex - 1]);
     }
+  };
+
+  const skipPlanning = async () => {
+    setTasksCreatedCount(0);
+    setPlanningXPAwarded(0);
+    setStep("completion");
   };
 
   if (loading) {
@@ -750,176 +1191,32 @@ export default function ReviewClient() {
     );
   }
 
-  // Completed state
-  if (completed && step === "tomorrow") {
-    const allPrioritiesConverted = priorities.length > 0 && priorities.every(
-      (p) => priorityTaskStatus[p] === "created" || priorityTaskStatus[p] === "exists"
-    );
-    const hasPrioritiesToConvert = priorities.some(
-      (p) => priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists"
-    );
-
+  // Completion state - show completion step
+  if (step === "completion") {
     return (
-      <div className="max-w-lg mx-auto space-y-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="p-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-center"
-        >
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--accent-success)]/10 flex items-center justify-center">
-            <Sparkles size={32} className="text-[var(--accent-success)]" />
-          </div>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-            Review Complete!
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mb-6">
-            {existingReflection
-              ? "Your reflection has been updated."
-              : "You earned 15 XP for completing your daily review!"}
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Link
-              href="/"
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium",
-                "bg-[var(--accent-primary)] text-white",
-                "hover:bg-[var(--accent-primary)]/80 transition-colors"
-              )}
-            >
-              Back to Dashboard
-            </Link>
-            <button
-              onClick={() => setStep("summary")}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium",
-                "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
-                "hover:text-[var(--text-primary)] transition-colors"
-              )}
-            >
-              Edit Review
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Priority to Task Conversion */}
-        {priorities.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <ListPlus size={18} className="text-[var(--accent-primary)]" />
-                <h3 className="font-medium text-[var(--text-primary)]">
-                  Tomorrow&apos;s Priorities
-                </h3>
-              </div>
-              {hasPrioritiesToConvert && (
-                <button
-                  onClick={createAllPrioritiesAsTasks}
-                  disabled={creatingAllTasks}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium",
-                    "bg-[var(--accent-primary)] text-white",
-                    "hover:bg-[var(--accent-primary)]/80 transition-colors",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    "flex items-center gap-1.5"
-                  )}
-                >
-                  {creatingAllTasks ? (
-                    <>
-                      <Loader2 size={12} className="animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={12} />
-                      Create All as Tasks
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              {priorities.map((priority, index) => {
-                const status = priorityTaskStatus[priority];
-                const isConverted = status === "created" || status === "exists";
-                const isCreating = status === "creating";
-
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "flex items-center justify-between gap-3 p-3 rounded-lg",
-                      isConverted
-                        ? "bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/30"
-                        : "bg-[var(--bg-elevated)]"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="w-6 h-6 rounded-full bg-[var(--accent-primary)] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm text-[var(--text-primary)] truncate">
-                        {priority}
-                      </span>
-                    </div>
-
-                    {isConverted ? (
-                      <span className="flex items-center gap-1 text-xs text-[var(--accent-success)] flex-shrink-0">
-                        <Check size={14} />
-                        {status === "exists" ? "Already exists" : "Created"}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => createPriorityAsTask(priority)}
-                        disabled={isCreating}
-                        className={cn(
-                          "px-2.5 py-1 rounded-lg text-xs font-medium",
-                          "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
-                          "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                          "hover:border-[var(--accent-primary)] transition-colors",
-                          "disabled:opacity-50 disabled:cursor-not-allowed",
-                          "flex items-center gap-1 flex-shrink-0"
-                        )}
-                      >
-                        {isCreating ? (
-                          <>
-                            <Loader2 size={12} className="animate-spin" />
-                            Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={12} />
-                            Create Task
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {allPrioritiesConverted && (
-              <p className="text-xs text-[var(--text-muted)] text-center mt-4">
-                All priorities have been added as tasks for tomorrow!
-              </p>
-            )}
-          </motion.div>
-        )}
+      <div className="max-w-lg mx-auto">
+        <div className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+          <CompletionStep
+            reviewXP={reviewXPAwarded}
+            planningXP={planningXPAwarded}
+            tasksCreated={tasksCreatedCount}
+            newDailyReviewStreak={newDailyReviewStreak}
+            isNew={!existingReflection || reviewXPAwarded > 0}
+          />
+        </div>
       </div>
     );
   }
+
+  const acceptedTaskCount = planningMode === "ai"
+    ? aiSuggestions.filter((s) => s.accepted).length
+    : taskDrafts.filter((d) => d.title.trim()).length;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Progress indicator */}
       <div className="flex items-center gap-2">
-        {steps.map((s, i) => (
+        {steps.slice(0, -1).map((s, i) => (
           <div
             key={s}
             className={cn(
@@ -955,11 +1252,21 @@ export default function ReviewClient() {
                 setNotes={setNotes}
               />
             )}
-            {step === "tomorrow" && (
-              <TomorrowStep
-                priorities={priorities}
-                setPriorities={setPriorities}
+            {step === "planning" && (
+              <PlanningStep
+                mode={planningMode}
+                setMode={setPlanningMode}
+                taskDrafts={taskDrafts}
+                setTaskDrafts={setTaskDrafts}
+                quests={quests}
                 tomorrowTasks={tomorrowTasks}
+                aiSuggestions={aiSuggestions}
+                setAiSuggestions={setAiSuggestions}
+                brainDumpText={brainDumpText}
+                setBrainDumpText={setBrainDumpText}
+                isParsingAI={isParsingAI}
+                onParseAI={handleParseAI}
+                aiAdvice={aiAdvice}
               />
             )}
           </motion.div>
@@ -981,30 +1288,64 @@ export default function ReviewClient() {
           Back
         </button>
 
-        <button
-          onClick={goNext}
-          disabled={saving}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium",
-            "bg-[var(--accent-primary)] text-white",
-            "hover:bg-[var(--accent-primary)]/80 transition-colors",
-            "disabled:opacity-50"
+        <div className="flex items-center gap-2">
+          {step === "planning" && (
+            <button
+              onClick={skipPlanning}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium",
+                "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              )}
+            >
+              Skip
+            </button>
           )}
-        >
-          {saving ? (
-            "Saving..."
-          ) : currentIndex === steps.length - 1 ? (
-            <>
-              Complete Review
-              <Sparkles size={16} />
-            </>
-          ) : (
-            <>
-              Continue
-              <ChevronRight size={16} />
-            </>
-          )}
-        </button>
+
+          <button
+            onClick={goNext}
+            disabled={saving || creatingTasks}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium",
+              "bg-[var(--accent-primary)] text-white",
+              "hover:bg-[var(--accent-primary)]/80 transition-colors",
+              "disabled:opacity-50"
+            )}
+          >
+            {saving || creatingTasks ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {saving ? "Saving..." : "Creating tasks..."}
+              </>
+            ) : step === "planning" ? (
+              acceptedTaskCount >= 3 ? (
+                <>
+                  Create {acceptedTaskCount} Tasks
+                  <Sparkles size={16} />
+                </>
+              ) : acceptedTaskCount > 0 ? (
+                <>
+                  Create {acceptedTaskCount} Task{acceptedTaskCount !== 1 ? "s" : ""}
+                  <ChevronRight size={16} />
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ChevronRight size={16} />
+                </>
+              )
+            ) : step === "reflection" ? (
+              <>
+                Save & Continue
+                <ChevronRight size={16} />
+              </>
+            ) : (
+              <>
+                Continue
+                <ChevronRight size={16} />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

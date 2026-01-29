@@ -16,9 +16,11 @@ export const XP_VALUES: Record<Priority, number> = {
 
 /**
  * XP values for planning features.
+ * Daily review is split: 10 XP for reflection + 10 XP for planning (3+ tasks)
  */
 export const PLANNING_XP = {
-  daily_review: 15,
+  daily_review: 10,      // Completing reflection steps
+  daily_planning: 10,    // Creating 3+ tasks for tomorrow
   weekly_planning: 25,
 } as const;
 
