@@ -164,6 +164,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   // Award XP for weekly planning (if tasks were created and no existing plan)
   let xpGained = 0;
+  let xpAlreadyClaimed = false;
 
   if (tasksCreated > 0) {
     // Check if weekly plan exists
@@ -197,6 +198,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
         .eq("id", existingPlan.id);
 
       await supabase.rpc("add_xp", { p_user_id: user.id, p_xp: xpGained });
+    } else {
+      // XP was already awarded for this week
+      xpAlreadyClaimed = true;
     }
   }
 
@@ -204,6 +208,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     results,
     tasksCreated,
     xpGained,
+    xpAlreadyClaimed,
     summary: {
       created: tasksCreated,
       alreadyExist: results.filter((r) => r.status === "exists").length,

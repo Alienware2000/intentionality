@@ -637,11 +637,18 @@ function AIResultView({
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">
           Created {result.tasksCreated} tasks for your week!
         </h3>
-        {result.xpGained > 0 && (
+        {result.xpGained > 0 ? (
           <p className="text-sm text-[var(--accent-success)] mt-1">
             +{result.xpGained} XP
           </p>
-        )}
+        ) : result.xpAlreadyClaimed ? (
+          <div className="flex items-center justify-center gap-1.5 mt-2">
+            <CheckCircle size={14} className="text-[var(--text-secondary)]" />
+            <p className="text-sm text-[var(--text-secondary)]">
+              Planning XP already earned (25 XP)
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Tasks by priority */}

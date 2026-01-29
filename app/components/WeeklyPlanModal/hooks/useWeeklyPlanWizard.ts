@@ -4,7 +4,7 @@
 // Flow: choice → ai-input → processing → review (select days) → result
 // =============================================================================
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import type { ISODateString, Priority } from "@/app/lib/types";
 import type { ModalView, DayKey } from "../constants";
 import { REVIEW_CONFIG } from "../constants";
@@ -70,6 +70,7 @@ export type AIResult = {
   tasksCreated: number;
   habitsCreated: number;
   xpGained: number;
+  xpAlreadyClaimed?: boolean;
 };
 
 /**
@@ -420,6 +421,7 @@ export function useWeeklyPlanWizard(
           tasksCreated: data.tasksCreated || 0,
           habitsCreated,
           xpGained: data.xpGained || 0,
+          xpAlreadyClaimed: data.xpAlreadyClaimed || false,
         };
 
         setState((s) => ({
