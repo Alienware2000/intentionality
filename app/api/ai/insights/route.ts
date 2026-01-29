@@ -31,6 +31,7 @@ import { withAuth, ApiErrors, parseJsonBody } from '@/app/lib/auth-middleware';
 import { buildUserContext } from '@/app/lib/ai-context';
 import { learnFromInsightDismissal } from '@/app/lib/ai-learning';
 import type { AIInsightsResponse, AIInsightType, AIActionType } from '@/app/lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -43,6 +44,13 @@ type InsightPatchBody = {
 
 type GenerateInsightsBody = {
   timezone?: string;
+};
+
+type PlanningStatus = {
+  hasTodayReview: boolean;
+  hasThisWeekPlan: boolean;
+  currentHour: number;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
 };
 
 // -----------------------------------------------------------------------------
@@ -116,7 +124,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
     // Build user context and generate rule-based insights
     const context = await buildUserContext(supabase, user, timezone);
-    const ruleBasedInsights = generateRuleBasedInsights(context, user.id);
+    const today = new Date().toISOString().split('T')[0];
+    const planningStatus = await fetchPlanningStatus(supabase, user.id, today);
+    const ruleBasedInsights = generateRuleBasedInsights(context, user.id, planningStatus);
 
     if (ruleBasedInsights.length > 0) {
       const { data: inserted } = await supabase
@@ -273,7 +283,8 @@ function generateRuleBasedInsights(
       motivationDrivers: string[];
     };
   },
-  userId: string
+  userId: string,
+  planningStatus?: PlanningStatus
 ): Array<{
   user_id: string;
   insight_type: AIInsightType;
@@ -394,5 +405,86 @@ function generateRuleBasedInsights(
     });
   }
 
+  // Daily Review Reminder (6-10 PM)
+  if (isAllowed('planning_reminder') && planningStatus && !planningStatus.hasTodayReview) {
+    const planHour = planningStatus.currentHour;
+    if (planHour >= 18 && planHour < 22) {
+      const priority = planHour >= 20 ? 'high' : 'medium';
+      insights.push({
+        user_id: userId,
+        insight_type: 'planning_reminder',
+        title: planHour >= 20 ? "Time for Daily Review" : "Daily Review",
+        description: 'Reflect on your day and plan tomorrow. Earn 20 XP!',
+        priority,
+        action_type: 'NAVIGATE',
+        action_payload: { path: '/review' },
+      });
+    }
+  }
+
+  // Weekly Planning Reminder (Sunday afternoon + Monday morning)
+  if (isAllowed('planning_reminder') && planningStatus && !planningStatus.hasThisWeekPlan) {
+    const { currentHour: planHour, dayOfWeek } = planningStatus;
+    const isSundayWindow = dayOfWeek === 0 && planHour >= 14 && planHour < 21;
+    const isMondayWindow = dayOfWeek === 1 && planHour >= 6 && planHour < 12;
+
+    if (isSundayWindow || isMondayWindow) {
+      insights.push({
+        user_id: userId,
+        insight_type: 'planning_reminder',
+        title: isMondayWindow ? "Plan Your Week" : "Week Ahead",
+        description: isMondayWindow
+          ? 'Start your week strong! Set your goals. Earn 25 XP!'
+          : 'Set your intentions for the upcoming week. Earn 25 XP!',
+        priority: isMondayWindow ? 'high' : 'medium',
+        action_type: 'NAVIGATE',
+        action_payload: { path: '/week' },
+      });
+    }
+  }
+
   return insights.slice(0, 2);
+}
+
+/**
+ * Fetch whether user has completed today's review and this week's plan.
+ */
+async function fetchPlanningStatus(
+  supabase: SupabaseClient,
+  userId: string,
+  today: string
+): Promise<PlanningStatus> {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
+
+  // Get this week's Monday
+  const todayDate = new Date(today);
+  const diff = todayDate.getDay() - 1;
+  const monday = new Date(todayDate);
+  monday.setDate(todayDate.getDate() - (diff < 0 ? 6 : diff));
+  const weekStart = monday.toISOString().split('T')[0];
+
+  // Check for today's review and this week's plan in parallel
+  const [reviewResult, planResult] = await Promise.all([
+    supabase
+      .from('daily_reflections')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single(),
+    supabase
+      .from('weekly_plans')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('week_start', weekStart)
+      .single(),
+  ]);
+
+  return {
+    hasTodayReview: !!reviewResult.data,
+    hasThisWeekPlan: !!planResult.data,
+    currentHour,
+    dayOfWeek,
+  };
 }

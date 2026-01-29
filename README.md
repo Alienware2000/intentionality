@@ -550,7 +550,6 @@ Ask Kofi anything about your productivity:
 | GET | `/api/ai/chat` | Get conversations list |
 | POST | `/api/ai/chat` | Send message (streaming response) |
 | DELETE | `/api/ai/chat` | Delete conversation |
-| GET | `/api/ai/briefing` | Get AI-generated daily briefing |
 | GET | `/api/ai/insights` | Get pending proactive insights |
 | POST | `/api/ai/insights` | Generate new insights |
 | PATCH | `/api/ai/insights` | Mark insight shown/dismissed |

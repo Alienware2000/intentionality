@@ -1186,26 +1186,6 @@ export type AIChatResponse = {
 };
 
 /**
- * Response from AI briefing endpoint.
- */
-export type AIBriefingResponse = {
-  ok: true;
-  greeting: string;
-  summary: string;
-  insights: Array<{
-    title: string;
-    description: string;
-    priority: 'low' | 'medium' | 'high';
-    actionLabel?: string;
-    actionHref?: string;
-  }>;
-  suggestedFocus?: {
-    title: string;
-    taskId?: Id;
-  };
-};
-
-/**
  * Response from AI process brain dump endpoint.
  */
 export type AIProcessBrainDumpResponse = {
@@ -1244,18 +1224,6 @@ export type AIProviderType = 'gemini' | 'groq';
  * Each feature has a primary provider and fallback.
  */
 export type AIFeatureType = 'chat' | 'briefing' | 'insights' | 'brain_dump';
-
-/**
- * Cached AI briefing entry.
- */
-export type AIBriefingCache = {
-  id: Id;
-  user_id: string;
-  date: ISODateString;
-  content: AIBriefingResponse;
-  provider: AIProviderType;
-  created_at: string;
-};
 
 /**
  * AI usage log entry for tracking.

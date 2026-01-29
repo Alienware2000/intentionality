@@ -164,6 +164,7 @@ function checkHabitReminder(ctx: RecommendationContext): DailyRecommendation | n
 
 /**
  * Check if daily review is needed (evening).
+ * Starts at 6 PM with escalating priority.
  */
 function checkReviewReminder(ctx: RecommendationContext): DailyRecommendation | null {
   const { hasReviewedToday, currentTime } = ctx;
@@ -171,28 +172,44 @@ function checkReviewReminder(ctx: RecommendationContext): DailyRecommendation | 
   if (hasReviewedToday) return null;
 
   const hour = currentTime.getHours();
-  if (hour < 19) return null; // Only remind after 7 PM
+  if (hour < 18) return null; // Start at 6 PM
+
+  // Escalate priority as evening progresses
+  const priority = hour >= 20 ? "high" : "medium";
+  const title = hour >= 20
+    ? "Don't forget your daily review!"
+    : "Time for daily review";
+  const description = hour >= 20
+    ? "Take 5 minutes to reflect and plan tomorrow. Earn 20 XP!"
+    : "Reflect on your day and plan for tomorrow. Earn 20 XP!";
 
   return {
     type: "review_reminder",
-    priority: "low",
-    title: "Time for daily review",
-    description: "Reflect on your day and plan for tomorrow. Earn 15 XP!",
+    priority,
+    title,
+    description,
     actionLabel: "Start Review",
     actionHref: "/review",
   };
 }
 
 /**
- * Check if weekly planning is needed (Sunday/Monday).
+ * Check if weekly planning is needed (Sunday afternoon/Monday).
+ * Sunday: Shows from 2 PM onwards with medium priority
+ * Monday: All day with high priority (week has started!)
  */
 function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | null {
   const { weeklyPlan, currentTime } = ctx;
 
   const dayOfWeek = currentTime.getDay();
-  const isPlanningDay = dayOfWeek === 0 || dayOfWeek === 1; // Sunday or Monday
+  const hour = currentTime.getHours();
 
-  if (!isPlanningDay) return null;
+  // Sunday: only after 2 PM
+  const isSundayAfternoon = dayOfWeek === 0 && hour >= 14;
+  // Monday: all day
+  const isMonday = dayOfWeek === 1;
+
+  if (!isSundayAfternoon && !isMonday) return null;
 
   // Check if there's a plan for this week
   const today = toISODateString(currentTime);
@@ -200,14 +217,17 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
 
   if (weeklyPlan?.week_start === monday) return null;
 
+  // Monday gets higher priority (week already started!)
+  const priority = isMonday ? "high" : "medium";
+
   return {
     type: "planning_needed",
-    priority: "medium",
-    title: dayOfWeek === 0 ? "Plan your week tomorrow" : "Weekly planning time!",
-    description: dayOfWeek === 0
-      ? "Set your goals for the upcoming week. Earn 25 XP!"
-      : "Start your week with clear intentions. Earn 25 XP!",
-    actionLabel: "Start Planning",
+    priority,
+    title: isMonday ? "Plan your week!" : "Plan your week ahead",
+    description: isMonday
+      ? "Your week has started - set your goals and priorities. Earn 25 XP!"
+      : "Set your intentions for the upcoming week. Earn 25 XP!",
+    actionLabel: "Plan Week",
     actionHref: "/week",
   };
 }

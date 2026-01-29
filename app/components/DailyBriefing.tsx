@@ -151,11 +151,13 @@ export default function DailyBriefing({ date }: Props) {
   const loadData = useCallback(async () => {
     try {
       // Fetch all required data in parallel
-      const [tasksRes, habitsRes, questsRes, patternsRes] = await Promise.all([
+      const [tasksRes, habitsRes, questsRes, patternsRes, reviewRes, weeklyPlanRes] = await Promise.all([
         fetch(`/api/tasks/for-today?date=${date}`),
         fetch(`/api/habits?date=${date}`),
         fetch("/api/quests"),
         fetch("/api/ai/learn").catch(() => null), // Pattern data is optional
+        fetch(`/api/daily-review?date=${date}`).catch(() => null), // Review status is optional
+        fetch("/api/weekly-plan").catch(() => null), // Weekly plan is optional
       ]);
 
       const [tasksData, habitsData, questsData] = await Promise.all([
@@ -175,6 +177,30 @@ export default function DailyBriefing({ date }: Props) {
           }
         } catch {
           // Silent fail - patterns are optional
+        }
+      }
+
+      // Check if user has completed today's daily review
+      let hasReviewedToday = false;
+      if (reviewRes?.ok) {
+        try {
+          const reviewData = await reviewRes.json();
+          hasReviewedToday = reviewData.ok && !!reviewData.reflection;
+        } catch {
+          // Silent fail - review status is optional
+        }
+      }
+
+      // Check if user has a weekly plan for current week
+      let weeklyPlan = null;
+      if (weeklyPlanRes?.ok) {
+        try {
+          const weeklyPlanData = await weeklyPlanRes.json();
+          if (weeklyPlanData.ok && weeklyPlanData.plan) {
+            weeklyPlan = weeklyPlanData.plan;
+          }
+        } catch {
+          // Silent fail - weekly plan is optional
         }
       }
 
@@ -199,8 +225,8 @@ export default function DailyBriefing({ date }: Props) {
         habits,
         quests,
         profile,
-        weeklyPlan: null,
-        hasReviewedToday: false, // TODO: Check daily review status
+        weeklyPlan,
+        hasReviewedToday,
         currentTime: new Date(),
         bestCompletionDay: fetchedBestDay,
       });
