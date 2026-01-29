@@ -788,9 +788,13 @@ export default function CalendarDayView({
         startMinutesGrid +
         (y / totalHeight) * (endMinutesGrid - startMinutesGrid);
 
+      // Offset by half block duration so cursor appears centered in block
+      const blockDuration = 60; // 1-hour block
+      const centeredMinutes = minutes - blockDuration / 2;
+
       // Snap to 30-minute intervals
-      const snappedStart = Math.round(minutes / 30) * 30;
-      const snappedEnd = snappedStart + 60; // Default 1-hour block
+      const snappedStart = Math.round(centeredMinutes / 30) * 30;
+      const snappedEnd = snappedStart + blockDuration;
 
       // Check bounds
       if (snappedStart < startMinutesGrid || snappedEnd > endMinutesGrid) {
@@ -850,6 +854,15 @@ export default function CalendarDayView({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Empty state hint - absolute so it doesn't affect layout/mouse positioning */}
+      {blocks.length === 0 && (
+        <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none z-10">
+          <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-elevated)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
+            Click any time slot to add a block
+          </span>
+        </div>
+      )}
+
       {/* Time grid background */}
       <div className="relative" style={{ height: totalHeight }}>
         {/* Hour lines */}
@@ -912,15 +925,6 @@ export default function CalendarDayView({
           />
         )}
       </div>
-
-      {/* Minimal empty state hint */}
-      {blocks.length === 0 && (
-        <div className="sticky top-2 left-0 right-0 flex justify-center pointer-events-none z-10">
-          <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-elevated)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
-            Click any time slot to add a block
-          </span>
-        </div>
-      )}
     </div>
   );
 }
