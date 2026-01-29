@@ -14,11 +14,19 @@ import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { XP_VALUES } from "@/app/lib/gamification";
 
+type DefaultValues = {
+  start_time?: string;
+  end_time?: string;
+  days_of_week?: DayOfWeek[];
+};
+
 type Props = {
   block?: ScheduleBlock | null;
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  /** Pre-fill values when adding from calendar click-to-add */
+  defaultValues?: DefaultValues | null;
 };
 
 const DAYS: { value: DayOfWeek; label: string; short: string }[] = [
@@ -47,6 +55,7 @@ export default function AddScheduleModal({
   isOpen,
   onClose,
   onSaved,
+  defaultValues,
 }: Props) {
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("09:00");
@@ -63,7 +72,7 @@ export default function AddScheduleModal({
 
   const isEditing = !!block;
 
-  // Sync state when editing existing block
+  // Sync state when editing existing block or using defaultValues
   useEffect(() => {
     if (block) {
       setTitle(block.title);
@@ -77,11 +86,11 @@ export default function AddScheduleModal({
       setIsCompletable(block.is_completable);
       setPriority(block.priority ?? "medium");
     } else {
-      // Reset to defaults for new block
+      // Reset to defaults for new block (with optional pre-filled values)
       setTitle("");
-      setStartTime("09:00");
-      setEndTime("10:00");
-      setDaysOfWeek([1, 3, 5]);
+      setStartTime(defaultValues?.start_time ?? "09:00");
+      setEndTime(defaultValues?.end_time ?? "10:00");
+      setDaysOfWeek(defaultValues?.days_of_week ?? [1, 3, 5]);
       setColor("#6366f1");
       setLocation("");
       setStartDate("");
@@ -90,7 +99,7 @@ export default function AddScheduleModal({
       setPriority("medium");
     }
     setError(null);
-  }, [block, isOpen]);
+  }, [block, isOpen, defaultValues]);
 
   function toggleDay(day: DayOfWeek) {
     setDaysOfWeek((prev) =>

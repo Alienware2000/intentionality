@@ -20,6 +20,8 @@ import {
   Pencil,
   Trash2,
   Play,
+  List,
+  CalendarDays,
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
@@ -34,6 +36,12 @@ import { useOnboarding } from "./OnboardingProvider";
 import EditTaskModal from "./EditTaskModal";
 import ConfirmModal from "./ConfirmModal";
 import PriorityPill from "./ui/PriorityPill";
+import CalendarDayView from "./CalendarDayView";
+import AddScheduleModal from "./AddScheduleModal";
+import type { DayOfWeek } from "@/app/lib/types";
+
+// View mode type for toggle
+type ViewMode = "list" | "calendar";
 
 // Duration presets for focus sessions (matches FocusLauncher)
 const DURATION_PRESETS = [
@@ -45,6 +53,18 @@ const DURATION_PRESETS = [
   { minutes: 60, label: "60m" },
 ];
 
+/** External timeline data for controlled mode (when data is managed by parent) */
+type ExternalTimelineData = {
+  scheduledItems: Array<{ type: "task"; data: Task } | { type: "schedule_block"; data: ScheduleBlock; completed: boolean }>;
+  unscheduledTasks: Task[];
+  overdueTasks: Task[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  toggleTask: (taskId: string) => Promise<void>;
+  toggleScheduleBlock: (blockId: string) => Promise<void>;
+};
+
 type Props = {
   date: ISODateString;
   showOverdue?: boolean;
@@ -54,6 +74,16 @@ type Props = {
   onRefresh?: () => void;
   /** Show all schedule blocks (default: only show imminent blocks within 45 min) */
   showAllBlocks?: boolean;
+  /** Show the view mode toggle (list/calendar) - default true */
+  showViewToggle?: boolean;
+  /** Header to display above the timeline */
+  header?: React.ReactNode;
+  /** External data for controlled mode - when provided, component doesn't fetch its own data */
+  externalData?: ExternalTimelineData;
+  /** Hide calendar view completely (for side-by-side layout) */
+  hideCalendarView?: boolean;
+  /** Hide schedule blocks in list view (for side-by-side calendar layout) */
+  hideBlocksInList?: boolean;
 };
 
 export default function DayTimeline({
@@ -64,12 +94,38 @@ export default function DayTimeline({
   quests = [],
   onRefresh,
   showAllBlocks = false,
+  showViewToggle = true,
+  header,
+  externalData,
+  hideCalendarView = false,
+  hideBlocksInList = false,
 }: Props) {
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp, showStreakMilestone } = useCelebration();
   const { session: activeSession, startSession } = useFocus();
   const { showToast } = useToast();
   const { markStepComplete } = useOnboarding();
+
+  // View mode state (persisted to localStorage)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("timeline-view") as ViewMode) || "list";
+    }
+    return "list";
+  });
+
+  // Schedule modal state for calendar view click-to-add
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleDefaults, setScheduleDefaults] = useState<{
+    start_time: string;
+    end_time: string;
+    days_of_week: DayOfWeek[];
+  } | null>(null);
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    localStorage.setItem("timeline-view", viewMode);
+  }, [viewMode]);
 
   // Memoize callbacks to prevent unnecessary recreations
   const handleTaskToggle = useCallback(
@@ -90,10 +146,14 @@ export default function DayTimeline({
       onProfileUpdate: refreshProfile,
       onTaskToggle: handleTaskToggle,
       includeOverdue: showOverdue,
+      skip: !!externalData, // Skip fetching when external data is provided
     }),
-    [refreshProfile, handleTaskToggle, showOverdue]
+    [refreshProfile, handleTaskToggle, showOverdue, externalData]
   );
 
+  const internalData = useDayTimeline(date, timelineOptions);
+
+  // Use external data when provided, otherwise use internal hook data
   const {
     scheduledItems: rawScheduledItems,
     unscheduledTasks,
@@ -103,7 +163,7 @@ export default function DayTimeline({
     refresh,
     toggleTask,
     toggleScheduleBlock,
-  } = useDayTimeline(date, timelineOptions);
+  } = externalData ?? internalData;
 
   // Filter schedule blocks to only show imminent ones (within 45 min window)
   // unless showAllBlocks is true
@@ -278,6 +338,38 @@ export default function DayTimeline({
     }
   }
 
+  // Extract schedule blocks from scheduledItems for CalendarDayView
+  // NOTE: All hooks must be called before any early returns
+  const calendarBlocks = useMemo(() => {
+    return scheduledItems
+      .filter((item): item is { type: "schedule_block"; data: ScheduleBlock; completed: boolean } =>
+        item.type === "schedule_block"
+      )
+      .map((item) => ({ block: item.data, completed: item.completed }));
+  }, [scheduledItems]);
+
+  // Handle add block from calendar click
+  const handleAddBlockFromCalendar = useCallback(
+    (defaults: { start_time: string; end_time: string; days_of_week: DayOfWeek[] }) => {
+      setScheduleDefaults(defaults);
+      setScheduleModalOpen(true);
+    },
+    []
+  );
+
+  // Handle schedule modal close
+  const handleScheduleModalClose = useCallback(() => {
+    setScheduleModalOpen(false);
+    setScheduleDefaults(null);
+  }, []);
+
+  // Handle schedule saved
+  const handleScheduleSaved = useCallback(async () => {
+    await refresh();
+    onRefresh?.();
+  }, [refresh, onRefresh]);
+
+  // Early return for loading state (after all hooks)
   if (loading) {
     return (
       <div className="space-y-2">
@@ -299,12 +391,88 @@ export default function DayTimeline({
 
   return (
     <div className={cn("space-y-3", compact && "space-y-2")}>
+      {/* Header with view toggle */}
+      {(header || (showViewToggle && !hideCalendarView)) && (
+        <div className="flex items-center justify-between gap-4 mb-2">
+          {/* Custom header or default */}
+          <div className="flex-1 min-w-0">
+            {header}
+          </div>
+
+          {/* View toggle - hidden on mobile and when hideCalendarView is true */}
+          {showViewToggle && !hideCalendarView && (
+            <div className="hidden sm:flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+              <motion.button
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+                title="List view"
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  viewMode === "list"
+                    ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <List size={16} />
+              </motion.button>
+              <motion.button
+                onClick={() => setViewMode("calendar")}
+                aria-label="Calendar view"
+                title="Calendar view"
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  viewMode === "calendar"
+                    ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <CalendarDays size={16} />
+              </motion.button>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <p className="text-xs text-[var(--accent-primary)]">Error: {error}</p>
       )}
 
-      {/* Overdue Tasks */}
-      {hasOverdue && (
+      {/* Calendar View - only shown when not hidden and in calendar mode */}
+      <AnimatePresence mode="wait">
+        {viewMode === "calendar" && !compact && !hideCalendarView && (
+          <motion.div
+            key="calendar"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <CalendarDayView
+              date={date}
+              blocks={calendarBlocks}
+              onToggleBlock={toggleScheduleBlock}
+              onAddBlock={handleAddBlockFromCalendar}
+              compact={compact}
+            />
+          </motion.div>
+        )}
+
+        {/* List View (default on mobile, when selected, or when calendar is hidden) */}
+        {(viewMode === "list" || compact || hideCalendarView) && (
+          <motion.div
+            key="list"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3"
+          >
+            {/* Overdue Tasks */}
+            {hasOverdue && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[var(--accent-primary)]">
             <AlertCircle size={14} />
@@ -331,35 +499,37 @@ export default function DayTimeline({
       {/* Scheduled Items (timeline) */}
       {scheduledItems.length > 0 && (
         <div className="space-y-2">
-          {scheduledItems.map((item) =>
-            item.type === "task" ? (
-              <ScheduledTaskItem
-                key={`task-${item.data.id}`}
-                task={item.data}
-                onToggle={toggleTask}
-                onEdit={setEditingTask}
-                onDelete={setDeletingTaskId}
-                onStartFocus={startSession}
-                hasActiveSession={!!activeSession}
-                compact={compact}
-              />
-            ) : (
-              <ScheduleBlockItem
-                key={`block-${item.data.id}`}
-                block={item.data}
-                completed={item.completed}
-                onToggle={toggleScheduleBlock}
-                compact={compact}
-              />
-            )
-          )}
+          {scheduledItems
+            .filter((item) => !hideBlocksInList || item.type === "task")
+            .map((item) =>
+              item.type === "task" ? (
+                <ScheduledTaskItem
+                  key={`task-${item.data.id}`}
+                  task={item.data}
+                  onToggle={toggleTask}
+                  onEdit={setEditingTask}
+                  onDelete={setDeletingTaskId}
+                  onStartFocus={startSession}
+                  hasActiveSession={!!activeSession}
+                  compact={compact}
+                />
+              ) : (
+                <ScheduleBlockItem
+                  key={`block-${item.data.id}`}
+                  block={item.data}
+                  completed={item.completed}
+                  onToggle={toggleScheduleBlock}
+                  compact={compact}
+                />
+              )
+            )}
         </div>
       )}
 
       {/* Unscheduled Tasks */}
       {unscheduledTasks.length > 0 && (
         <div className="space-y-2">
-          {scheduledItems.length > 0 && (
+          {scheduledItems.length > 0 && !hideBlocksInList && (
             <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] pt-2">
               Tasks
             </div>
@@ -533,20 +703,31 @@ export default function DayTimeline({
         </div>
       )}
 
-      {/* Edit Task Modal */}
-      <EditTaskModal
-        task={editingTask}
-        onSave={handleEditTask}
-        onClose={() => setEditingTask(null)}
-      />
+          {/* Edit Task Modal */}
+          <EditTaskModal
+            task={editingTask}
+            onSave={handleEditTask}
+            onClose={() => setEditingTask(null)}
+          />
 
-      {/* Delete Task Confirmation */}
-      <ConfirmModal
-        isOpen={deletingTaskId !== null}
-        title="Delete Task"
-        message="Delete this task? You can undo this action for a few seconds after deletion."
-        onConfirm={() => deletingTaskId && handleDeleteTask(deletingTaskId)}
-        onCancel={() => setDeletingTaskId(null)}
+          {/* Delete Task Confirmation */}
+          <ConfirmModal
+            isOpen={deletingTaskId !== null}
+            title="Delete Task"
+            message="Delete this task? You can undo this action for a few seconds after deletion."
+            onConfirm={() => deletingTaskId && handleDeleteTask(deletingTaskId)}
+            onCancel={() => setDeletingTaskId(null)}
+          />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Schedule Modal (for calendar click-to-add) */}
+      <AddScheduleModal
+        isOpen={scheduleModalOpen}
+        onClose={handleScheduleModalClose}
+        onSaved={handleScheduleSaved}
+        defaultValues={scheduleDefaults}
       />
     </div>
   );
@@ -1165,7 +1346,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
         </span>
       </div>
       {/* Action buttons - stack on mobile */}
-      <div className={cn("flex flex-wrap gap-2", compact ? "mt-2" : "mt-2")}>
+      <div className="flex flex-wrap gap-2 mt-2">
         <button
           onClick={() => onToggle(task.id)}
           aria-label="Mark task as done"

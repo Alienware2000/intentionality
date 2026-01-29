@@ -2,8 +2,12 @@
 // TASK TOGGLE API ROUTE
 // Toggles the completed status of a task.
 // Awards XP when completing, deducts when uncompleting.
-// Integrates with gamification v2 for achievements, challenges, and bonuses.
-// RLS ensures users can only toggle their own tasks.
+//
+// XP TRANSPARENCY:
+// - xpGained = base task XP only (no hidden multipliers)
+// - challengeXp = XP from any challenges completed (celebrated separately)
+// - achievementXp = XP from any achievements unlocked (celebrated separately)
+// - last_xp_awarded stores only base XP for accurate deduction
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -33,8 +37,13 @@ type ToggleTaskBody = {
  * POST /api/tasks/toggle
  *
  * Toggles the completed status of a task.
- * When completing: awards XP with streak multipliers, updates stats, checks achievements.
- * When uncompleting: deducts XP.
+ * When completing: awards base XP (no hidden multipliers), checks challenges/achievements.
+ * When uncompleting: deducts exactly the base XP that was awarded.
+ *
+ * XP Transparency:
+ * - xpGained: Base task XP only (5/10/25 for low/medium/high)
+ * - challengeXp: Separate XP from any completed challenges
+ * - achievementXp: Separate XP from any unlocked achievements
  *
  * @authentication Required
  *
@@ -110,18 +119,23 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     // Mark onboarding step complete (fire-and-forget)
     markOnboardingStepComplete(supabase, user.id, "complete_task").catch(() => {});
 
+    // XP TRANSPARENCY: Return separate XP values for clear celebration
     return NextResponse.json({
       ok: true,
-      xpGained: result.xpBreakdown.totalXp,
+      // Base task XP (no hidden multipliers) - for main "+X XP" animation
+      xpGained: result.actionTotalXp,
+      // Challenge XP (celebrated with toast) - from any completed challenges
+      challengeXp: result.bonusXp.challengeXp ?? 0,
+      // Achievement XP (celebrated with modal) - from any unlocked achievements
+      achievementXp: result.bonusXp.achievementXp ?? 0,
+      // Legacy fields for compatibility
       xpBreakdown: result.xpBreakdown,
       leveledUp: result.leveledUp,
       newLevel: result.leveledUp ? result.newLevel : undefined,
       newStreak: result.newStreak,
       newXpTotal: result.newXpTotal,
-      streakMilestone: result.streakMilestone,
       achievementsUnlocked: result.achievementsUnlocked,
       challengesCompleted: result.challengesCompleted,
-      bonusXp: result.bonusXp,
     });
   } else {
     // Deduct XP when unchecking

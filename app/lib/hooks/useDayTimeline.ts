@@ -7,7 +7,15 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ISODateString, Task, TimelineItem, DayTimelineResponse } from "../types";
+import type {
+  ISODateString,
+  Task,
+  TimelineItem,
+  DayTimelineResponse,
+  AchievementWithProgress,
+  UserDailyChallenge,
+  UserWeeklyChallenge,
+} from "../types";
 import { fetchApi, getErrorMessage } from "../api";
 
 // -----------------------------------------------------------------------------
@@ -22,6 +30,11 @@ type ToggleResult = {
   levelDecreased?: boolean;
   newStreak?: number;
   newXpTotal?: number;
+  // XP Transparency: Separate bonus XP for clear celebration
+  challengeXp?: number;
+  achievementXp?: number;
+  challengesCompleted?: { daily: UserDailyChallenge[]; weekly: UserWeeklyChallenge | null };
+  achievementsUnlocked?: AchievementWithProgress[];
 };
 
 type UseDayTimelineOptions = {
@@ -31,6 +44,8 @@ type UseDayTimelineOptions = {
   onTaskToggle?: (result: ToggleResult) => void;
   /** Whether to include overdue tasks in the response (for today's view) */
   includeOverdue?: boolean;
+  /** Skip data fetching (useful when data is provided externally) */
+  skip?: boolean;
 };
 
 type UseDayTimelineReturn = {
@@ -82,6 +97,10 @@ export function useDayTimeline(
   const inFlightBlockToggles = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
+    if (options?.skip) {
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       const url = `/api/day-timeline?date=${date}${options?.includeOverdue ? "&includeOverdue=true" : ""}`;
@@ -94,12 +113,16 @@ export function useDayTimeline(
     } finally {
       setLoading(false);
     }
-  }, [date, options?.includeOverdue]);
+  }, [date, options?.includeOverdue, options?.skip]);
 
   useEffect(() => {
+    if (options?.skip) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     refresh();
-  }, [refresh]);
+  }, [refresh, options?.skip]);
 
   // Keep refs in sync with state
   useEffect(() => { scheduledItemsRef.current = scheduledItems; }, [scheduledItems]);
@@ -173,12 +196,7 @@ export function useDayTimeline(
       // 2. Optimistic update - immediate
       updateTaskInState(taskId, isCompleting);
 
-      // 3. Show XP animation IMMEDIATELY (before API call) for instant feedback
-      if (isCompleting && task.xp_value) {
-        options?.onTaskToggle?.({ xpGained: task.xp_value });
-      }
-
-      // 4. API call in background
+      // 3. API call
       try {
         const result = await fetchApi<{ ok: true } & ToggleResult>("/api/tasks/toggle", {
           method: "POST",
@@ -186,7 +204,27 @@ export function useDayTimeline(
           body: JSON.stringify({ taskId }),
         });
 
-        // 5. Handle level-up/streak (these need API response)
+        // 4. XP TRANSPARENCY: Show XP animation AFTER API response with actual values
+        if (isCompleting && result.xpGained) {
+          // Show base task XP animation
+          options?.onTaskToggle?.({ xpGained: result.xpGained });
+
+          // Trigger separate celebrations for challenge/achievement XP
+          if (result.challengeXp && result.challengeXp > 0) {
+            options?.onTaskToggle?.({
+              challengeXp: result.challengeXp,
+              challengesCompleted: result.challengesCompleted,
+            });
+          }
+          if (result.achievementXp && result.achievementXp > 0) {
+            options?.onTaskToggle?.({
+              achievementXp: result.achievementXp,
+              achievementsUnlocked: result.achievementsUnlocked,
+            });
+          }
+        }
+
+        // 5. Handle level-up/streak
         if (result.leveledUp && result.newLevel) {
           options?.onTaskToggle?.({ leveledUp: true, newLevel: result.newLevel });
         }
@@ -202,7 +240,7 @@ export function useDayTimeline(
 
         // No refresh() call - state is already correct
       } catch (e) {
-        // 7. Rollback on error
+        // 8. Rollback on error
         updateTaskInState(taskId, wasCompleted);
         setError(getErrorMessage(e));
       } finally {
@@ -271,18 +309,32 @@ export function useDayTimeline(
       // 2. Optimistic update - immediate
       updateScheduleBlockInState(blockId, isCompleting);
 
-      // 3. Show XP animation IMMEDIATELY (before API call) for instant feedback
-      if (isCompleting && xpValue) {
-        options?.onTaskToggle?.({ xpGained: xpValue });
-      }
-
-      // 4. API call in background
+      // 3. API call
       try {
         const result = await fetchApi<{ ok: true } & ToggleResult>("/api/schedule/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ blockId, date }),
         });
+
+        // 4. XP TRANSPARENCY: Show XP animation AFTER API response with actual value
+        if (isCompleting && result.xpGained) {
+          options?.onTaskToggle?.({ xpGained: result.xpGained });
+
+          // Trigger separate celebrations for challenge/achievement XP
+          if (result.challengeXp && result.challengeXp > 0) {
+            options?.onTaskToggle?.({
+              challengeXp: result.challengeXp,
+              challengesCompleted: result.challengesCompleted,
+            });
+          }
+          if (result.achievementXp && result.achievementXp > 0) {
+            options?.onTaskToggle?.({
+              achievementXp: result.achievementXp,
+              achievementsUnlocked: result.achievementsUnlocked,
+            });
+          }
+        }
 
         // 5. Handle level-up (needs API response)
         if (result.leveledUp && result.newLevel) {

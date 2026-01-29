@@ -2,6 +2,9 @@
 // CHALLENGE PROGRESS API
 // POST: Update challenge progress based on user action.
 // Called internally by toggle routes when actions are completed.
+//
+// NOTE: Daily sweep bonus has been removed as part of XP transparency redesign.
+// Challenge XP is awarded when individual challenges complete, not as a hidden sweep bonus.
 // =============================================================================
 
 import {
@@ -14,9 +17,8 @@ import {
   updateDailyChallengeProgress,
   updateWeeklyChallengeProgress,
   checkAllHabitsChallenge,
-  DAILY_SWEEP_BONUS,
 } from "@/app/lib/challenges";
-import { getLocalDateString, calculateXpWithBonuses } from "@/app/lib/gamification";
+import { getLocalDateString } from "@/app/lib/gamification";
 import { getWeekStartDate } from "@/app/lib/challenges";
 
 type ProgressBody = {
@@ -65,33 +67,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     weekStart
   );
 
-  // Calculate bonus XP if daily sweep achieved
-  let sweepXpAwarded = 0;
-  if (dailySweep) {
-    // Get user's streak for multiplier
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("current_streak, permanent_xp_bonus")
-      .eq("user_id", user.id)
-      .single();
-
-    if (profile) {
-      const xpBreakdown = calculateXpWithBonuses(
-        DAILY_SWEEP_BONUS,
-        profile.current_streak,
-        profile.permanent_xp_bonus || 1.0
-      );
-      sweepXpAwarded = xpBreakdown.totalXp;
-
-      // Award sweep bonus XP
-      await supabase.rpc("increment_xp", {
-        user_id: user.id,
-        amount: sweepXpAwarded,
-      });
-    }
-  }
-
   // Calculate total XP from completed challenges
+  // NOTE: Sweep bonus removed - XP comes from individual challenge completions only
   const dailyXp = dailyCompleted.reduce(
     (sum, c) => sum + (c.xp_awarded || 0),
     0
@@ -101,12 +78,11 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   return successResponse({
     dailyChallengesCompleted: dailyCompleted,
     weeklyChallengeCompleted: weeklyCompleted,
-    dailySweep,
+    dailySweep, // Still track for UI purposes, but no bonus XP
     xpAwarded: {
       daily: dailyXp,
       weekly: weeklyXp,
-      sweep: sweepXpAwarded,
-      total: dailyXp + weeklyXp + sweepXpAwarded,
+      total: dailyXp + weeklyXp,
     },
   });
 });

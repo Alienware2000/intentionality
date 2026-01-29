@@ -714,10 +714,15 @@ export type XpBreakdown = {
 
 /**
  * Result from an action that awards XP.
+ *
+ * XP TRANSPARENCY:
+ * - actionTotalXp = base XP only (no hidden multipliers)
+ * - challengeXp and achievementXp are tracked separately for celebration
+ * - Total XP = actionTotalXp + challengeXp + achievementXp
  */
 export type XpAwardResult = {
   xpBreakdown: XpBreakdown;
-  actionTotalXp: number; // Base + streak + permanent + first action + milestone (for accurate deduction)
+  actionTotalXp: number; // Base XP only - for accurate deduction on uncheck
   newXpTotal: number;
   newLevel: number | null;
   leveledUp: boolean;
@@ -729,9 +734,11 @@ export type XpAwardResult = {
     weekly: UserWeeklyChallenge | null;
   };
   bonusXp: {
-    dailySweep: boolean;
-    perfectDay: boolean;
-    firstAction: boolean;
+    dailySweep: boolean; // Deprecated - kept for compatibility
+    perfectDay: boolean; // Deprecated - kept for compatibility
+    firstAction: boolean; // Deprecated - kept for compatibility
+    challengeXp?: number; // XP from completed challenges (for celebration)
+    achievementXp?: number; // XP from unlocked achievements (for celebration)
   };
 };
 

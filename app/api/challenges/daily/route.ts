@@ -1,10 +1,13 @@
 // =============================================================================
 // DAILY CHALLENGES API
 // GET: Fetch today's daily challenges for the user.
+//
+// NOTE: Daily sweep bonus has been removed as part of XP transparency redesign.
+// XP is awarded when individual challenges complete (visible to user).
 // =============================================================================
 
 import { withAuth, successResponse, getSearchParams } from "@/app/lib/auth-middleware";
-import { getTodaysChallenges, generateDailyChallenges, DAILY_SWEEP_BONUS } from "@/app/lib/challenges";
+import { getTodaysChallenges, generateDailyChallenges } from "@/app/lib/challenges";
 import { getLocalDateString } from "@/app/lib/gamification";
 
 export const GET = withAuth(async ({ user, supabase, request }) => {
@@ -34,7 +37,6 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       total: challenges.length,
       completed: completedCount,
       allCompleted,
-      dailySweepBonus: allCompleted ? DAILY_SWEEP_BONUS : 0,
       xpEarned,
       xpAvailable,
     },

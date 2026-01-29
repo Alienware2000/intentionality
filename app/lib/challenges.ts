@@ -14,16 +14,22 @@ import { getLocalDateString } from "./gamification";
 
 /**
  * Daily sweep bonus XP when all 3 daily challenges are completed.
+ * @deprecated No longer awarded - removed as part of XP transparency redesign.
+ * XP is now awarded per individual challenge completion, not as a hidden sweep bonus.
  */
 export const DAILY_SWEEP_BONUS = 25;
 
 /**
  * Perfect day bonus XP (all habits + 3+ tasks).
+ * @deprecated No longer awarded - removed as part of XP transparency redesign.
+ * Was a hidden bonus that users didn't see - now removed for fairness.
  */
 export const PERFECT_DAY_BONUS = 50;
 
 /**
  * First action of the day bonus XP.
+ * @deprecated No longer awarded - removed as part of XP transparency redesign.
+ * Was a hidden bonus that users didn't see - now removed for fairness.
  */
 export const FIRST_ACTION_BONUS = 5;
 
@@ -430,6 +436,8 @@ export async function getThisWeeksChallenge(
 
 /**
  * Check if this is the first action of the day.
+ * @deprecated No longer used - first action bonus removed (XP transparency redesign).
+ * Kept for reference, may be removed in future.
  */
 export async function isFirstActionOfDay(
   supabase: SupabaseClient,
@@ -455,6 +463,8 @@ export async function isFirstActionOfDay(
 
 /**
  * Check for perfect day (all habits + 3+ tasks).
+ * @deprecated No longer used - perfect day bonus removed (XP transparency redesign).
+ * Kept for reference, may be removed in future.
  */
 export async function checkPerfectDay(
   supabase: SupabaseClient,

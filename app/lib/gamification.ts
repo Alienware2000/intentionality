@@ -197,6 +197,8 @@ export function getStreakMultiplier(streakDays: number): StreakMultiplier {
 
 /**
  * Check if a streak milestone was just reached.
+ * @deprecated No longer used - streak milestones don't award hidden XP (XP transparency redesign).
+ * Kept for reference, may be removed in future.
  */
 export function getNewStreakMilestone(
   oldStreak: number,
@@ -212,6 +214,9 @@ export function getNewStreakMilestone(
 
 /**
  * Calculate total XP with multipliers and bonuses.
+ * @deprecated No longer used - XP is now awarded directly without hidden multipliers (XP transparency redesign).
+ * Base XP = Total XP. No streak multipliers, no permanent bonuses.
+ * Kept for reference, may be removed in future.
  */
 export function calculateXpWithBonuses(
   baseXp: number,
@@ -239,6 +244,8 @@ export function calculateXpWithBonuses(
 
 /**
  * Get the permanent XP bonus multiplier based on level.
+ * @deprecated No longer used - permanent XP bonuses removed (XP transparency redesign).
+ * Kept for reference, may be removed in future.
  */
 export function getPermanentXpBonus(level: number): number {
   let bonus = 1.00;

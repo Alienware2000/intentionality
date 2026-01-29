@@ -2,6 +2,11 @@
 // SCHEDULE BLOCK COMPLETE API ROUTE
 // Toggles the completion status of a schedule block for a specific date.
 // Awards XP when completing, deducts when uncompleting.
+//
+// XP TRANSPARENCY:
+// - xpGained = base block XP only (no hidden multipliers)
+// - challengeXp = XP from any challenges completed (celebrated separately)
+// - achievementXp = XP from any achievements unlocked (celebrated separately)
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -11,6 +16,7 @@ import {
   ApiErrors,
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
+import { awardXp } from "@/app/lib/gamification-actions";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -88,76 +94,41 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   if (isCompleting) {
     // --- COMPLETING BLOCK ---
 
-    // Insert completion record
+    // Use gamification system to award XP (handles challenges, achievements, etc.)
+    const result = await awardXp({
+      supabase,
+      userId: user.id,
+      baseXp: xpValue,
+      actionType: "schedule_block",
+    });
+
+    // Insert completion record with actual XP awarded
     const { error: insertError } = await supabase
       .from("schedule_block_completions")
       .insert({
         block_id: blockId,
         completed_date: date,
-        xp_awarded: xpValue,
+        xp_awarded: result.actionTotalXp, // Store for accurate deduction
       });
 
     if (insertError) {
       return ApiErrors.serverError(insertError.message);
     }
 
-    // Award XP to user profile
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (profile) {
-      const newXpTotal = profile.xp_total + xpValue;
-      const newLevel = getLevelFromXpV2(newXpTotal);
-      const leveledUp = newLevel > profile.level;
-
-      // Also update global streak
-      const today = getLocalDateString();
-      let globalStreak = profile.current_streak;
-      let globalLongestStreak = profile.longest_streak;
-
-      if (profile.last_active_date !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = getLocalDateString(yesterday);
-
-        globalStreak =
-          profile.last_active_date === yesterdayStr
-            ? profile.current_streak + 1
-            : 1;
-
-        if (globalStreak > globalLongestStreak) {
-          globalLongestStreak = globalStreak;
-        }
-      }
-
-      await supabase
-        .from("user_profiles")
-        .update({
-          xp_total: newXpTotal,
-          level: newLevel,
-          current_streak: globalStreak,
-          longest_streak: globalLongestStreak,
-          last_active_date: today,
-        })
-        .eq("user_id", user.id);
-
-      return NextResponse.json({
-        ok: true,
-        xpGained: xpValue,
-        leveledUp,
-        newLevel: leveledUp ? newLevel : undefined,
-        newXpTotal,
-      });
-    }
-
+    // XP TRANSPARENCY: Return separate XP values for clear celebration
     return NextResponse.json({
       ok: true,
-      xpGained: xpValue,
-      newLevel: undefined,
-      newXpTotal: 0,
+      // Base block XP (no hidden multipliers)
+      xpGained: result.actionTotalXp,
+      // Challenge XP (celebrated with toast)
+      challengeXp: result.bonusXp.challengeXp ?? 0,
+      // Achievement XP (celebrated with modal)
+      achievementXp: result.bonusXp.achievementXp ?? 0,
+      leveledUp: result.leveledUp,
+      newLevel: result.leveledUp ? result.newLevel : undefined,
+      newXpTotal: result.newXpTotal,
+      achievementsUnlocked: result.achievementsUnlocked,
+      challengesCompleted: result.challengesCompleted,
     });
   } else {
     // --- UNCOMPLETING BLOCK ---

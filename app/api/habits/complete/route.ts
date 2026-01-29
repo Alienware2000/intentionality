@@ -2,7 +2,11 @@
 // HABIT COMPLETE API ROUTE
 // Toggles the completion status of a habit for a specific date.
 // Awards XP when completing, deducts when uncompleting.
-// Integrates with gamification v2 for achievements, challenges, and bonuses.
+//
+// XP TRANSPARENCY:
+// - xpGained = base habit XP only (no hidden multipliers)
+// - challengeXp = XP from any challenges completed (celebrated separately)
+// - achievementXp = XP from any achievements unlocked (celebrated separately)
 // =============================================================================
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -157,18 +161,23 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       return ApiErrors.serverError(insertError.message);
     }
 
+    // XP TRANSPARENCY: Return separate XP values for clear celebration
     return successResponse({
-      xpGained: result.xpBreakdown.totalXp,
+      // Base habit XP (no hidden multipliers) - for main "+X XP" animation
+      xpGained: result.actionTotalXp,
+      // Challenge XP (celebrated with toast)
+      challengeXp: result.bonusXp.challengeXp ?? 0,
+      // Achievement XP (celebrated with modal)
+      achievementXp: result.bonusXp.achievementXp ?? 0,
+      // Legacy/additional fields
       xpBreakdown: result.xpBreakdown,
       leveledUp: result.leveledUp,
       newStreak,
       newLevel: result.leveledUp ? result.newLevel : undefined,
       newXpTotal: result.newXpTotal,
       globalStreak: result.newStreak,
-      streakMilestone: result.streakMilestone,
       achievementsUnlocked: result.achievementsUnlocked,
       challengesCompleted: result.challengesCompleted,
-      bonusXp: result.bonusXp,
     });
   } else {
     // --- UNCOMPLETING HABIT ---

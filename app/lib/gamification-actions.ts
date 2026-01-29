@@ -1,27 +1,30 @@
 // =============================================================================
 // GAMIFICATION ACTIONS
 // Shared functions for awarding XP and updating stats across toggle routes.
+//
+// XP SYSTEM DESIGN PRINCIPLES:
+// 1. Transparency: Every XP source is clearly shown and celebrated
+// 2. Fairness: Full reversal when unchecking (base XP only)
+// 3. No silent bonuses: If XP is awarded, user sees it
+//
+// XP Sources:
+// - Core actions (tasks, habits, focus, etc.) award base XP directly
+// - Daily challenges award XP when completed (celebrated with toast)
+// - Achievements award XP when unlocked (celebrated with modal)
+// - NO hidden multipliers (streak, permanent level bonus, etc.)
 // =============================================================================
 
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { UserProfileV2, XpAwardResult } from "./types";
 import {
   getLevelFromXpV2,
-  getNewStreakMilestone,
-  calculateXpWithBonuses,
   getLocalDateString,
   earnedStreakFreeze,
-  getPermanentXpBonus,
 } from "./gamification";
 import { checkAllAchievements } from "./achievements";
 import {
   updateDailyChallengeProgress,
   updateWeeklyChallengeProgress,
-  isFirstActionOfDay,
-  checkPerfectDay,
-  FIRST_ACTION_BONUS,
-  PERFECT_DAY_BONUS,
-  DAILY_SWEEP_BONUS,
 } from "./challenges";
 
 /**
@@ -70,6 +73,12 @@ function calculateNewStreak(
 /**
  * Award XP and update all gamification stats.
  * Called when completing a task, habit, or focus session.
+ *
+ * XP TRANSPARENCY:
+ * - baseXp is awarded directly (no hidden multipliers)
+ * - Challenge XP is returned separately for celebration
+ * - Achievement XP is returned separately for celebration
+ * - actionTotalXp = baseXp (for accurate reversal on uncheck)
  */
 export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   const {
@@ -98,42 +107,15 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
 
   const typedProfile = profile as UserProfileV2;
 
-  // Check if this is the first action of the day
-  const isFirstAction = await isFirstActionOfDay(supabase, userId, today);
-
-  // Calculate streak
+  // Calculate streak (for tracking/achievements, NOT for XP multipliers)
   const { newStreak, isNewDay, streakBroken } = calculateNewStreak(
     typedProfile.last_active_date,
     typedProfile.current_streak,
     today
   );
 
-  // Check for streak milestone
-  const streakMilestone = isNewDay
-    ? getNewStreakMilestone(typedProfile.current_streak, newStreak)
-    : null;
-
-  // Calculate XP with bonuses
-  const permanentBonus = getPermanentXpBonus(typedProfile.level);
-  const xpBreakdown = calculateXpWithBonuses(baseXp, newStreak, permanentBonus);
-
-  // Track additional bonuses without mutating xpBreakdown
-  let additionalXp = 0;
-
-  // Add first action bonus
-  let firstActionXp = 0;
-  if (isFirstAction) {
-    firstActionXp = FIRST_ACTION_BONUS;
-    additionalXp += firstActionXp;
-  }
-
-  // Add streak milestone bonus
-  if (streakMilestone) {
-    additionalXp += streakMilestone.xpReward;
-  }
-
-  // Calculate total XP earned this action (base breakdown + additional bonuses)
-  const actionTotalXp = xpBreakdown.totalXp + additionalXp;
+  // XP TRANSPARENCY: Award exactly baseXp - no hidden multipliers
+  const actionTotalXp = baseXp;
   const newXpTotal = typedProfile.xp_total + actionTotalXp;
   const newLevel = getLevelFromXpV2(newXpTotal);
 
@@ -146,7 +128,6 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     current_streak: newStreak,
     longest_streak: newLongestStreak,
     last_active_date: today,
-    permanent_xp_bonus: permanentBonus,
   };
 
   // Update lifetime stats based on action type
@@ -167,7 +148,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     }
   }
 
-  // Track early bird / night owl
+  // Track early bird / night owl (for achievements)
   if (completionHour !== undefined) {
     if (completionHour < 7) {
       profileUpdate.lifetime_early_bird_tasks =
@@ -178,13 +159,13 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     }
   }
 
-  // Track streak recovery
+  // Track streak recovery (for achievements)
   if (streakBroken && newStreak === 1) {
     profileUpdate.lifetime_streak_recoveries =
       (typedProfile.lifetime_streak_recoveries ?? 0) + 1;
   }
 
-  // Update challenge progress first to check for bonuses
+  // Update challenge progress
   const challengeType =
     actionType === "task"
       ? isHighPriority
@@ -196,7 +177,8 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
 
   const incrementValue = actionType === "focus" ? focusMinutes : 1;
 
-  const { completed: dailyCompleted, dailySweep } = await updateDailyChallengeProgress(
+  // Track daily challenge progress - XP from challenges is awarded separately
+  const { completed: dailyCompleted } = await updateDailyChallengeProgress(
     supabase,
     userId,
     challengeType as "tasks" | "focus" | "habits" | "high_priority",
@@ -204,11 +186,12 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     today
   );
 
-  // Calculate daily sweep bonus if achieved
-  let sweepXp = 0;
-  if (dailySweep) {
-    const sweepBreakdown = calculateXpWithBonuses(DAILY_SWEEP_BONUS, newStreak, permanentBonus);
-    sweepXp = sweepBreakdown.totalXp;
+  // Calculate challenge XP (awarded separately, celebrated with toast)
+  let challengeXp = 0;
+  for (const challenge of dailyCompleted) {
+    if (challenge.xp_awarded) {
+      challengeXp += challenge.xp_awarded;
+    }
   }
 
   // Update weekly challenge
@@ -220,16 +203,13 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     incrementValue
   );
 
-  // Check for perfect day
-  const isPerfectDay = await checkPerfectDay(supabase, userId, today);
-  let perfectDayXp = 0;
-  if (isPerfectDay) {
-    const perfectBreakdown = calculateXpWithBonuses(PERFECT_DAY_BONUS, newStreak, permanentBonus);
-    perfectDayXp = perfectBreakdown.totalXp;
+  // Add weekly challenge XP if completed
+  if (weeklyCompleted?.xp_awarded) {
+    challengeXp += weeklyCompleted.xp_awarded;
   }
 
   // Check achievements with projected profile state
-  const projectedXpTotal = newXpTotal + sweepXp + perfectDayXp;
+  const projectedXpTotal = newXpTotal + challengeXp;
   const projectedProfile = {
     ...typedProfile,
     ...profileUpdate,
@@ -239,8 +219,8 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   const { unlocked: achievementsUnlocked, totalXpAwarded: achievementXp } =
     await checkAllAchievements(supabase, userId, projectedProfile);
 
-  // Calculate final XP total with all bonuses
-  const finalXpTotal = newXpTotal + sweepXp + perfectDayXp + achievementXp;
+  // Calculate final XP total (base + challenge + achievement)
+  const finalXpTotal = newXpTotal + challengeXp + achievementXp;
   const finalLevel = getLevelFromXpV2(finalXpTotal);
   const finalLeveledUp = finalLevel > typedProfile.level;
 
@@ -251,7 +231,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
 
   // Update or create activity log
   await upsertActivityLog(supabase, userId, today, {
-    xpEarned: actionTotalXp + sweepXp + perfectDayXp + achievementXp,
+    xpEarned: actionTotalXp + challengeXp + achievementXp,
     tasksCompleted: actionType === "task" ? 1 : 0,
     focusMinutes: actionType === "focus" ? focusMinutes : 0,
     habitsCompleted: actionType === "habit" ? 1 : 0,
@@ -277,23 +257,35 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
     }
   }
 
+  // XP Breakdown for transparency (no hidden multipliers)
+  const xpBreakdown = {
+    baseXp,
+    streakMultiplier: 1, // No longer used - kept for type compatibility
+    streakBonus: 0,
+    permanentBonus: 0,
+    totalXp: baseXp,
+  };
+
   return {
     xpBreakdown,
-    actionTotalXp, // Base + streak + permanent + first action + milestone (for accurate deduction)
+    actionTotalXp, // Exactly baseXp - for accurate deduction on uncheck
     newXpTotal: finalXpTotal,
     newLevel: finalLeveledUp ? finalLevel : null,
     leveledUp: finalLeveledUp,
     newStreak,
-    streakMilestone: streakMilestone?.days ?? null,
+    streakMilestone: null, // No longer awarding XP for streak milestones
     achievementsUnlocked,
     challengesCompleted: {
       daily: dailyCompleted,
       weekly: weeklyCompleted,
     },
+    // Bonus XP tracking for celebrations
     bonusXp: {
-      dailySweep,
-      perfectDay: isPerfectDay,
-      firstAction: isFirstAction,
+      dailySweep: false, // Removed - was hidden bonus
+      perfectDay: false, // Removed - was hidden bonus
+      firstAction: false, // Removed - was hidden bonus
+      challengeXp, // NEW: Track challenge XP for celebration
+      achievementXp, // NEW: Track achievement XP for celebration
     },
   };
 }
@@ -372,6 +364,8 @@ function createEmptyResult(baseXp: number): XpAwardResult {
       dailySweep: false,
       perfectDay: false,
       firstAction: false,
+      challengeXp: 0,
+      achievementXp: 0,
     },
   };
 }

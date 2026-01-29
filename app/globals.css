@@ -6,6 +6,20 @@
    ============================================================================= */
 
 /* =============================================================================
+   CALENDAR DAY VIEW - Layout Constants
+   8pt grid system for consistent spacing
+   ============================================================================= */
+
+:root {
+  --calendar-hour-height: 64px;
+  --calendar-time-label-width: 56px;
+  --calendar-content-padding: 8px;
+  --calendar-block-gap: 4px;
+  --calendar-min-block-height: 24px;
+  --calendar-block-radius: 8px;
+}
+
+/* =============================================================================
    ACCENT THEME SYSTEM
    Dynamic accent colors set by JavaScript via data-accent attribute
    Default: crimson (refined red)
@@ -1005,10 +1019,25 @@ body {
   animation: pulsing-dot 1.5s ease-in-out infinite;
 }
 
+/* Subtle pulse for empty calendar state */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
 /* Reduced motion support for new animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-breathing,
-  .animate-pulsing-dot {
+  .animate-pulsing-dot,
+  .animate-pulse-subtle {
     animation: none;
   }
 

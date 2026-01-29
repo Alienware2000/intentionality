@@ -144,11 +144,11 @@ export default function DashboardContent({ date }: Props) {
       {/* Animated Divider */}
       <AnimatedDivider />
 
-      {/* Today's Timeline Section (full width) */}
+      {/* Today's Tasks & Schedule Section */}
       <motion.section variants={sectionVariants}>
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] ">
-            Today&apos;s Timeline
+          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+            Today
           </h2>
           <span className="text-xs font-mono text-[var(--text-muted)]">{date}</span>
         </div>

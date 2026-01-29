@@ -1,7 +1,11 @@
 // =============================================================================
 // FOCUS SESSION COMPLETE API ROUTE
 // Completes an active focus session and awards XP.
-// Integrates with gamification v2 for achievements, challenges, and bonuses.
+//
+// XP TRANSPARENCY:
+// - xpGained = base focus XP only (0.6/min + milestone bonuses, no hidden multipliers)
+// - challengeXp = XP from any challenges completed (celebrated separately)
+// - achievementXp = XP from any achievements unlocked (celebrated separately)
 // =============================================================================
 
 import {
@@ -122,16 +126,21 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // Mark onboarding step complete (fire-and-forget)
   markOnboardingStepComplete(supabase, user.id, "focus_session").catch(() => {});
 
+  // XP TRANSPARENCY: Return separate XP values for clear celebration
   return successResponse({
-    xpGained: result.xpBreakdown.totalXp,
+    // Base focus XP (no hidden multipliers)
+    xpGained: result.actionTotalXp,
+    // Challenge XP (celebrated with toast)
+    challengeXp: result.bonusXp.challengeXp ?? 0,
+    // Achievement XP (celebrated with modal)
+    achievementXp: result.bonusXp.achievementXp ?? 0,
+    // Legacy/additional fields
     xpBreakdown: result.xpBreakdown,
     newLevel: result.leveledUp ? result.newLevel : undefined,
     newXpTotal: result.newXpTotal,
     focusMinutesAdded: session.work_duration,
     newStreak: result.newStreak,
-    streakMilestone: result.streakMilestone,
     achievementsUnlocked: result.achievementsUnlocked,
     challengesCompleted: result.challengesCompleted,
-    bonusXp: result.bonusXp,
   });
 });
