@@ -9,7 +9,7 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { getLocalDateString } from "@/app/lib/gamification";
-import type { DailySummary, ISODateString } from "@/app/lib/types";
+import type { DailySummary, DailySummaryHighlight, ISODateString } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // GET /api/daily-review/summary
@@ -32,19 +32,19 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   const params = getSearchParams(request);
   const date = (params.get("date") ?? getLocalDateString()) as ISODateString;
 
-  // Fetch tasks for the day
+  // Fetch tasks for the day (include title for highlights)
   // Note: Tasks don't have user_id directly - they relate through quests.
   // RLS policies handle user scoping via quest_id → quests.user_id
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, completed, completed_at, xp_value")
+    .select("id, title, completed, completed_at, xp_value")
     .eq("due_date", date)
     .is("deleted_at", null);
 
-  // Fetch habits and their completions
+  // Fetch habits and their completions (include title for highlights)
   const { data: habits } = await supabase
     .from("habits")
-    .select("id")
+    .select("id, title, xp_value")
     .eq("user_id", user.id);
 
   const habitIds = habits?.map(h => h.id) ?? [];
@@ -120,6 +120,39 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Check if streak was maintained (any activity)
   const hasActivity = tasksCompleted > 0 || habitsCompleted > 0 || (focusSessions?.length ?? 0) > 0;
 
+  // Build highlights array - completed tasks and habits with titles
+  const highlights: DailySummaryHighlight[] = [];
+
+  // Add completed tasks to highlights
+  for (const task of tasksList) {
+    if (task.completed && task.completed_at) {
+      const completedDate = task.completed_at.split("T")[0];
+      if (completedDate === date || (date === today && completedDate === today)) {
+        highlights.push({
+          type: "task",
+          title: task.title,
+          xp: task.xp_value ?? 0,
+        });
+      }
+    }
+  }
+
+  // Add completed habits to highlights
+  const completedHabitIds = new Set(habitCompletions?.map(c => c.habit_id) ?? []);
+  for (const habit of habits ?? []) {
+    if (completedHabitIds.has(habit.id)) {
+      const completion = habitCompletions?.find(c => c.habit_id === habit.id);
+      highlights.push({
+        type: "habit",
+        title: habit.title,
+        xp: completion?.xp_awarded ?? habit.xp_value ?? 0,
+      });
+    }
+  }
+
+  // Sort highlights by XP descending (show biggest wins first)
+  highlights.sort((a, b) => b.xp - a.xp);
+
   const summary: DailySummary = {
     date,
     tasksCompleted,
@@ -129,6 +162,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     xpEarned,
     focusMinutes,
     streakMaintained: hasActivity,
+    highlights,
   };
 
   return successResponse({ summary });

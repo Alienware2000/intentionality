@@ -8,7 +8,7 @@ export default async function ReviewPage() {
           Daily Review
         </h1>
         <p className="text-[var(--text-secondary)] text-sm mt-3">
-          Reflect on your day and plan for tomorrow. Earn 15 XP for completing.
+          Reflect on your day and plan for tomorrow. Earn up to 20 XP.
         </p>
       </header>
 

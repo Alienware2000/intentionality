@@ -857,6 +857,15 @@ export type WeeklyPlanResponse = {
 };
 
 /**
+ * A highlight item from today's accomplishments.
+ */
+export type DailySummaryHighlight = {
+  type: 'task' | 'habit';
+  title: string;
+  xp: number;
+};
+
+/**
  * Daily summary stats for review.
  */
 export type DailySummary = {
@@ -868,6 +877,7 @@ export type DailySummary = {
   xpEarned: number;
   focusMinutes: number;
   streakMaintained: boolean;
+  highlights: DailySummaryHighlight[];
 };
 
 /**

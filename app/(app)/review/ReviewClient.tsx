@@ -13,15 +13,12 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Zap,
   CheckCircle,
-  Heart,
-  Clock,
   Flame,
   Plus,
   X,
@@ -40,6 +37,9 @@ import {
   Pencil,
   Trash2,
   ExternalLink,
+  Zap,
+  Timer,
+  Moon,
 } from "lucide-react";
 import EditTaskModal from "@/app/components/EditTaskModal";
 import ConfirmModal from "@/app/components/ConfirmModal";
@@ -61,6 +61,13 @@ type Step = "summary" | "reflection" | "planning" | "completion" | "reviewSummar
 
 type PlanningMode = "manual" | "ai";
 
+// Step info for labeled progress indicator
+const STEP_INFO = [
+  { key: "summary", label: "Review", number: 1 },
+  { key: "reflection", label: "Reflect", number: 2 },
+  { key: "planning", label: "Plan", number: 3 },
+] as const;
+
 type TaskDraft = {
   id: string;
   title: string;
@@ -80,94 +87,218 @@ type AISuggestion = {
 // Step Components
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// Day Type Classification for Contextual Messaging
+// -----------------------------------------------------------------------------
+
+type DayType = 'productive' | 'focused' | 'consistent' | 'light' | 'rest' | 'streak_hero';
+
+function classifyDay(summary: DailySummary): DayType {
+  const taskRate = summary.tasksTotal > 0 ? summary.tasksCompleted / summary.tasksTotal : 0;
+  const habitRate = summary.habitsTotal > 0 ? summary.habitsCompleted / summary.habitsTotal : 0;
+  const hasSignificantFocus = summary.focusMinutes >= 60;
+
+  if (taskRate >= 0.6 && summary.xpEarned > 50) return 'productive';
+  if (hasSignificantFocus && taskRate >= 0.3) return 'focused';
+  if (habitRate >= 0.8 && summary.streakMaintained) return 'consistent';
+  if (summary.streakMaintained && taskRate < 0.3) return 'streak_hero';
+  if (summary.xpEarned > 0 || summary.tasksCompleted > 0) return 'light';
+  return 'rest';
+}
+
+const DAY_MESSAGES: Record<DayType, { greeting: string; subtext: string }> = {
+  productive: { greeting: "You showed up today", subtext: "Let's capture what made it work" },
+  focused: { greeting: "Deep work day", subtext: "Quality focus time adds up" },
+  consistent: { greeting: "Steady progress", subtext: "Consistency builds momentum" },
+  light: { greeting: "Every bit counts", subtext: "Progress isn't always visible" },
+  rest: { greeting: "A quiet day", subtext: "Rest is part of the journey" },
+  streak_hero: { greeting: "Streak protected", subtext: "You kept the chain alive" },
+};
+
+// -----------------------------------------------------------------------------
+// Summary Step Component (Hybrid Design)
+// Shows "Today's Summary" header with 2x2 stats grid, contextual message, and top highlight
+// -----------------------------------------------------------------------------
+
 function SummaryStep({ summary }: { summary: DailySummary | null }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  // Animation config
+  const springConfig = { type: "spring" as const, stiffness: 80, damping: 12 };
+  const noAnimation = { duration: 0 };
+
+  // Loading state - skeleton matching new layout
   if (!summary) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-16 animate-pulse bg-[var(--bg-elevated)] rounded-lg"
-          />
-        ))}
+      <div className="space-y-5">
+        {/* Header skeleton */}
+        <div className="text-center space-y-2">
+          <div className="h-6 w-40 animate-pulse bg-[var(--bg-elevated)] rounded-lg mx-auto" />
+          <div className="h-4 w-56 animate-pulse bg-[var(--bg-elevated)] rounded mx-auto" />
+        </div>
+        {/* 2x2 Grid skeleton */}
+        <div className="grid grid-cols-2 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 animate-pulse bg-[var(--bg-elevated)] rounded-lg" />
+          ))}
+        </div>
+        {/* Message skeleton */}
+        <div className="h-8 animate-pulse bg-[var(--bg-elevated)] rounded-lg" />
       </div>
     );
   }
 
-  const stats = [
-    {
-      icon: CheckCircle,
-      label: "Tasks completed",
-      value: `${summary.tasksCompleted}/${summary.tasksTotal}`,
-      color: "text-[var(--accent-success)]",
-    },
-    {
-      icon: Heart,
-      label: "Habits done",
-      value: `${summary.habitsCompleted}/${summary.habitsTotal}`,
-      color: "text-[var(--accent-primary)]",
-    },
-    {
-      icon: Zap,
-      label: "XP earned",
-      value: summary.xpEarned.toString(),
-      color: "text-[var(--accent-highlight)]",
-    },
-    {
-      icon: Clock,
-      label: "Focus time",
-      value: `${summary.focusMinutes} min`,
-      color: "text-[var(--text-secondary)]",
-    },
-  ];
+  const dayType = classifyDay(summary);
+  const messages = DAY_MESSAGES[dayType];
+
+  // Find the top highlight (highest XP)
+  const topHighlight = summary.highlights.length > 0
+    ? summary.highlights.reduce((max, h) => h.xp > max.xp ? h : max, summary.highlights[0])
+    : null;
+
+  // Day type emoji indicators
+  const dayTypeEmoji: Record<DayType, string> = {
+    productive: "🎯",
+    focused: "🧠",
+    consistent: "🔥",
+    light: "✨",
+    rest: "🌙",
+    streak_hero: "⚡",
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
+    <motion.div
+      className="space-y-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={prefersReducedMotion ? noAnimation : { duration: 0.3 }}
+    >
+      {/* Header Section */}
+      <motion.div
+        className="text-center"
+        initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={prefersReducedMotion ? noAnimation : springConfig}
+      >
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">
           Today&apos;s Summary
         </h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
           Here&apos;s what you accomplished today
         </p>
-      </div>
+      </motion.div>
 
+      {/* 2x2 Stats Grid - Always visible with all stats */}
       <div className="grid grid-cols-2 gap-3">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={16} className={stat.color} />
-                <span className="text-xs text-[var(--text-muted)]">{stat.label}</span>
-              </div>
-              <p className="text-2xl font-mono font-bold text-[var(--text-primary)]">
-                {stat.value}
-              </p>
-            </div>
-          );
-        })}
+        {/* Tasks Completed */}
+        <motion.div
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.15 }}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <CheckCircle size={16} className="text-[var(--accent-success)]" />
+            <span className="text-xl font-semibold text-[var(--text-primary)]">
+              {summary.tasksCompleted}/{summary.tasksTotal}
+            </span>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">Tasks done</span>
+        </motion.div>
+
+        {/* Habits Completed */}
+        <motion.div
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.2 }}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <Flame size={16} className="text-[var(--accent-streak)]" />
+            <span className="text-xl font-semibold text-[var(--text-primary)]">
+              {summary.habitsCompleted}/{summary.habitsTotal}
+            </span>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">Habits done</span>
+        </motion.div>
+
+        {/* XP Earned */}
+        <motion.div
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.25 }}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <Zap size={16} className="text-[var(--accent-highlight)]" />
+            <span className="text-xl font-semibold text-[var(--text-primary)]">
+              {summary.xpEarned}
+            </span>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">XP earned</span>
+        </motion.div>
+
+        {/* Focus Time */}
+        <motion.div
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.3 }}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <Timer size={16} className="text-[var(--accent-primary)]" />
+            <span className="text-xl font-semibold text-[var(--text-primary)]">
+              {summary.focusMinutes}
+            </span>
+            <span className="text-sm text-[var(--text-muted)]">min</span>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">Focus time</span>
+        </motion.div>
       </div>
 
-      {summary.streakMaintained ? (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-[var(--accent-streak)]/10 border border-[var(--accent-streak)]/30">
-          <Flame size={20} className="text-[var(--accent-streak)]" />
-          <p className="text-sm text-[var(--accent-streak)]">
-            Streak maintained! Keep it going tomorrow.
-          </p>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-          <Flame size={20} className="text-[var(--text-muted)]" />
+      {/* Contextual Message - Small, subtle, below stats */}
+      <motion.div
+        className="text-center py-2"
+        initial={prefersReducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={prefersReducedMotion ? noAnimation : { delay: 0.4 }}
+      >
+        {dayType === 'rest' ? (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center">
+              <Moon size={20} className="text-[var(--text-muted)]" />
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+              {messages.greeting} — {messages.subtext}
+            </p>
+          </div>
+        ) : (
           <p className="text-sm text-[var(--text-muted)]">
-            No activity recorded. Tomorrow is a fresh start!
+            {messages.greeting} {dayTypeEmoji[dayType]}
           </p>
-        </div>
+        )}
+      </motion.div>
+
+      {/* Top Highlight (optional) */}
+      {topHighlight && (
+        <motion.div
+          className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.55 }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckCircle size={16} className="text-[var(--accent-success)] flex-shrink-0" />
+            <span className="text-sm text-[var(--text-primary)] truncate">
+              {topHighlight.title}
+            </span>
+          </div>
+          <span className="text-xs font-mono text-[var(--accent-highlight)] flex-shrink-0 ml-2">
+            +{topHighlight.xp} XP
+          </span>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -1826,17 +1957,46 @@ export default function ReviewClient() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      {/* Progress indicator - hide when editing from summary */}
+      {/* Intro blurb - show only on summary step */}
+      {step === "summary" && !isEditingFromSummary && (
+        <div className="text-center text-sm text-[var(--text-muted)]">
+          <span>3 quick steps: review your day, reflect, and plan tomorrow.</span>
+          <span className="ml-1 text-[var(--accent-highlight)] font-medium">+20 XP</span>
+        </div>
+      )}
+
+      {/* Labeled progress indicator - hide when editing from summary */}
       {!isEditingFromSummary && (
-        <div className="flex items-center gap-2">
-          {steps.slice(0, -1).map((s, i) => (
-            <div
-              key={s}
-              className={cn(
-                "flex-1 h-1 rounded-full transition-colors",
-                i <= currentIndex ? "bg-[var(--accent-primary)]" : "bg-[var(--bg-elevated)]"
+        <div className="flex items-center justify-between">
+          {STEP_INFO.map((stepInfo, i) => (
+            <div key={stepInfo.key} className="flex items-center">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors",
+                  i < currentIndex
+                    ? "bg-[var(--accent-success)] text-white"
+                    : i === currentIndex
+                      ? "bg-[var(--accent-primary)] text-white"
+                      : "bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]"
+                )}>
+                  {i < currentIndex ? <Check size={12} /> : stepInfo.number}
+                </div>
+                <span className={cn(
+                  "text-sm hidden sm:inline",
+                  i === currentIndex
+                    ? "text-[var(--text-primary)] font-medium"
+                    : "text-[var(--text-muted)]"
+                )}>
+                  {stepInfo.label}
+                </span>
+              </div>
+              {i < STEP_INFO.length - 1 && (
+                <div className={cn(
+                  "w-8 sm:w-12 md:w-16 h-0.5 mx-2 sm:mx-3",
+                  i < currentIndex ? "bg-[var(--accent-success)]" : "bg-[var(--bg-elevated)]"
+                )} />
               )}
-            />
+            </div>
           ))}
         </div>
       )}
