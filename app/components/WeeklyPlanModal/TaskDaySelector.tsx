@@ -2,15 +2,16 @@
 
 // =============================================================================
 // TASK DAY SELECTOR COMPONENT
-// Allows users to select which day a task should be scheduled on.
-// Shows Mon-Sun as toggleable chips with visual indication of detected days.
+// Allows users to select which day a task should be scheduled on and which
+// quest to assign the task to. Shows Mon-Sun as toggleable chips with visual
+// indication of detected days.
 // =============================================================================
 
 import { memo } from "react";
-import { X, Sparkles } from "lucide-react";
+import { X, Sparkles, ChevronDown } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { DAY_CONFIG, PRIORITY_CONFIG, type DayKey } from "./constants";
-import type { Priority } from "@/app/lib/types";
+import type { Priority, Quest } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -23,12 +24,15 @@ export type TaskSuggestionItem = {
   category: "major" | "have-to" | "quick-win";
   detected_day?: DayKey;
   selected_day: DayKey;
+  selected_quest_id: string | null;
   included: boolean;
 };
 
 type Props = {
   task: TaskSuggestionItem;
+  quests: Quest[];
   onSelectDay: (taskId: string, day: DayKey) => void;
+  onSelectQuest: (taskId: string, questId: string) => void;
   onToggleInclude: (taskId: string) => void;
   onRemove: (taskId: string) => void;
 };
@@ -37,8 +41,9 @@ type Props = {
 // Component
 // -----------------------------------------------------------------------------
 
-function TaskDaySelector({ task, onSelectDay, onToggleInclude, onRemove }: Props) {
+function TaskDaySelector({ task, quests, onSelectDay, onSelectQuest, onToggleInclude, onRemove }: Props) {
   const priorityConfig = PRIORITY_CONFIG[task.priority];
+  const selectedQuest = quests.find((q) => q.id === task.selected_quest_id);
 
   return (
     <div
@@ -122,36 +127,69 @@ function TaskDaySelector({ task, onSelectDay, onToggleInclude, onRemove }: Props
         </button>
       </div>
 
-      {/* Day selection row */}
+      {/* Day selection and Quest selector rows */}
       {task.included && (
-        <div className="flex gap-1.5 flex-wrap">
-          {DAY_CONFIG.map((day) => {
-            const isSelected = task.selected_day === day.key;
-            const isDetected = task.detected_day === day.key;
+        <>
+          {/* Day selection row */}
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {DAY_CONFIG.map((day) => {
+              const isSelected = task.selected_day === day.key;
+              const isDetected = task.detected_day === day.key;
 
-            return (
-              <button
-                key={day.key}
-                onClick={() => onSelectDay(task.id, day.key)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium min-h-[32px]",
-                  "transition-all relative",
-                  isSelected
-                    ? "bg-[var(--accent-primary)] text-white shadow-sm"
-                    : "bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
-                  isDetected && !isSelected && "ring-2 ring-[var(--accent-highlight)]/50"
-                )}
-                aria-label={`Schedule for ${day.fullLabel}`}
-                aria-pressed={isSelected}
-              >
-                {day.label}
-                {isDetected && !isSelected && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--accent-highlight)] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={day.key}
+                  onClick={() => onSelectDay(task.id, day.key)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium min-h-[32px]",
+                    "transition-all relative",
+                    isSelected
+                      ? "bg-[var(--accent-primary)] text-white shadow-sm"
+                      : "bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+                    isDetected && !isSelected && "ring-2 ring-[var(--accent-highlight)]/50"
+                  )}
+                  aria-label={`Schedule for ${day.fullLabel}`}
+                  aria-pressed={isSelected}
+                >
+                  {day.label}
+                  {isDetected && !isSelected && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--accent-highlight)] rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quest selector */}
+          {quests.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--text-muted)]">Quest:</span>
+              <div className="relative flex-1 max-w-[200px]">
+                <select
+                  value={task.selected_quest_id || ""}
+                  onChange={(e) => onSelectQuest(task.id, e.target.value)}
+                  className={cn(
+                    "w-full pl-3 pr-8 py-1.5 rounded-lg text-xs appearance-none cursor-pointer",
+                    "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                    "text-[var(--text-secondary)]",
+                    "focus:outline-none focus:border-[var(--accent-primary)]",
+                    "transition-colors"
+                  )}
+                >
+                  {quests.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.title}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

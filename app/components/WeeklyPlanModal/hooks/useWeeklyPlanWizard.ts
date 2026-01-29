@@ -33,6 +33,7 @@ export type ReviewTaskSuggestion = {
   category: "major" | "have-to" | "quick-win";
   detected_day?: DayKey;
   selected_day: DayKey;
+  selected_quest_id: string | null; // Per-task quest selection
   included: boolean;
   original_text: string;
 };
@@ -107,6 +108,7 @@ export type WizardActions = {
 
   // Review actions
   updateTaskDay: (taskId: string, day: DayKey) => void;
+  updateTaskQuest: (taskId: string, questId: string) => void;
   toggleTaskIncluded: (taskId: string) => void;
   removeTask: (taskId: string) => void;
 
@@ -272,6 +274,7 @@ export function useWeeklyPlanWizard(
             category: s.category,
             detected_day: detectedDay,
             selected_day: detectedDay || REVIEW_CONFIG.defaultDay,
+            selected_quest_id: null, // Will be set to default quest in modal
             included: true,
             original_text: s.original_text,
           };
@@ -335,6 +338,19 @@ export function useWeeklyPlanWizard(
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Quest Selection (per-task)
+  // ---------------------------------------------------------------------------
+
+  const updateTaskQuest = useCallback((taskId: string, questId: string) => {
+    setState((s) => ({
+      ...s,
+      suggestions: s.suggestions.map((t) =>
+        t.id === taskId ? { ...t, selected_quest_id: questId } : t
+      ),
+    }));
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // Create Tasks
   // ---------------------------------------------------------------------------
 
@@ -357,11 +373,12 @@ export function useWeeklyPlanWizard(
       }));
 
       try {
-        // Create tasks with user-selected dates
+        // Create tasks with user-selected dates and quests
         const tasksToCreate = includedTasks.map((t) => ({
           title: t.title,
           due_date: getDayDate(weekStartDate, t.selected_day),
           priority: t.priority,
+          quest_id: t.selected_quest_id || undefined,
         }));
 
         const response = await fetch("/api/tasks/bulk", {
@@ -483,6 +500,7 @@ export function useWeeklyPlanWizard(
       clearBrainDumpText,
       parseWithAI,
       updateTaskDay,
+      updateTaskQuest,
       toggleTaskIncluded,
       removeTask,
       createTasks,

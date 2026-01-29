@@ -413,9 +413,11 @@ function AIReviewView({
   suggestions,
   habitSuggestions,
   aiAdvice,
+  quests,
   isProcessing,
   error,
   onSelectDay,
+  onSelectTaskQuest,
   onToggleInclude,
   onRemoveTask,
   onCreateTasks,
@@ -424,9 +426,11 @@ function AIReviewView({
   suggestions: ReviewTaskSuggestion[];
   habitSuggestions: Array<{ title: string; frequency: string }>;
   aiAdvice?: string;
+  quests: Quest[];
   isProcessing: boolean;
   error: string | null;
   onSelectDay: (taskId: string, day: DayKey) => void;
+  onSelectTaskQuest: (taskId: string, questId: string) => void;
   onToggleInclude: (taskId: string) => void;
   onRemoveTask: (taskId: string) => void;
   onCreateTasks: () => void;
@@ -497,7 +501,9 @@ function AIReviewView({
           <TaskDaySelector
             key={task.id}
             task={task}
+            quests={quests}
             onSelectDay={onSelectDay}
+            onSelectQuest={onSelectTaskQuest}
             onToggleInclude={onToggleInclude}
             onRemove={onRemoveTask}
           />
@@ -842,6 +848,14 @@ export default function WeeklyPlanModal({
     [actions]
   );
 
+  // Handle per-task quest selection
+  const handleSelectTaskQuest = useCallback(
+    (taskId: string, questId: string) => {
+      actions.updateTaskQuest(taskId, questId);
+    },
+    [actions]
+  );
+
   // Handle create tasks from review
   const handleCreateTasks = useCallback(async () => {
     const result = await actions.createTasks(weekStart);
@@ -870,6 +884,23 @@ export default function WeeklyPlanModal({
   const handleTryAgain = useCallback(() => {
     actions.goToAIInput();
   }, [actions]);
+
+  // Set default quest per-task when entering review state
+  useEffect(() => {
+    if (state.view === "ai-review" && quests.length > 0) {
+      // Find "General Tasks" quest, or use the first quest as fallback
+      const generalTasksQuest = quests.find((q) => q.title === "General Tasks");
+      const defaultQuest = generalTasksQuest || quests[0];
+      if (defaultQuest) {
+        // Set default quest for any tasks that don't have one selected
+        state.suggestions.forEach((task) => {
+          if (!task.selected_quest_id) {
+            actions.updateTaskQuest(task.id, defaultQuest.id);
+          }
+        });
+      }
+    }
+  }, [state.view, state.suggestions, quests, actions]);
 
   // Handle escape key
   useEffect(() => {
@@ -1027,9 +1058,11 @@ export default function WeeklyPlanModal({
                         suggestions={state.suggestions}
                         habitSuggestions={state.habitSuggestions}
                         aiAdvice={state.aiAdvice}
+                        quests={quests}
                         isProcessing={state.isProcessing}
                         error={state.error}
                         onSelectDay={handleSelectDay}
+                        onSelectTaskQuest={handleSelectTaskQuest}
                         onToggleInclude={handleToggleInclude}
                         onRemoveTask={handleRemoveTask}
                         onCreateTasks={handleCreateTasks}

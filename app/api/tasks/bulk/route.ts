@@ -21,12 +21,12 @@ type BulkTaskInput = {
   title: string;
   due_date: ISODateString;
   priority: Priority;
+  quest_id?: string; // Per-task quest (defaults to "General Tasks" quest)
 };
 
 type BulkCreateBody = {
   tasks: BulkTaskInput[];
   week_start: ISODateString; // Links tasks to weekly plan
-  quest_name?: string; // Optional quest name (defaults to "Weekly Goals")
 };
 
 type TaskResult = {
@@ -65,38 +65,26 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   }
 
   const weekStart = body.week_start;
-  const questName = body.quest_name || "Weekly Goals";
 
-  // Get or create the quest
-  let questId: string;
-
-  const { data: existingQuest } = await supabase
+  // Get the default "General Tasks" quest for fallback
+  const { data: defaultQuest } = await supabase
     .from("quests")
     .select("id")
     .eq("user_id", user.id)
-    .eq("title", questName)
+    .eq("title", "General Tasks")
     .is("archived_at", null)
     .single();
 
-  if (existingQuest) {
-    questId = existingQuest.id;
-  } else {
-    const { data: newQuest, error: questError } = await supabase
-      .from("quests")
-      .insert({
-        user_id: user.id,
-        title: questName,
-        quest_type: "user",
-      })
-      .select("id")
-      .single();
+  const defaultQuestId = defaultQuest?.id;
 
-    if (questError || !newQuest) {
-      return ApiErrors.serverError("Failed to create quest for tasks");
-    }
+  // Get all user quests for validation
+  const { data: userQuests } = await supabase
+    .from("quests")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("archived_at", null);
 
-    questId = newQuest.id;
-  }
+  const validQuestIds = new Set((userQuests ?? []).map((q) => q.id));
 
   // Get existing tasks to check for duplicates
   const { data: existingTasks } = await supabase
@@ -126,6 +114,25 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       continue;
     }
 
+    // Resolve quest ID for this task
+    let taskQuestId: string | undefined;
+    if (task.quest_id && validQuestIds.has(task.quest_id)) {
+      // Use provided quest_id if valid
+      taskQuestId = task.quest_id;
+    } else {
+      // Fallback to default quest
+      taskQuestId = defaultQuestId;
+    }
+
+    if (!taskQuestId) {
+      results.push({
+        title: trimmedTitle,
+        status: "error",
+        error: "No valid quest found",
+      });
+      continue;
+    }
+
     const xpValue = XP_VALUES[task.priority] ?? XP_VALUES.medium;
 
     const { data: createdTask, error: createError } = await supabase
@@ -133,7 +140,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       .insert({
         title: trimmedTitle,
         due_date: task.due_date,
-        quest_id: questId,
+        quest_id: taskQuestId,
         priority: task.priority,
         xp_value: xpValue,
         completed: false,
