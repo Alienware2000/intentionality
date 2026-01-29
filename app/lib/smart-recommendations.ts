@@ -208,7 +208,77 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
       ? "Set your goals for the upcoming week. Earn 25 XP!"
       : "Start your week with clear intentions. Earn 25 XP!",
     actionLabel: "Start Planning",
-    actionHref: "/plan",
+    actionHref: "/week",
+  };
+}
+
+/**
+ * Gentle prompt to plan weekly goals when user has no plan for the current week.
+ * Shows any day (not just Sunday/Monday) with a friendly, non-naggy message.
+ */
+function checkPlanningPrompt(ctx: RecommendationContext): DailyRecommendation | null {
+  const { weeklyPlan, currentTime } = ctx;
+
+  // Check if there's a plan for this week
+  const today = toISODateString(currentTime);
+  const monday = getWeekMonday(today);
+
+  // If user already has a plan for this week, don't show
+  if (weeklyPlan?.week_start === monday) return null;
+
+  // If it's Sunday or Monday, checkPlanningNeeded will handle it with higher urgency
+  const dayOfWeek = currentTime.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 1) return null;
+
+  return {
+    type: "planning_prompt",
+    priority: "low",
+    title: "Plan your week",
+    description: "Setting weekly goals helps you focus on what matters most.",
+    actionLabel: "Plan Now",
+    actionHref: "/week",
+  };
+}
+
+/**
+ * Check weekly goal progress and surface goals that need attention.
+ * Only surfaces a recommendation if there are goals with linked tasks that are behind schedule.
+ */
+function checkWeeklyGoalProgress(ctx: RecommendationContext): DailyRecommendation | null {
+  const { weeklyPlan, todayTasks, currentTime } = ctx;
+
+  if (!weeklyPlan?.goals || weeklyPlan.goals.length === 0) return null;
+
+  // Check if it's mid-week or later (Wednesday+)
+  const dayOfWeek = currentTime.getDay();
+  if (dayOfWeek < 3 && dayOfWeek !== 0) return null; // Only Wed-Sun
+
+  // Check if any of today's tasks are linked to weekly goals
+  const tasksWithGoals = todayTasks.filter(t =>
+    t.weekly_goal_index !== null && t.weekly_goal_index !== undefined
+  );
+
+  if (tasksWithGoals.length === 0) return null;
+
+  // Count incomplete tasks linked to goals
+  const incompleteGoalTasks = tasksWithGoals.filter(t => !t.completed);
+
+  if (incompleteGoalTasks.length === 0) return null;
+
+  // Find the first incomplete task's goal
+  const firstTask = incompleteGoalTasks[0];
+  const goalIndex = firstTask.weekly_goal_index ?? 0;
+  const goalText = typeof weeklyPlan.goals[goalIndex] === "string"
+    ? weeklyPlan.goals[goalIndex]
+    : (weeklyPlan.goals[goalIndex] as { text: string })?.text || "your goal";
+
+  return {
+    type: "weekly_goal",
+    priority: "medium",
+    title: "Weekly goal needs attention",
+    description: `You have ${incompleteGoalTasks.length} task${incompleteGoalTasks.length > 1 ? "s" : ""} toward "${goalText}" that ${incompleteGoalTasks.length > 1 ? "need" : "needs"} to be completed.`,
+    actionLabel: "View Tasks",
+    actionHref: "/",
   };
 }
 
@@ -302,10 +372,12 @@ export function generateRecommendations(ctx: RecommendationContext): DailyRecomm
     checkUrgentTasks,
     checkStreakAtRisk,
     checkHeavyDay,
+    checkWeeklyGoalProgress,
     checkQuestProgress,
     checkHabitReminder,
     checkReviewReminder,
     checkPlanningNeeded,
+    checkPlanningPrompt,
     checkMilestoneCountdown,
     checkBestDay,
   ];

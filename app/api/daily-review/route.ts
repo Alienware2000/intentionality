@@ -13,7 +13,8 @@ import {
 } from "@/app/lib/auth-middleware";
 import { PLANNING_XP, getLocalDateString, getLevelFromXpV2 } from "@/app/lib/gamification";
 import { markOnboardingStepComplete } from "@/app/lib/onboarding";
-import type { DailyReflection } from "@/app/lib/types";
+import { checkAllAchievements } from "@/app/lib/achievements";
+import type { DailyReflection, UserProfileV2 } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -150,21 +151,56 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(error.message);
   }
 
-  // Award XP to user profile
+  // Award XP to user profile and update stats
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("xp_total, level")
+    .select("*")
     .eq("user_id", user.id)
     .single();
 
   if (profile) {
-    const newXpTotal = profile.xp_total + xpToAward;
+    const typedProfile = profile as UserProfileV2;
+    const newXpTotal = typedProfile.xp_total + xpToAward;
     const newLevel = getLevelFromXpV2(newXpTotal);
+
+    // Calculate new daily review streak
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
+
+    // Check if there was a review yesterday
+    const { data: yesterdayReview } = await supabase
+      .from("daily_reflections")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("date", yesterdayStr)
+      .single();
+
+    // If yesterday had a review, increment streak; otherwise, start new streak at 1
+    const newDailyReviewStreak = yesterdayReview
+      ? (typedProfile.daily_review_streak ?? 0) + 1
+      : 1;
+
+    // Update profile with XP, stats, and streak
+    const profileUpdate = {
+      xp_total: newXpTotal,
+      level: newLevel,
+      daily_reviews_completed: (typedProfile.daily_reviews_completed ?? 0) + 1,
+      daily_review_streak: newDailyReviewStreak,
+    };
 
     await supabase
       .from("user_profiles")
-      .update({ xp_total: newXpTotal, level: newLevel })
+      .update(profileUpdate)
       .eq("user_id", user.id);
+
+    // Check achievements with updated profile
+    const updatedProfile = { ...typedProfile, ...profileUpdate } as UserProfileV2;
+    const { unlocked: achievementsUnlocked } = await checkAllAchievements(
+      supabase,
+      user.id,
+      updatedProfile
+    );
 
     // Mark onboarding step complete (fire-and-forget)
     markOnboardingStepComplete(supabase, user.id, "daily_review").catch(() => {});
@@ -172,7 +208,9 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return successResponse({
       reflection,
       xpGained: xpToAward,
-      newLevel: newLevel > profile.level ? newLevel : undefined,
+      newLevel: newLevel > typedProfile.level ? newLevel : undefined,
+      newDailyReviewStreak,
+      achievementsUnlocked: achievementsUnlocked.length > 0 ? achievementsUnlocked : undefined,
       isNew: true,
     });
   }

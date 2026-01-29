@@ -4,10 +4,11 @@
 // WEEK CLIENT COMPONENT
 // Weekly view showing each day's timeline with unified tasks + schedule blocks.
 // Enhanced with glassmorphism and staggered day column animations.
+// Includes weekly planning modal for guided task creation.
 // =============================================================================
 
 import { useEffect, useState, useCallback } from "react";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
 import type { ISODateString, ScheduleBlock, Quest } from "@/app/lib/types";
 import { formatDayLabel, addDaysISO, getTodayISO } from "@/app/lib/date-utils";
@@ -16,6 +17,7 @@ import { cn } from "@/app/lib/cn";
 import DayTimeline from "@/app/components/DayTimeline";
 import AddScheduleModal from "@/app/components/AddScheduleModal";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import { WeeklyPlanModal } from "@/app/components/WeeklyPlanModal";
 
 // Animation variants for staggered entrance
 const containerVariants = {
@@ -53,6 +55,9 @@ export default function WeekClient({ start }: Props) {
   const [editingBlock, setEditingBlock] = useState<ScheduleBlock | null>(null);
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
+  // Weekly plan modal state
+  const [showPlanModal, setShowPlanModal] = useState(false);
+
   // Refresh counter to force DayTimeline refresh
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -76,6 +81,12 @@ export default function WeekClient({ start }: Props) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Handle plan save - just close modal and refresh
+  const handlePlanSave = useCallback(() => {
+    setShowPlanModal(false);
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   function triggerRefresh() {
     setRefreshKey((k) => k + 1);
@@ -123,12 +134,34 @@ export default function WeekClient({ start }: Props) {
 
   return (
     <>
-      {/* Add Schedule Button */}
+      {/* Week Header Actions */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-4"
+        className="mb-4 flex flex-wrap items-center gap-3"
       >
+        {/* Plan Week Button */}
+        <motion.button
+          onClick={() => setShowPlanModal(true)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "flex items-center gap-2",
+            "rounded-xl glass-card",
+            "border bg-[var(--bg-card)]",
+            "border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5",
+            "px-4 py-3 text-sm",
+            "hover:bg-[var(--bg-hover)]",
+            "transition-all duration-200"
+          )}
+        >
+          <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10">
+            <ClipboardList size={14} className="text-[var(--accent-primary)]" />
+          </div>
+          <span className="text-[var(--accent-primary)]">Plan Week</span>
+        </motion.button>
+
+        {/* Add Schedule Button */}
         <motion.button
           onClick={() => {
             setEditingBlock(null);
@@ -235,6 +268,16 @@ export default function WeekClient({ start }: Props) {
         message="This will remove the recurring schedule block. This action cannot be undone."
         onConfirm={() => deletingBlockId && handleDeleteBlock(deletingBlockId)}
         onCancel={() => setDeletingBlockId(null)}
+      />
+
+      {/* Weekly Plan Modal */}
+      <WeeklyPlanModal
+        isOpen={showPlanModal}
+        weekStart={start}
+        quests={quests}
+        onClose={() => setShowPlanModal(false)}
+        onSave={handlePlanSave}
+        onTasksCreated={triggerRefresh}
       />
     </>
   );

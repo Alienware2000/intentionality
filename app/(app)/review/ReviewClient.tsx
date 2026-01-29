@@ -28,6 +28,8 @@ import {
   BatteryMedium,
   BatteryFull,
   Sparkles,
+  ListPlus,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
@@ -532,13 +534,17 @@ export default function ReviewClient() {
   // Existing reflection
   const [existingReflection, setExistingReflection] = useState<DailyReflection | null>(null);
 
+  // Priority to task conversion
+  const [priorityTaskStatus, setPriorityTaskStatus] = useState<Record<string, "pending" | "created" | "exists" | "creating">>({});
+  const [creatingAllTasks, setCreatingAllTasks] = useState(false);
+
   const today = getTodayISO();
 
   // Load initial data
   useEffect(() => {
     async function loadData() {
       try {
-        // Fetch summary and existing reflection in parallel
+        // Fetch summary, existing reflection, and tomorrow tasks in parallel
         const [summaryRes, reflectionRes, tomorrowRes] = await Promise.all([
           fetch(`/api/daily-review/summary?date=${today}`),
           fetch(`/api/daily-review?date=${today}`),
@@ -628,6 +634,97 @@ export default function ReviewClient() {
     showLevelUp,
   ]);
 
+  // Create a single priority as a task
+  const createPriorityAsTask = useCallback(async (priority: string) => {
+    const tomorrow = getTomorrowISO();
+    setPriorityTaskStatus((prev) => ({ ...prev, [priority]: "creating" }));
+
+    try {
+      const res = await fetch("/api/tasks/from-priorities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priorities: [priority],
+          date: tomorrow,
+          priority: "high",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok && data.results?.[0]) {
+        const result = data.results[0];
+        setPriorityTaskStatus((prev) => ({
+          ...prev,
+          [priority]: result.status === "created" ? "created" : "exists",
+        }));
+      }
+    } catch {
+      setPriorityTaskStatus((prev) => ({ ...prev, [priority]: "pending" }));
+    }
+  }, []);
+
+  // Create all priorities as tasks
+  const createAllPrioritiesAsTasks = useCallback(async () => {
+    if (priorities.length === 0) return;
+
+    const tomorrow = getTomorrowISO();
+    setCreatingAllTasks(true);
+
+    // Set all to creating
+    const creatingStatus: Record<string, "creating"> = {};
+    priorities.forEach((p) => {
+      if (priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists") {
+        creatingStatus[p] = "creating";
+      }
+    });
+    setPriorityTaskStatus((prev) => ({ ...prev, ...creatingStatus }));
+
+    try {
+      const prioritiesToCreate = priorities.filter(
+        (p) => priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists"
+      );
+
+      if (prioritiesToCreate.length === 0) {
+        setCreatingAllTasks(false);
+        return;
+      }
+
+      const res = await fetch("/api/tasks/from-priorities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priorities: prioritiesToCreate,
+          date: tomorrow,
+          priority: "high",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok && data.results) {
+        const newStatus: Record<string, "created" | "exists"> = {};
+        data.results.forEach((result: { priority: string; status: string }) => {
+          if (result.status === "created" || result.status === "exists") {
+            newStatus[result.priority] = result.status as "created" | "exists";
+          }
+        });
+        setPriorityTaskStatus((prev) => ({ ...prev, ...newStatus }));
+      }
+    } catch {
+      // Reset to pending on error
+      const resetStatus: Record<string, "pending"> = {};
+      priorities.forEach((p) => {
+        if (priorityTaskStatus[p] === "creating") {
+          resetStatus[p] = "pending";
+        }
+      });
+      setPriorityTaskStatus((prev) => ({ ...prev, ...resetStatus }));
+    } finally {
+      setCreatingAllTasks(false);
+    }
+  }, [priorities, priorityTaskStatus]);
+
   const steps: Step[] = ["summary", "reflection", "tomorrow"];
   const currentIndex = steps.indexOf(step);
 
@@ -655,8 +752,15 @@ export default function ReviewClient() {
 
   // Completed state
   if (completed && step === "tomorrow") {
+    const allPrioritiesConverted = priorities.length > 0 && priorities.every(
+      (p) => priorityTaskStatus[p] === "created" || priorityTaskStatus[p] === "exists"
+    );
+    const hasPrioritiesToConvert = priorities.some(
+      (p) => priorityTaskStatus[p] !== "created" && priorityTaskStatus[p] !== "exists"
+    );
+
     return (
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto space-y-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -696,6 +800,117 @@ export default function ReviewClient() {
             </button>
           </div>
         </motion.div>
+
+        {/* Priority to Task Conversion */}
+        {priorities.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ListPlus size={18} className="text-[var(--accent-primary)]" />
+                <h3 className="font-medium text-[var(--text-primary)]">
+                  Tomorrow&apos;s Priorities
+                </h3>
+              </div>
+              {hasPrioritiesToConvert && (
+                <button
+                  onClick={createAllPrioritiesAsTasks}
+                  disabled={creatingAllTasks}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium",
+                    "bg-[var(--accent-primary)] text-white",
+                    "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "flex items-center gap-1.5"
+                  )}
+                >
+                  {creatingAllTasks ? (
+                    <>
+                      <Loader2 size={12} className="animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={12} />
+                      Create All as Tasks
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {priorities.map((priority, index) => {
+                const status = priorityTaskStatus[priority];
+                const isConverted = status === "created" || status === "exists";
+                const isCreating = status === "creating";
+
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center justify-between gap-3 p-3 rounded-lg",
+                      isConverted
+                        ? "bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/30"
+                        : "bg-[var(--bg-elevated)]"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="w-6 h-6 rounded-full bg-[var(--accent-primary)] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm text-[var(--text-primary)] truncate">
+                        {priority}
+                      </span>
+                    </div>
+
+                    {isConverted ? (
+                      <span className="flex items-center gap-1 text-xs text-[var(--accent-success)] flex-shrink-0">
+                        <Check size={14} />
+                        {status === "exists" ? "Already exists" : "Created"}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => createPriorityAsTask(priority)}
+                        disabled={isCreating}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-xs font-medium",
+                          "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                          "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                          "hover:border-[var(--accent-primary)] transition-colors",
+                          "disabled:opacity-50 disabled:cursor-not-allowed",
+                          "flex items-center gap-1 flex-shrink-0"
+                        )}
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={12} />
+                            Create Task
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {allPrioritiesConverted && (
+              <p className="text-xs text-[var(--text-muted)] text-center mt-4">
+                All priorities have been added as tasks for tomorrow!
+              </p>
+            )}
+          </motion.div>
+        )}
       </div>
     );
   }

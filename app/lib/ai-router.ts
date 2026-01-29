@@ -31,6 +31,7 @@ export type AIConfig = {
   temperature?: number;
   maxOutputTokens?: number;
   stream?: boolean;
+  responseSchema?: object; // JSON schema for structured output (Gemini only)
 };
 
 export type AIResult = {
@@ -81,6 +82,20 @@ const PROVIDER_CONFIG: Record<AIFeature, { primary: AIProvider; fallback: AIProv
   briefing: { primary: 'gemini', fallback: 'groq' },
   insights: { primary: 'groq', fallback: 'gemini' },
   brain_dump: { primary: 'gemini', fallback: 'groq' },
+};
+
+/**
+ * Model configuration per feature.
+ * All Gemini Flash models are FREE with the same rate limits (15 RPM).
+ *
+ * - gemini-2.5-flash-lite: Fastest, good for high-volume simple tasks
+ * - gemini-2.0-flash: Better at structured JSON extraction, more reliable
+ */
+const MODEL_CONFIG: Record<AIFeature, string> = {
+  chat: 'gemini-2.5-flash-lite',      // Fast for conversational chat
+  briefing: 'gemini-2.0-flash',       // Better quality for daily summaries
+  insights: 'gemini-2.5-flash-lite',  // High volume, speed matters
+  brain_dump: 'gemini-2.0-flash',     // Needs reliable JSON extraction
 };
 
 /**
@@ -238,6 +253,9 @@ export class AIRouter {
 
     let lastError: Error | null = null;
 
+    // Get the model for this feature (only used for Gemini)
+    const featureModel = MODEL_CONFIG[feature];
+
     for (const provider of providers) {
       // Skip if circuit breaker is open
       if (circuitBreaker.isOpen(provider)) {
@@ -254,7 +272,8 @@ export class AIRouter {
           systemPrompt,
           messages,
           config,
-          userId
+          userId,
+          provider === 'gemini' ? featureModel : undefined
         );
 
         circuitBreaker.recordSuccess(provider);
@@ -304,6 +323,9 @@ export class AIRouter {
     const { primary, fallback } = PROVIDER_CONFIG[feature];
     const providers = this.orderProviders(primary, fallback);
 
+    // Get the model for this feature (only used for Gemini)
+    const featureModel = MODEL_CONFIG[feature];
+
     let lastError: Error | null = null;
 
     for (const provider of providers) {
@@ -317,7 +339,8 @@ export class AIRouter {
           systemPrompt,
           messages,
           config,
-          userId
+          userId,
+          provider === 'gemini' ? featureModel : undefined
         );
 
         circuitBreaker.recordSuccess(provider);
@@ -396,10 +419,11 @@ export class AIRouter {
     systemPrompt: string,
     messages: GeminiMessage[],
     config: AIConfig,
-    userId: string
+    userId: string,
+    model?: string
   ): Promise<Omit<AIResult, 'provider'>> {
     if (provider === 'gemini') {
-      const result = await gemini.generate(systemPrompt, messages, config, userId);
+      const result = await gemini.generate(systemPrompt, messages, config, userId, model);
       return {
         text: result.text,
         finishReason: result.finishReason,
@@ -407,7 +431,11 @@ export class AIRouter {
         completionTokens: result.completionTokens,
       };
     } else {
-      const result = await groq.generate(systemPrompt, messages, config, userId);
+      // Note: Groq doesn't support structured output or model override
+      // Pass config without responseSchema for Groq
+      const groqConfig = { ...config };
+      delete groqConfig.responseSchema;
+      const result = await groq.generate(systemPrompt, messages, groqConfig, userId);
       return {
         text: result.text,
         finishReason: result.finishReason,
@@ -425,10 +453,11 @@ export class AIRouter {
     systemPrompt: string,
     messages: GeminiMessage[],
     config: AIConfig,
-    userId: string
+    userId: string,
+    model?: string
   ): Promise<ReadableStream<string>> {
     if (provider === 'gemini') {
-      return await gemini.generateStream(systemPrompt, messages, config, userId);
+      return await gemini.generateStream(systemPrompt, messages, config, userId, model);
     } else {
       return await groq.generateStream(systemPrompt, messages, config, userId);
     }

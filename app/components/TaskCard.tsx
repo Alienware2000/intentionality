@@ -5,10 +5,11 @@
 // Enhanced task display with priority indicator and XP value.
 // Glassmorphism background, soft priority glow, smooth animations.
 // Features anime.js-style checkbox draw and ripple effects.
+// Shows goal indicator when task is linked to a weekly goal.
 // =============================================================================
 
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Calendar, Clock } from "lucide-react";
+import { Pencil, Trash2, Calendar, Clock, Target } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import type { Task } from "@/app/lib/types";
 import PriorityPill from "./ui/PriorityPill";
@@ -34,6 +35,7 @@ export default function TaskCard({
   const isCompleted = task.completed;
   const hasActions = onEdit || onDelete;
   const hasScheduledTime = task.scheduled_time;
+  const hasGoalLink = task.weekly_goal_index !== null && task.weekly_goal_index !== undefined;
 
   return (
     <motion.div
@@ -81,8 +83,8 @@ export default function TaskCard({
           {task.title}
         </motion.div>
 
-        {/* Date and time badges */}
-        {(showDate || hasScheduledTime) && (
+        {/* Date, time, and goal badges */}
+        {(showDate || hasScheduledTime || hasGoalLink) && (
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {showDate && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-xs text-[var(--text-muted)]">
@@ -94,6 +96,15 @@ export default function TaskCard({
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-xs text-[var(--text-muted)]">
                 <Clock size={10} />
                 {formatTime(task.scheduled_time!)}
+              </span>
+            )}
+            {hasGoalLink && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-primary)]/10 text-xs text-[var(--accent-primary)]"
+                title={`Linked to weekly goal #${(task.weekly_goal_index ?? 0) + 1}`}
+              >
+                <Target size={10} />
+                Goal {(task.weekly_goal_index ?? 0) + 1}
               </span>
             )}
           </div>

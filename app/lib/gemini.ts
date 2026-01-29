@@ -64,6 +64,13 @@ export type GeminiConfig = {
    * false = wait for complete response (better for processing)
    */
   stream?: boolean;
+
+  /**
+   * JSON schema for structured output.
+   * When provided, Gemini will return valid JSON matching the schema.
+   * This is the most reliable way to get structured data from the model.
+   */
+  responseSchema?: object;
 };
 
 /**
@@ -259,12 +266,14 @@ export class GeminiService {
    * @param messages - Conversation history
    * @param config - Generation configuration
    * @param userId - For rate limiting
+   * @param model - Optional model override (defaults to gemini-2.5-flash-lite)
    */
   async generate(
     systemPrompt: string,
     messages: GeminiMessage[],
     config: GeminiConfig = {},
-    userId: string
+    userId: string,
+    model?: string
   ): Promise<GeminiResult> {
     // Check API key
     if (!this.apiKey) {
@@ -281,8 +290,9 @@ export class GeminiService {
       );
     }
 
-    // Build the API URL
-    const url = `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
+    // Build the API URL (use provided model or default)
+    const useModel = model || this.model;
+    const url = `${this.baseUrl}/models/${useModel}:generateContent?key=${this.apiKey}`;
 
     // Build request body
     // LEARNING: Gemini API Request Structure
@@ -290,12 +300,21 @@ export class GeminiService {
     // - contents: Array of messages with role and parts
     // - generationConfig: How to generate the response
     // - systemInstruction: System-level instructions
+    const generationConfig: Record<string, unknown> = {
+      temperature: config.temperature ?? 0.7,
+      maxOutputTokens: config.maxOutputTokens ?? 1024,
+    };
+
+    // Add structured output settings if schema is provided
+    // This forces Gemini to return valid JSON matching the schema
+    if (config.responseSchema) {
+      generationConfig.response_mime_type = 'application/json';
+      generationConfig.response_schema = config.responseSchema;
+    }
+
     const body = {
       contents: messages,
-      generationConfig: {
-        temperature: config.temperature ?? 0.7,
-        maxOutputTokens: config.maxOutputTokens ?? 1024,
-      },
+      generationConfig,
       systemInstruction: {
         parts: [{ text: systemPrompt }],
       },
@@ -382,13 +401,15 @@ export class GeminiService {
    * @param messages - Conversation history
    * @param config - Generation configuration
    * @param userId - For rate limiting
+   * @param model - Optional model override (defaults to gemini-2.5-flash-lite)
    * @returns ReadableStream that yields text chunks
    */
   async generateStream(
     systemPrompt: string,
     messages: GeminiMessage[],
     config: GeminiConfig = {},
-    userId: string
+    userId: string,
+    model?: string
   ): Promise<ReadableStream<string>> {
     // Check API key
     if (!this.apiKey) {
@@ -405,9 +426,10 @@ export class GeminiService {
       );
     }
 
-    // Build the streaming API URL
+    // Build the streaming API URL (use provided model or default)
     // LEARNING: Gemini uses streamGenerateContent for streaming
-    const url = `${this.baseUrl}/models/${this.model}:streamGenerateContent?key=${this.apiKey}&alt=sse`;
+    const useModel = model || this.model;
+    const url = `${this.baseUrl}/models/${useModel}:streamGenerateContent?key=${this.apiKey}&alt=sse`;
 
     const body = {
       contents: messages,
@@ -523,13 +545,14 @@ export class GeminiService {
     messages: GeminiMessage[],
     config: GeminiConfig = {},
     userId: string,
-    maxRetries: number = 3
+    maxRetries: number = 3,
+    model?: string
   ): Promise<GeminiResult> {
     let lastError: GeminiError | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await this.generate(systemPrompt, messages, config, userId);
+        return await this.generate(systemPrompt, messages, config, userId, model);
       } catch (error) {
         if (error instanceof GeminiError) {
           lastError = error;

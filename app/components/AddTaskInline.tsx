@@ -31,23 +31,30 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
 
   const { refreshProfile } = useProfile();
 
-  const loadQuests = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await fetchApi<QuestsResponse>("/api/quests");
-      setQuests(data.quests);
-      if (data.quests.length > 0 && !questId) {
-        setQuestId(data.quests[0].id);
+      const questsData = await fetchApi<QuestsResponse>("/api/quests");
+
+      setQuests(questsData.quests);
+      if (questsData.quests.length > 0 && !questId) {
+        // Auto-select first non-onboarding quest
+        const firstQuest = questsData.quests.find((q) => q.quest_type !== "onboarding");
+        if (firstQuest) {
+          setQuestId(firstQuest.id);
+        } else if (questsData.quests.length > 0) {
+          setQuestId(questsData.quests[0].id);
+        }
       }
     } catch {
-      // Silent fail - quests will remain empty
+      // Silent fail
     }
   }, [questId]);
 
   useEffect(() => {
     if (isOpen && quests.length === 0) {
-      loadQuests();
+      loadData();
     }
-  }, [isOpen, quests.length, loadQuests]);
+  }, [isOpen, quests.length, loadData]);
 
   async function handleAdd() {
     const trimmed = title.trim();

@@ -16,7 +16,13 @@ type Props = {
   task: Task | null;
   onSave: (
     taskId: string,
-    updates: { title?: string; due_date?: string; priority?: Priority; scheduled_time?: string | null; default_work_duration?: number | null }
+    updates: {
+      title?: string;
+      due_date?: string;
+      priority?: Priority;
+      scheduled_time?: string | null;
+      default_work_duration?: number | null;
+    }
   ) => Promise<void>;
   onClose: () => void;
 };
@@ -62,6 +68,7 @@ export default function EditTaskModal({ task, onSave, onClose }: Props) {
         scheduled_time: scheduledTime || null,
         default_work_duration: parsedDuration,
       });
+
       onClose();
     } finally {
       setSaving(false);

@@ -27,6 +27,8 @@ type CreateTaskBody = {
   priority?: Priority;
   scheduled_time?: string | null;
   default_work_duration?: number | null;  // Minutes (1-180) for focus sessions
+  weekly_goal_index?: number | null;  // Index of weekly goal this task contributes to
+  week_start?: string | null;  // Week start date (Monday) for goal tracking
 };
 
 /** Request body for PATCH /api/tasks */
@@ -37,6 +39,8 @@ type UpdateTaskBody = {
   priority?: Priority;
   scheduled_time?: string | null;
   default_work_duration?: number | null;  // Minutes (1-180) for focus sessions
+  weekly_goal_index?: number | null;  // Index of weekly goal this task contributes to
+  week_start?: string | null;  // Week start date (Monday) for goal tracking
 };
 
 /** Request body for DELETE /api/tasks */
@@ -49,40 +53,52 @@ type DeleteTaskBody = {
 // -----------------------------------------------------------------------------
 
 /**
- * GET /api/tasks?date=YYYY-MM-DD
+ * GET /api/tasks?date=YYYY-MM-DD or ?week_start=YYYY-MM-DD
  *
- * Fetches all tasks for a specific date for the authenticated user.
+ * Fetches tasks for the authenticated user.
+ * - With `date`: Returns tasks due on that specific date.
+ * - With `week_start`: Returns tasks linked to weekly goals for that week.
+ *
  * Includes the associated quest data.
  *
  * @authentication Required
  *
- * @query {string} date - Date in YYYY-MM-DD format (required)
+ * @query {string} [date] - Date in YYYY-MM-DD format
+ * @query {string} [week_start] - Week start (Monday) in YYYY-MM-DD format
  *
  * @returns {Object} Response object
  * @returns {boolean} ok - Success indicator
- * @returns {Task[]} tasks - Array of tasks for the date
+ * @returns {Task[]} tasks - Array of tasks
  *
  * @throws {401} Not authenticated
- * @throws {400} Missing date query param
+ * @throws {400} Missing date or week_start query param
  * @throws {500} Database error
  */
 export const GET = withAuth(async ({ supabase, request }) => {
   // Parse query params
   const params = getSearchParams(request);
   const date = params.get("date");
+  const weekStart = params.get("week_start");
 
-  if (!date) {
-    return ApiErrors.badRequest("Missing date query param");
+  if (!date && !weekStart) {
+    return ApiErrors.badRequest("Missing date or week_start query param");
   }
 
-  // Fetch tasks for the date (RLS filters by quest ownership)
-  // Filter out soft-deleted tasks
-  const { data: tasks, error: fetchError } = await supabase
+  let query = supabase
     .from("tasks")
     .select("*, quest:quests(*)")
-    .eq("due_date", date)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
+
+  if (weekStart) {
+    // Fetch tasks linked to weekly goals for this week
+    query = query.eq("week_start", weekStart);
+  } else if (date) {
+    // Fetch tasks for a specific date
+    query = query.eq("due_date", date);
+  }
+
+  const { data: tasks, error: fetchError } = await query;
 
   if (fetchError) {
     return ApiErrors.serverError(fetchError.message);
@@ -127,6 +143,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     priority = "medium",
     scheduled_time,
     default_work_duration,
+    weekly_goal_index,
+    week_start,
   } = body ?? {};
 
   if (!title || !due_date || !quest_id) {
@@ -167,6 +185,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       completed: false,
       scheduled_time: scheduled_time || null,
       default_work_duration: default_work_duration ?? null,
+      weekly_goal_index: weekly_goal_index ?? null,
+      week_start: week_start ?? null,
     })
     .select("*, quest:quests(*)")
     .single();
@@ -211,13 +231,13 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
  */
 export const PATCH = withAuth(async ({ supabase, request }) => {
   const body = await parseJsonBody<UpdateTaskBody>(request);
-  const { taskId, title, due_date, priority, scheduled_time, default_work_duration } = body ?? {};
+  const { taskId, title, due_date, priority, scheduled_time, default_work_duration, weekly_goal_index, week_start } = body ?? {};
 
   if (!taskId) {
     return ApiErrors.badRequest("Missing taskId");
   }
 
-  if (!title && !due_date && !priority && scheduled_time === undefined && default_work_duration === undefined) {
+  if (!title && !due_date && !priority && scheduled_time === undefined && default_work_duration === undefined && weekly_goal_index === undefined && week_start === undefined) {
     return ApiErrors.badRequest("No fields to update");
   }
 
@@ -241,6 +261,12 @@ export const PATCH = withAuth(async ({ supabase, request }) => {
   }
   if (default_work_duration !== undefined) {
     updates.default_work_duration = default_work_duration;
+  }
+  if (weekly_goal_index !== undefined) {
+    updates.weekly_goal_index = weekly_goal_index;
+  }
+  if (week_start !== undefined) {
+    updates.week_start = week_start;
   }
 
   const { data: task, error: updateError } = await supabase

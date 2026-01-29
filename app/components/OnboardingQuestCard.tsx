@@ -100,8 +100,8 @@ const STEPS: StepConfig[] = [
     iconColor: "text-[var(--accent-primary)]",
     title: "Complete Weekly Planning",
     description: "Set your goals and focus areas for the week.",
-    actionLabel: "Go to Plan",
-    actionHref: "/plan",
+    actionLabel: "Go to Week",
+    actionHref: "/week",
   },
   {
     id: "daily_review",

@@ -107,9 +107,9 @@ export default function DashboardContent({ date }: Props) {
         </AnimatedContainer>
       )}
 
-      {/* Daily Briefing - shows after onboarding is done */}
+      {/* Daily Briefing - AI recommendations only */}
       {!onboardingLoading && isOnboardingDone && (
-        <AnimatedContainer direction="down" delay={0}>
+        <AnimatedContainer direction="down" delay={0.05}>
           <DailyBriefing date={date} />
         </AnimatedContainer>
       )}

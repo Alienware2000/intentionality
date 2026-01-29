@@ -141,10 +141,35 @@ export function formatDisplayDate(dateISO: ISODateString): string {
 }
 
 /**
+ * Get the Monday of the week for a given ISO date string.
+ *
+ * @param dateISO - ISO date string (YYYY-MM-DD)
+ * @returns ISO date string of the Monday of that week
+ *
+ * @example
+ * ```ts
+ * getMonday("2026-01-23"); // Returns "2026-01-20" (Friday -> Monday)
+ * getMonday("2026-01-20"); // Returns "2026-01-20" (Monday -> Monday)
+ * getMonday("2026-01-25"); // Returns "2026-01-20" (Sunday -> Monday)
+ * ```
+ */
+export function getMonday(dateISO: ISODateString): ISODateString {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  // Use noon time to avoid timezone edge cases (DST transitions)
+  const date = new Date(y, m - 1, d, 12, 0, 0);
+  const day = date.getDay();
+  // Monday is day 1, Sunday is day 0. Adjust to get Monday.
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diffToMonday);
+  return toISODateString(date);
+}
+
+/**
  * Get the Monday-Sunday week range for a given date.
  */
 export function getWeekRange(date: Date): { start: ISODateString; end: ISODateString } {
-  const d = new Date(date);
+  // Create a copy at noon to avoid timezone edge cases (DST transitions)
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
   const day = d.getDay();
   // Monday is day 1, Sunday is day 0. Adjust to get Monday as start.
   const diffToMonday = day === 0 ? -6 : 1 - day;

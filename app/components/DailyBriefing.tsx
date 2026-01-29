@@ -88,6 +88,11 @@ const RECOMMENDATION_ICONS: Record<RecommendationType, IconConfig> = {
     color: "text-[var(--accent-highlight)]",
     bgColor: "bg-[var(--accent-highlight)]/10",
   },
+  planning_prompt: {
+    icon: ClipboardList,
+    color: "text-[var(--accent-primary)]",
+    bgColor: "bg-[var(--accent-primary)]/10",
+  },
   review_reminder: {
     icon: BookOpen,
     color: "text-[var(--accent-success)]",
@@ -118,7 +123,7 @@ type Props = {
 };
 
 // -----------------------------------------------------------------------------
-// Component
+// Main Component
 // -----------------------------------------------------------------------------
 
 /**
@@ -194,7 +199,7 @@ export default function DailyBriefing({ date }: Props) {
         habits,
         quests,
         profile,
-        weeklyPlan: null, // TODO: Fetch weekly plan when implemented
+        weeklyPlan: null,
         hasReviewedToday: false, // TODO: Check daily review status
         currentTime: new Date(),
         bestCompletionDay: fetchedBestDay,
@@ -315,9 +320,9 @@ export default function DailyBriefing({ date }: Props) {
         </div>
       </div>
 
-      {/* Recommendations */}
+      {/* Expanded Content */}
       <AnimatePresence>
-        {!isCollapsed && recommendations.length > 0 && (
+        {!isCollapsed && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -325,7 +330,10 @@ export default function DailyBriefing({ date }: Props) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2">
+            <div className="px-4 pb-4">
+              {/* Recommendations */}
+              {recommendations.length > 0 && (
+                <div className="space-y-2">
               {recommendations.map((rec, index) => {
                 const iconConfig = RECOMMENDATION_ICONS[rec.type];
                 const Icon = iconConfig.icon;
@@ -372,23 +380,15 @@ export default function DailyBriefing({ date }: Props) {
                   </motion.div>
                 );
               })}
-            </div>
-          </motion.div>
-        )}
+                </div>
+              )}
 
-        {/* Empty state when no recommendations */}
-        {!isCollapsed && recommendations.length === 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4">
-              <div className="text-center py-4 text-[var(--text-muted)] text-xs">
-                All clear! No urgent recommendations right now.
-              </div>
+              {/* Empty state when no recommendations and no week data */}
+              {recommendations.length === 0 && (
+                <div className="text-center py-4 text-[var(--text-muted)] text-xs">
+                  All clear! No urgent recommendations right now.
+                </div>
+              )}
             </div>
           </motion.div>
         )}

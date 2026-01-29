@@ -395,7 +395,7 @@ async function fetchRecentStats(
 }
 
 /**
- * Fetch current weekly goals.
+ * Fetch current weekly goals with task progress.
  */
 async function fetchWeeklyGoals(
   supabase: SupabaseClient,
@@ -415,7 +415,70 @@ async function fetchWeeklyGoals(
     .eq('week_start', weekStart)
     .single();
 
-  return (data?.goals as string[]) || [];
+  if (!data?.goals) return [];
+
+  // Normalize goals - handle both string[] and WeeklyGoal[] formats
+  const goals = data.goals as Array<string | { text: string }>;
+  return goals.map(g => typeof g === 'string' ? g : g.text);
+}
+
+/**
+ * Fetch yesterday's priorities from daily reflection.
+ */
+async function fetchYesterdayPriorities(
+  supabase: SupabaseClient,
+  userId: string,
+  today: string
+): Promise<string[]> {
+  // Get yesterday's date
+  const todayDate = new Date(today);
+  todayDate.setDate(todayDate.getDate() - 1);
+  const yesterday = todayDate.toISOString().split('T')[0];
+
+  const { data } = await supabase
+    .from('daily_reflections')
+    .select('tomorrow_priorities')
+    .eq('user_id', userId)
+    .eq('date', yesterday)
+    .single();
+
+  return (data?.tomorrow_priorities as string[]) || [];
+}
+
+/**
+ * Fetch recent challenges from daily reflections (last 7 days).
+ */
+async function fetchRecentChallenges(
+  supabase: SupabaseClient,
+  userId: string,
+  today: string
+): Promise<string[]> {
+  // Get date 7 days ago
+  const todayDate = new Date(today);
+  todayDate.setDate(todayDate.getDate() - 7);
+  const weekAgo = todayDate.toISOString().split('T')[0];
+
+  const { data } = await supabase
+    .from('daily_reflections')
+    .select('challenges')
+    .eq('user_id', userId)
+    .gte('date', weekAgo)
+    .lte('date', today)
+    .order('date', { ascending: false })
+    .limit(3);
+
+  // Flatten and deduplicate challenges
+  const allChallenges: string[] = [];
+  for (const reflection of data || []) {
+    const challenges = reflection.challenges as string[];
+    for (const challenge of challenges || []) {
+      if (!allChallenges.includes(challenge)) {
+        allChallenges.push(challenge);
+      }
+    }
+  }
+
+  return allChallenges.slice(0, 5); // Limit to 5 most recent
 }
 
 /**
@@ -558,6 +621,8 @@ export async function buildUserContext(
     focusSessions,
     recentStats,
     weeklyGoals,
+    yesterdayPriorities,
+    recentChallenges,
     learningProfile,
     patternAggregates,
   ] = await Promise.all([
@@ -570,6 +635,8 @@ export async function buildUserContext(
     fetchTodayFocusSessions(supabase, userId, today),
     fetchRecentStats(supabase, userId, today),
     fetchWeeklyGoals(supabase, userId),
+    fetchYesterdayPriorities(supabase, userId, today),
+    fetchRecentChallenges(supabase, userId, today),
     fetchLearningProfile(supabase, userId),
     fetchPatternAggregates(supabase, userId),
   ]);
@@ -613,6 +680,10 @@ export async function buildUserContext(
       })),
       overdueCount,
       weeklyGoals: weeklyGoals.slice(0, 5),
+    },
+    planning: {
+      yesterdayPriorities: yesterdayPriorities.slice(0, 3),
+      recentChallenges: recentChallenges.slice(0, 5),
     },
     preferences,
     // Add learning context if available
@@ -698,7 +769,17 @@ export function formatContextForPrompt(context: AIUserContext): string {
   if (context.upcoming.weeklyGoals.length > 0) {
     lines.push('Weekly goals:');
     for (const goal of context.upcoming.weeklyGoals) {
-      lines.push(`  - ${goal}`);
+      // Check if goal has progress info (WeeklyGoalWithProgress format)
+      if (typeof goal === 'object' && 'completedTasks' in goal) {
+        const g = goal as { text: string; completedTasks: number; totalTasks: number };
+        if (g.totalTasks > 0) {
+          lines.push(`  - ${g.text} (${g.completedTasks}/${g.totalTasks} tasks done)`);
+        } else {
+          lines.push(`  - ${g.text}`);
+        }
+      } else {
+        lines.push(`  - ${goal}`);
+      }
     }
   }
   lines.push('');
@@ -712,6 +793,28 @@ export function formatContextForPrompt(context: AIUserContext): string {
   }
   if (context.recent.moodTrend) {
     lines.push(`Mood trend: ${context.recent.moodTrend}`);
+  }
+
+  // Planning context section (from daily reviews)
+  const hasPlanningData =
+    context.planning.yesterdayPriorities.length > 0 ||
+    context.planning.recentChallenges.length > 0;
+
+  if (hasPlanningData) {
+    lines.push('');
+    lines.push('=== PLANNING CONTEXT ===');
+    if (context.planning.yesterdayPriorities.length > 0) {
+      lines.push("Yesterday's priorities (what user planned to do today):");
+      for (const priority of context.planning.yesterdayPriorities) {
+        lines.push(`  - ${priority}`);
+      }
+    }
+    if (context.planning.recentChallenges.length > 0) {
+      lines.push('Recent challenges (use for personalized advice):');
+      for (const challenge of context.planning.recentChallenges) {
+        lines.push(`  - ${challenge}`);
+      }
+    }
   }
 
   // Learning context section (if available)

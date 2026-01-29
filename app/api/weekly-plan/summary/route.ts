@@ -9,36 +9,64 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import { getLocalDateString } from "@/app/lib/gamification";
-import type { WeeklySummary, ISODateString } from "@/app/lib/types";
+import { getMonday } from "@/app/lib/date-utils";
+import type { WeeklySummary, ISODateString, WeeklyPlan, WeeklyGoal } from "@/app/lib/types";
+
+// -----------------------------------------------------------------------------
+// Type Definitions
+// -----------------------------------------------------------------------------
+
+type GoalProgress = {
+  goalIndex: number;
+  goalText: string;
+  completedTasks: number;
+  totalTasks: number;
+  completionRate: number;
+  taskTitles: string[];
+};
 
 // -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
 
 /**
- * Get the Monday of the week for a given date.
+ * Normalize goals from either string[] (legacy), WeeklyGoal[] (enhanced),
+ * or stringified JSON from TEXT[] column.
  */
-function getWeekMonday(dateStr: ISODateString): ISODateString {
-  const date = new Date(dateStr);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const dayStr = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${dayStr}` as ISODateString;
+function normalizeGoals(goals: string[] | WeeklyGoal[]): WeeklyGoal[] {
+  if (!goals || goals.length === 0) return [];
+
+  // Check if it's already in enhanced format
+  if (typeof goals[0] === "object" && goals[0] !== null && "text" in goals[0]) {
+    return goals as WeeklyGoal[];
+  }
+
+  // Handle stringified JSON from TEXT[] column or plain strings
+  return (goals as string[]).map((item) => {
+    if (typeof item === "string" && item.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed.text === "string") {
+          return { text: parsed.text, quest_id: parsed.quest_id || null };
+        }
+      } catch {
+        // Not valid JSON, use as plain text
+      }
+    }
+    return { text: item, quest_id: null };
+  });
 }
 
 /**
- * Get Sunday of the week (week end).
+ * Get Sunday of the week (week end) using safe date parsing.
  */
 function getWeekSunday(mondayStr: ISODateString): ISODateString {
-  const date = new Date(mondayStr);
-  date.setDate(date.getDate() + 6);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const dayStr = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${dayStr}` as ISODateString;
+  const [year, month, dayNum] = mondayStr.split("-").map(Number);
+  const date = new Date(year, month - 1, dayNum + 6);
+  const sundayYear = date.getFullYear();
+  const sundayMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const sundayDay = String(date.getDate()).padStart(2, "0");
+  return `${sundayYear}-${sundayMonth}-${sundayDay}` as ISODateString;
 }
 
 // -----------------------------------------------------------------------------
@@ -66,23 +94,38 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Default to previous week for review
   let weekStart: ISODateString;
   if (weekStartParam) {
-    weekStart = getWeekMonday(weekStartParam as ISODateString);
+    weekStart = getMonday(weekStartParam as ISODateString);
   } else {
     const today = new Date();
     today.setDate(today.getDate() - 7); // Go back a week
-    weekStart = getWeekMonday(getLocalDateString(today) as ISODateString);
+    weekStart = getMonday(getLocalDateString(today) as ISODateString);
   }
 
   const weekEnd = getWeekSunday(weekStart);
 
+  // Fetch the weekly plan for this week
+  const { data: weeklyPlan } = await supabase
+    .from("weekly_plans")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("week_start", weekStart)
+    .single();
+
   // Fetch tasks completed during the week
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, completed, completed_at, xp_value, quest_id")
-    .eq("user_id", user.id)
+    .select("id, title, completed, completed_at, xp_value, quest_id, weekly_goal_index, week_start")
     .gte("due_date", weekStart)
     .lte("due_date", weekEnd)
     .is("deleted_at", null);
+
+  // Also fetch tasks linked to this week's goals (even if due_date is different)
+  const { data: linkedTasks } = await supabase
+    .from("tasks")
+    .select("id, title, completed, completed_at, xp_value, quest_id, weekly_goal_index, week_start")
+    .eq("week_start", weekStart)
+    .is("deleted_at", null)
+    .not("weekly_goal_index", "is", null);
 
   // Fetch focus sessions for the week
   const startOfWeek = `${weekStart}T00:00:00.000Z`;
@@ -103,6 +146,37 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     .eq("user_id", user.id)
     .gte("date", weekStart)
     .lte("date", weekEnd);
+
+  // Combine tasks and linked tasks (deduplicate by id)
+  const taskMap = new Map<string, (typeof tasks extends (infer T)[] | null ? T : never)>();
+  for (const task of tasks ?? []) {
+    taskMap.set(task.id, task);
+  }
+  for (const task of linkedTasks ?? []) {
+    if (!taskMap.has(task.id)) {
+      taskMap.set(task.id, task);
+    }
+  }
+  const allTasks = Array.from(taskMap.values());
+
+  // Calculate goal progress
+  const normalizedGoals = normalizeGoals(weeklyPlan?.goals || []);
+  const goalProgress: GoalProgress[] = normalizedGoals.map((goal, goalIndex) => {
+    const tasksForGoal = allTasks.filter(
+      (t) => t.weekly_goal_index === goalIndex && t.week_start === weekStart
+    );
+    const completed = tasksForGoal.filter((t) => t.completed).length;
+    const total = tasksForGoal.length;
+
+    return {
+      goalIndex,
+      goalText: goal.text,
+      completedTasks: completed,
+      totalTasks: total,
+      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      taskTitles: tasksForGoal.map((t) => t.title),
+    };
+  });
 
   // Calculate stats
   const tasksList = tasks ?? [];
@@ -174,5 +248,9 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     averageEnergy,
   };
 
-  return successResponse({ summary });
+  return successResponse({
+    summary,
+    plan: weeklyPlan as WeeklyPlan | null,
+    goalProgress,
+  });
 });

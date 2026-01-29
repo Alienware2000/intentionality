@@ -197,6 +197,9 @@ export function useDayTimeline(
         // 6. Update profile after API completes
         options?.onProfileUpdate?.();
 
+        // 7. Dispatch event for sidebar refresh
+        window.dispatchEvent(new CustomEvent("intentionality:task-toggled"));
+
         // No refresh() call - state is already correct
       } catch (e) {
         // 7. Rollback on error
@@ -289,9 +292,12 @@ export function useDayTimeline(
         // 6. Notify profile update
         options?.onProfileUpdate?.();
 
+        // 7. Dispatch event for sidebar refresh
+        window.dispatchEvent(new CustomEvent("intentionality:task-toggled"));
+
         // No refresh() call - state is already correct
       } catch (e) {
-        // 7. Rollback on error
+        // 8. Rollback on error
         updateScheduleBlockInState(blockId, wasCompleted);
         setError(getErrorMessage(e));
       } finally {

@@ -24,6 +24,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/app/lib/auth-middleware';
 import { buildUserContext } from '@/app/lib/ai-context';
 import type { AIBriefingResponse } from '@/app/lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -35,6 +36,13 @@ type BriefingInsight = {
   priority: 'low' | 'medium' | 'high';
   actionLabel?: string;
   actionHref?: string;
+};
+
+type PlanningStatus = {
+  hasTodayReview: boolean;
+  hasThisWeekPlan: boolean;
+  currentHour: number;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
 };
 
 // -----------------------------------------------------------------------------
@@ -71,12 +79,15 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     // Build user context for deterministic briefing
     const context = await buildUserContext(supabase, user, timezone);
 
+    // Fetch planning status
+    const planningStatus = await fetchPlanningStatus(supabase, user.id, today);
+
     // Generate deterministic briefing (no AI)
     const response: AIBriefingResponse = {
       ok: true,
       greeting: getSimpleGreeting(),
       summary: generateFallbackSummary(context),
-      insights: generateFallbackInsights(context),
+      insights: generateFallbackInsights(context, planningStatus),
     };
 
     // Cache the response for today (fire-and-forget)
@@ -108,6 +119,53 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     } satisfies AIBriefingResponse);
   }
 });
+
+// -----------------------------------------------------------------------------
+// Planning Status Functions
+// -----------------------------------------------------------------------------
+
+/**
+ * Fetch whether user has completed today's review and this week's plan.
+ */
+async function fetchPlanningStatus(
+  supabase: SupabaseClient,
+  userId: string,
+  today: string
+): Promise<PlanningStatus> {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
+
+  // Get this week's Monday
+  const todayDate = new Date(today);
+  const diff = todayDate.getDay() - 1;
+  const monday = new Date(todayDate);
+  monday.setDate(todayDate.getDate() - (diff < 0 ? 6 : diff));
+  const weekStart = monday.toISOString().split('T')[0];
+
+  // Check for today's review and this week's plan in parallel
+  const [reviewResult, planResult] = await Promise.all([
+    supabase
+      .from('daily_reflections')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single(),
+    supabase
+      .from('weekly_plans')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('week_start', weekStart)
+      .single(),
+  ]);
+
+  return {
+    hasTodayReview: !!reviewResult.data,
+    hasThisWeekPlan: !!planResult.data,
+    currentHour,
+    dayOfWeek,
+  };
+}
 
 // -----------------------------------------------------------------------------
 // Fallback Functions
@@ -145,7 +203,14 @@ function generateFallbackSummary(context: { today: { completedCount: number; tot
 /**
  * Generate fallback insights from context.
  */
-function generateFallbackInsights(context: { today: { completedCount: number; totalCount: number; habits: Array<{ completedToday: boolean }> }; upcoming: { overdueCount: number }; profile: { currentStreak: number } }): BriefingInsight[] {
+function generateFallbackInsights(
+  context: {
+    today: { completedCount: number; totalCount: number; habits: Array<{ completedToday: boolean }> };
+    upcoming: { overdueCount: number };
+    profile: { currentStreak: number };
+  },
+  planningStatus?: PlanningStatus
+): BriefingInsight[] {
   const insights: BriefingInsight[] = [];
 
   // Overdue tasks warning
@@ -156,6 +221,28 @@ function generateFallbackInsights(context: { today: { completedCount: number; to
       priority: 'high',
       actionLabel: 'View',
       actionHref: '/inbox',
+    });
+  }
+
+  // Monday planning reminder (show on Monday if no plan for this week)
+  if (planningStatus && planningStatus.dayOfWeek === 1 && !planningStatus.hasThisWeekPlan) {
+    insights.push({
+      title: 'Weekly Planning',
+      description: 'Start your week strong! Set your goals and priorities for the week ahead.',
+      priority: 'medium',
+      actionLabel: 'Plan Week',
+      actionHref: '/week',
+    });
+  }
+
+  // Evening review reminder (show after 6 PM if no review today)
+  if (planningStatus && planningStatus.currentHour >= 18 && !planningStatus.hasTodayReview) {
+    insights.push({
+      title: 'Daily Review',
+      description: 'Take a moment to reflect on your day and plan for tomorrow.',
+      priority: 'medium',
+      actionLabel: 'Review',
+      actionHref: '/review',
     });
   }
 

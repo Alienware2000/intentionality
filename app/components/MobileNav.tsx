@@ -22,7 +22,6 @@ import {
   Sun,
   Moon,
   Brain,
-  ClipboardList,
   BookOpen,
   Inbox,
   Settings,
@@ -257,7 +256,6 @@ export default function MobileNav() {
               >
                 {[
                   { href: "/inbox", icon: Inbox, label: "Inbox" },
-                  { href: "/plan", icon: ClipboardList, label: "Plan" },
                   { href: "/review", icon: BookOpen, label: "Review" },
                   { href: "/leaderboard", icon: Trophy, label: "Leaderboard" },
                   { href: "/friends", icon: Users, label: "Friends" },

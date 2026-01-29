@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, ClipboardList, Sparkles, Trophy, Users, UsersRound, Palette } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, Sparkles, Trophy, Users, UsersRound, Palette } from "lucide-react";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
@@ -33,7 +33,6 @@ const navItems = [
   { label: "Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
   { label: "Inbox", href: "/inbox", icon: Inbox },
-  { label: "Plan", href: "/plan", icon: ClipboardList },
   { label: "Review", href: "/review", icon: BookOpen },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   // Social features

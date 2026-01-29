@@ -215,6 +215,9 @@ export default function QuestsClient() {
 
       refreshProfile();
 
+      // Dispatch event for sidebar refresh
+      window.dispatchEvent(new CustomEvent("intentionality:task-toggled"));
+
       // Show celebrations for completing a task
       if (!wasCompleted && data.xpGained) {
         showXpGain(data.xpGained);

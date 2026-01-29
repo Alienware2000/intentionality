@@ -75,6 +75,8 @@ export type Task = {
   deleted_at: string | null;  // Soft delete timestamp
   default_work_duration: number | null;  // Minutes (1-180) for focus sessions
   onboarding_step: OnboardingStep | null;  // For onboarding quest tasks only
+  weekly_goal_index: number | null;  // Index of weekly goal this task contributes to
+  week_start: ISODateString | null;  // Week this task is linked to for goal tracking
   quest?: Quest;
 };
 
@@ -652,6 +654,12 @@ export type UserProfileV2 = UserProfile & {
   achievements_unlocked: number;
   permanent_xp_bonus: number;
   title: LevelTitle;
+  // Planning & review stats
+  daily_reviews_completed: number;
+  weekly_plans_completed: number;
+  weekly_goals_completed: number;
+  daily_review_streak: number;
+  weekly_plan_streak: number;
 };
 
 /**
@@ -801,13 +809,23 @@ export type DailyReflection = {
 };
 
 /**
+ * Enhanced weekly goal with optional quest linking.
+ */
+export type WeeklyGoal = {
+  text: string;
+  quest_id?: Id | null;
+};
+
+/**
  * Weekly planning entry.
+ * Note: goals can be either string[] (legacy) or WeeklyGoal[] (enhanced).
+ * Use normalizeGoals() helper to convert to consistent format.
  */
 export type WeeklyPlan = {
   id: Id;
   user_id: string;
   week_start: ISODateString;   // Monday of the week
-  goals: string[];             // 3-5 weekly goals
+  goals: string[] | WeeklyGoal[];  // 3-5 weekly goals (string[] for legacy, WeeklyGoal[] for enhanced)
   focus_areas: string[];
   review_notes: string | null; // End of week reflection
   xp_awarded: number;
@@ -879,7 +897,8 @@ export type RecommendationType =
   | 'heavy_day'           // Too many tasks today
   | 'quest_progress'      // Quest close to completion
   | 'habit_reminder'      // Daily habits not done
-  | 'planning_needed'     // Weekly plan due
+  | 'planning_needed'     // Weekly plan due (Sunday/Monday)
+  | 'planning_prompt'     // Gentle prompt to plan (any day, no plan exists)
   | 'review_reminder'     // Daily review reminder
   | 'milestone_countdown' // Close to streak milestone
   | 'best_day';           // User's statistically best productivity day
@@ -1129,6 +1148,11 @@ export type AIUserContext = {
     }>;
     overdueCount: number;
     weeklyGoals: string[];
+  };
+  // Planning context from daily reviews
+  planning: {
+    yesterdayPriorities: string[];
+    recentChallenges: string[];
   };
   preferences: {
     communicationStyle: AICommunicationStyle;

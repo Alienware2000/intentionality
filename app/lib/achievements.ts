@@ -27,7 +27,11 @@ export type StatKey =
   | "lifetime_early_bird_tasks"
   | "lifetime_night_owl_tasks"
   | "lifetime_long_focus_sessions"
-  | "lifetime_streak_recoveries";
+  | "lifetime_streak_recoveries"
+  // Planning & review stats
+  | "daily_reviews_completed"
+  | "weekly_plans_completed"
+  | "weekly_goals_completed";
 
 /**
  * Get the current value for a stat from the user profile.
@@ -58,6 +62,13 @@ export function getStatValue(profile: UserProfileV2, statKey: StatKey): number {
       return profile.lifetime_long_focus_sessions ?? 0;
     case "lifetime_streak_recoveries":
       return profile.lifetime_streak_recoveries ?? 0;
+    // Planning & review stats
+    case "daily_reviews_completed":
+      return profile.daily_reviews_completed ?? 0;
+    case "weekly_plans_completed":
+      return profile.weekly_plans_completed ?? 0;
+    case "weekly_goals_completed":
+      return profile.weekly_goals_completed ?? 0;
     default:
       return 0;
   }
