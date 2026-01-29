@@ -238,6 +238,7 @@ export default function WeekClient({ start }: Props) {
                   showOverdue={false}
                   showAddTask={true}
                   compact={true}
+                  showViewToggle={false}
                   quests={quests}
                   onRefresh={triggerRefresh}
                 />
