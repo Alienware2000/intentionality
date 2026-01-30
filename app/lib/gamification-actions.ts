@@ -20,6 +20,7 @@ import {
   getLevelFromXpV2,
   getLocalDateString,
   earnedStreakFreeze,
+  getTitleForLevel,
 } from "./gamification";
 import { checkAllAchievements } from "./achievements";
 import {
@@ -227,6 +228,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   // Update profile with final values (single database update)
   profileUpdate.xp_total = finalXpTotal;
   profileUpdate.level = finalLevel;
+  profileUpdate.title = getTitleForLevel(finalLevel);
   await supabase.from("user_profiles").update(profileUpdate).eq("user_id", userId);
 
   // Update or create activity log
