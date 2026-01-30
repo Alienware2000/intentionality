@@ -163,6 +163,13 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   const clampedMaxMembers = Math.min(GROUP_LIMITS.MAX_MEMBERS, Math.max(GROUP_LIMITS.MIN_MEMBERS, max_members));
 
   // Create the group
+  console.log("[Groups API] Creating group:", {
+    name: trimmedName,
+    owner_id: user.id,
+    max_members: clampedMaxMembers,
+    is_public,
+  });
+
   const { data: group, error: createError } = await supabase
     .from("groups")
     .insert({
@@ -177,10 +184,23 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     .single();
 
   if (createError) {
+    console.error("[Groups API] Group creation error:", {
+      code: createError.code,
+      message: createError.message,
+      details: createError.details,
+      hint: createError.hint,
+    });
     return ApiErrors.serverError(createError.message);
   }
 
+  console.log("[Groups API] Group created successfully:", { groupId: group.id });
+
   // Add creator as owner member
+  console.log("[Groups API] Adding creator as owner member:", {
+    groupId: group.id,
+    userId: user.id,
+  });
+
   const { data: membership, error: memberError } = await supabase
     .from("group_members")
     .insert({
@@ -192,10 +212,21 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     .single();
 
   if (memberError) {
+    console.error("[Groups API] Membership creation error:", {
+      code: memberError.code,
+      message: memberError.message,
+      details: memberError.details,
+      hint: memberError.hint,
+    });
     // Cleanup: delete the group if membership creation failed
     await supabase.from("groups").delete().eq("id", group.id);
     return ApiErrors.serverError(memberError.message);
   }
+
+  console.log("[Groups API] Group creation complete:", {
+    groupId: group.id,
+    membershipId: membership.id,
+  });
 
   return successResponse({
     group,

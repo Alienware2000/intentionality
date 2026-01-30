@@ -2,16 +2,29 @@
 
 // =============================================================================
 // QUICK ACTIONS COMPONENT
-// Quick access buttons for Brain Dump, Analytics, and other features.
+// Quick access buttons for Brain Dump, Notifications, Analytics, and other features.
 // =============================================================================
 
+import { useState } from "react";
 import { Brain, BarChart3, Inbox } from "lucide-react";
 import Link from "next/link";
 import { useBrainDump } from "./BrainDumpProvider";
+import { useSocial } from "./SocialProvider";
+import { NotificationBell, NotificationCenter } from "./social";
 import { cn } from "@/app/lib/cn";
 
 export default function QuickActions() {
   const { openBrainDump } = useBrainDump();
+  const {
+    notifications,
+    unreadNotificationCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    removeNotification,
+    acceptFriendRequest,
+    rejectFriendRequest,
+  } = useSocial();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -66,6 +79,26 @@ export default function QuickActions() {
         <BarChart3 size={16} />
         <span className="hidden sm:inline">Analytics</span>
       </Link>
+
+      {/* Notification Bell */}
+      <div className="relative">
+        <NotificationBell
+          unreadCount={unreadNotificationCount}
+          onClick={() => setShowNotifications(!showNotifications)}
+          isOpen={showNotifications}
+        />
+        <NotificationCenter
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          notifications={notifications}
+          onMarkRead={markNotificationRead}
+          onMarkAllRead={markAllNotificationsRead}
+          onAcceptFriend={acceptFriendRequest}
+          onRejectFriend={rejectFriendRequest}
+          onRemoveNotification={removeNotification}
+          anchorPosition="right"
+        />
+      </div>
     </div>
   );
 }

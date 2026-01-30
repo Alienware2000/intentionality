@@ -67,6 +67,9 @@ type SocialContextState = {
 
   // Notifications actions
   refreshNotifications: () => Promise<void>;
+  markNotificationRead: (notificationId: string) => Promise<boolean>;
+  markAllNotificationsRead: () => Promise<boolean>;
+  removeNotification: (notificationId: string) => void;
 
   // Nudge action
   sendNudge: (
@@ -155,6 +158,24 @@ export function SocialProvider({ children }: SocialProviderProps) {
       setError(message);
     } finally {
       setFriendsLoading(false);
+    }
+  }, []);
+
+  // Define refreshNotifications early so it can be used by acceptFriendRequest/rejectFriendRequest
+  const refreshNotifications = useCallback(async () => {
+    try {
+      setNotificationsLoading(true);
+      const res = await fetch("/api/notifications");
+      const data = await res.json();
+
+      if (data.ok) {
+        setNotifications(data.notifications ?? []);
+        setUnreadNotificationCount(data.unread_count ?? 0);
+      }
+    } catch {
+      // Silently fail for notifications - not critical
+    } finally {
+      setNotificationsLoading(false);
     }
   }, []);
 
@@ -337,21 +358,52 @@ export function SocialProvider({ children }: SocialProviderProps) {
   // Notifications Actions
   // ---------------------------------------------------------------------------
 
-  const refreshNotifications = useCallback(async () => {
+  // NOTE: refreshNotifications is defined earlier (after refreshFriends) so it can be
+  // used by acceptFriendRequest and rejectFriendRequest without temporal dead zone issues.
+
+  const markNotificationRead = useCallback(async (notificationId: string): Promise<boolean> => {
     try {
-      setNotificationsLoading(true);
-      const res = await fetch("/api/notifications");
+      const res = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: "PATCH",
+      });
       const data = await res.json();
 
       if (data.ok) {
-        setNotifications(data.notifications ?? []);
-        setUnreadNotificationCount(data.unread_count ?? 0);
+        // Update local state optimistically
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notificationId ? { ...n, read_at: new Date().toISOString() } : n))
+        );
+        setUnreadNotificationCount((prev) => Math.max(0, prev - 1));
+        return true;
       }
+      return false;
     } catch {
-      // Silently fail for notifications - not critical
-    } finally {
-      setNotificationsLoading(false);
+      return false;
     }
+  }, []);
+
+  const markAllNotificationsRead = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/notifications/read-all", {
+        method: "POST",
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        // Update local state optimistically
+        setNotifications((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
+        setUnreadNotificationCount(0);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const removeNotification = useCallback((notificationId: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    // Note: Don't decrement unread count here - markNotificationRead already handles it
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -472,6 +524,9 @@ export function SocialProvider({ children }: SocialProviderProps) {
 
       // Notifications actions
       refreshNotifications,
+      markNotificationRead,
+      markAllNotificationsRead,
+      removeNotification,
 
       // Other actions
       sendNudge,
@@ -500,6 +555,9 @@ export function SocialProvider({ children }: SocialProviderProps) {
       joinGroup,
       leaveGroup,
       refreshNotifications,
+      markNotificationRead,
+      markAllNotificationsRead,
+      removeNotification,
       sendNudge,
       searchUsers,
     ]

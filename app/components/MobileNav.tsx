@@ -181,15 +181,17 @@ export default function MobileNav() {
                 <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
                   Menu
                 </h2>
-                <motion.button
-                  onClick={() => setMenuOpen(false)}
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  aria-label="Close menu"
-                  className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-                >
-                  <X size={20} className="text-[var(--text-muted)]" />
-                </motion.button>
+                <div className="flex items-center gap-1">
+                  <motion.button
+                    onClick={() => setMenuOpen(false)}
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Close menu"
+                    className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    <X size={20} className="text-[var(--text-muted)]" />
+                  </motion.button>
+                </div>
               </div>
 
               {/* Kofi AI Button - Prominent placement in mobile menu */}
