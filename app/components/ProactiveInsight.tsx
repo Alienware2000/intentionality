@@ -178,7 +178,7 @@ export default function ProactiveInsight({ insight, onDismiss, onAction }: Props
           exit={{ opacity: 0, y: 10, scale: 0.98 }}
           transition={{ type: "spring", damping: 30, stiffness: 400 }}
           className={cn(
-            "w-80 p-4 rounded-xl shadow-lg",
+            "relative w-80 p-4 rounded-xl shadow-lg overflow-hidden",
             "bg-[var(--bg-card)] border border-[var(--border-default)]"
           )}
         >
@@ -231,7 +231,7 @@ export default function ProactiveInsight({ insight, onDismiss, onAction }: Props
               initial={{ scaleX: 1 }}
               animate={{ scaleX: 0 }}
               transition={{ duration: AUTO_DISMISS_DELAYS[insight.priority] / 1000, ease: "linear" }}
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-primary)]/30 origin-left rounded-b-xl"
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-primary)]/30 origin-left"
             />
           )}
         </motion.div>

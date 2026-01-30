@@ -8,7 +8,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { parseISOToTimezone } from "@/app/lib/date-utils";
+import { parseISOToTimezone, getDayOfWeek } from "@/app/lib/date-utils";
 import type { ISODateString } from "@/app/lib/types";
 
 // Google Calendar API
@@ -343,8 +343,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
           const externalUid = `gcal:${calendarId}:${event.id}`;
           const existing = importMap.get(externalUid);
 
-          // Simple hash for change detection
-          const eventHash = `${event.summary}|${startDate}|${startTime ?? ""}`;
+          // Simple hash for change detection (includes timezone to auto-fix old imports)
+          const eventHash = `${event.summary}|${startDate}|${startTime ?? ""}|${userTimezone}`;
 
           if (existing) {
             // Check if changed
@@ -513,14 +513,3 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   return successResponse(result);
 });
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-function getDayOfWeek(dateISO: ISODateString): number {
-  const [y, m, d] = dateISO.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  const jsDay = dt.getDay();
-  return jsDay === 0 ? 7 : jsDay;
-}

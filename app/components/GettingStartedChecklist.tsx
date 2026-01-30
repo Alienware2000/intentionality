@@ -70,8 +70,8 @@ const STEPS: StepConfig[] = [
     iconColor: "text-[var(--accent-streak)]",
     title: "Create a Daily Habit",
     description: "Build consistency with recurring daily habits.",
-    actionLabel: "View Dashboard",
-    actionHref: "/",
+    actionLabel: "View Habits",
+    actionHref: "/dashboard?section=habits",
   },
   {
     id: "complete_task",
@@ -80,7 +80,7 @@ const STEPS: StepConfig[] = [
     title: "Complete a Task",
     description: "Check off a task to earn XP and build your streak.",
     actionLabel: "View Tasks",
-    actionHref: "/",
+    actionHref: "/dashboard?section=tasks",
   },
   {
     id: "brain_dump",
@@ -98,7 +98,7 @@ const STEPS: StepConfig[] = [
     title: "Start a Focus Session",
     description: "Use the Pomodoro timer to stay focused and earn XP.",
     actionLabel: "Start Focus",
-    actionHref: "/",
+    actionHref: "/dashboard?section=focus",
   },
   {
     id: "weekly_plan",

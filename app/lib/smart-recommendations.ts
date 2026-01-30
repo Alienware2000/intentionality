@@ -32,6 +32,9 @@ type RecommendationContext = {
   bestCompletionDay: number | null;
   // Optional: user email for fallback name extraction
   userEmail?: string;
+  // Optional: for optimal focus time recommendation
+  commonFocusTimes?: string[];
+  activeFocusSession?: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -56,7 +59,7 @@ function checkUrgentTasks(ctx: RecommendationContext): DailyRecommendation | nul
       ? `"${urgentOverdue[0].title}" needs your attention`
       : `You have high-priority tasks that need immediate attention`,
     actionLabel: "View Tasks",
-    actionHref: "/",
+    actionHref: "/dashboard?section=tasks",
     relatedId: urgentOverdue[0]?.id,
   };
 }
@@ -84,7 +87,7 @@ function checkStreakAtRisk(ctx: RecommendationContext): DailyRecommendation | nu
     title: "Streak at risk!",
     description: `You have a ${profile.current_streak}-day streak. Complete something to keep it going!`,
     actionLabel: "View Tasks",
-    actionHref: "/",
+    actionHref: "/dashboard?section=tasks",
   };
 }
 
@@ -158,13 +161,14 @@ function checkHabitReminder(ctx: RecommendationContext): DailyRecommendation | n
       ? `"${incompleteHabits[0].title}" still needs to be done today`
       : `You still have daily habits to complete`,
     actionLabel: "View Habits",
-    actionHref: "/",
+    actionHref: "/dashboard?section=habits",
   };
 }
 
 /**
  * Check if daily review is needed (evening).
  * Starts at 6 PM with escalating priority.
+ * Disappears once the daily review is completed.
  */
 function checkReviewReminder(ctx: RecommendationContext): DailyRecommendation | null {
   const { hasReviewedToday, currentTime } = ctx;
@@ -172,9 +176,8 @@ function checkReviewReminder(ctx: RecommendationContext): DailyRecommendation | 
   if (hasReviewedToday) return null;
 
   const hour = currentTime.getHours();
-  if (hour < 18) return null; // Start at 6 PM
+  if (hour < 18) return null;
 
-  // Escalate priority as evening progresses
   const priority = hour >= 20 ? "high" : "medium";
   const title = hour >= 20
     ? "Don't forget your daily review!"
@@ -197,6 +200,7 @@ function checkReviewReminder(ctx: RecommendationContext): DailyRecommendation | 
  * Check if weekly planning is needed (Sunday afternoon/Monday).
  * Sunday: Shows from 2 PM onwards with medium priority
  * Monday: All day with high priority (week has started!)
+ * Disappears once a plan exists for the current week.
  */
 function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | null {
   const { weeklyPlan, currentTime } = ctx;
@@ -204,20 +208,16 @@ function checkPlanningNeeded(ctx: RecommendationContext): DailyRecommendation | 
   const dayOfWeek = currentTime.getDay();
   const hour = currentTime.getHours();
 
-  // Sunday: only after 2 PM
   const isSundayAfternoon = dayOfWeek === 0 && hour >= 14;
-  // Monday: all day
   const isMonday = dayOfWeek === 1;
 
   if (!isSundayAfternoon && !isMonday) return null;
 
-  // Check if there's a plan for this week
   const today = toISODateString(currentTime);
   const monday = getWeekMonday(today);
 
   if (weeklyPlan?.week_start === monday) return null;
 
-  // Monday gets higher priority (week already started!)
   const priority = isMonday ? "high" : "medium";
 
   return {
@@ -298,7 +298,7 @@ function checkWeeklyGoalProgress(ctx: RecommendationContext): DailyRecommendatio
     title: "Weekly goal needs attention",
     description: `You have ${incompleteGoalTasks.length} task${incompleteGoalTasks.length > 1 ? "s" : ""} toward "${goalText}" that ${incompleteGoalTasks.length > 1 ? "need" : "needs"} to be completed.`,
     actionLabel: "View Tasks",
-    actionHref: "/",
+    actionHref: "/dashboard?section=tasks",
   };
 }
 
@@ -360,6 +360,53 @@ function checkBestDay(ctx: RecommendationContext): DailyRecommendation | null {
   };
 }
 
+/**
+ * Check if it's the user's optimal focus time based on their patterns.
+ * Suggests starting a focus session when conditions are right.
+ */
+function checkOptimalFocusTime(ctx: RecommendationContext): DailyRecommendation | null {
+  const { commonFocusTimes, activeFocusSession, currentTime } = ctx;
+
+  // Skip if user is already focusing
+  if (activeFocusSession) return null;
+
+  // Skip if no pattern data available
+  if (!commonFocusTimes || commonFocusTimes.length === 0) return null;
+
+  const hour = currentTime.getHours();
+
+  // Check if current hour matches any of the user's common focus times
+  // commonFocusTimes format: ["9-10 AM", "2-3 PM"] or similar
+  const isOptimalTime = commonFocusTimes.some(timeStr => {
+    // Extract hour from strings like "9-10 AM", "14", "2 PM", etc.
+    const hourMatch = timeStr.match(/^(\d{1,2})/);
+    if (!hourMatch) return false;
+
+    let matchHour = parseInt(hourMatch[1], 10);
+    // Handle PM times
+    if (timeStr.toLowerCase().includes("pm") && matchHour !== 12) {
+      matchHour += 12;
+    }
+    // Handle AM times where 12 AM = 0
+    if (timeStr.toLowerCase().includes("am") && matchHour === 12) {
+      matchHour = 0;
+    }
+
+    return hour === matchHour;
+  });
+
+  if (!isOptimalTime) return null;
+
+  return {
+    type: "optimal_focus_time",
+    priority: "low",
+    title: "Great time to focus!",
+    description: "Based on your patterns, this is one of your most productive hours.",
+    actionLabel: "Start Focus",
+    actionHref: "/dashboard?section=focus",
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
@@ -400,6 +447,7 @@ export function generateRecommendations(ctx: RecommendationContext): DailyRecomm
     checkPlanningPrompt,
     checkMilestoneCountdown,
     checkBestDay,
+    checkOptimalFocusTime,
   ];
 
   for (const generator of generators) {

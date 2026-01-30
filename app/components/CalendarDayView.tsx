@@ -395,27 +395,30 @@ const NowIndicator = memo(function NowIndicator({
   currentTime,
   timeLabelWidth,
   compact,
+  containerRef,
 }: {
   topPx: number;
   currentTime: Date;
   timeLabelWidth: number;
   compact: boolean;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const nowLineRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to now line on mount
+  // Auto-scroll calendar container to center the NOW line on mount
+  // Uses scrollTo on the container instead of scrollIntoView to avoid scrolling the whole page
   useEffect(() => {
-    if (nowLineRef.current) {
-      nowLineRef.current.scrollIntoView({
+    const container = containerRef.current;
+    if (container) {
+      const containerHeight = container.clientHeight;
+      const scrollTarget = topPx - containerHeight / 2;
+      container.scrollTo({
+        top: Math.max(0, scrollTarget),
         behavior: "smooth",
-        block: "center",
       });
     }
-  }, []);
+  }, [containerRef, topPx]);
 
   return (
     <motion.div
-      ref={nowLineRef}
       className="absolute left-0 right-0 flex items-center z-20 pointer-events-none"
       style={{ top: topPx }}
       initial={{ opacity: 0, scaleX: 0 }}
@@ -922,6 +925,7 @@ export default function CalendarDayView({
             currentTime={currentTime}
             timeLabelWidth={timeLabelWidth}
             compact={compact}
+            containerRef={gridRef}
           />
         )}
       </div>

@@ -9,8 +9,8 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { fetchAndParseICS, hashEvent, type ParsedEvent } from "@/app/lib/ics-parser";
-import type { ISODateString } from "@/app/lib/types";
+import { fetchAndParseICS, hashEvent } from "@/app/lib/ics-parser";
+import { getDayOfWeek, determineImportType } from "@/app/lib/date-utils";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -289,26 +289,3 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   return successResponse(result);
 });
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-function determineImportType(
-  event: ParsedEvent,
-  preference: string
-): "task" | "schedule" {
-  if (preference === "tasks") return "task";
-  if (preference === "schedule") return "schedule";
-
-  // Smart mode: all-day = task, timed = schedule
-  return event.isAllDay ? "task" : "schedule";
-}
-
-function getDayOfWeek(dateISO: ISODateString): number {
-  const [y, m, d] = dateISO.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  const jsDay = dt.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  // Convert to 1=Mon, ..., 7=Sun
-  return jsDay === 0 ? 7 : jsDay;
-}

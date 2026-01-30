@@ -24,10 +24,12 @@ import {
   EyeOff,
   Trophy,
   Star,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
 import { useProfile } from "./ProfileProvider";
+import { useFocus } from "./FocusProvider";
 import {
   generateRecommendations,
   getTimeBasedGreeting,
@@ -108,6 +110,11 @@ const RECOMMENDATION_ICONS: Record<RecommendationType, IconConfig> = {
     color: "text-[var(--accent-highlight)]",
     bgColor: "bg-[var(--accent-highlight)]/10",
   },
+  optimal_focus_time: {
+    icon: Clock,
+    color: "text-[var(--accent-primary)]",
+    bgColor: "bg-[var(--accent-primary)]/10",
+  },
 };
 
 
@@ -132,13 +139,15 @@ type Props = {
  */
 export default function DailyBriefing({ date }: Props) {
   const { profile } = useProfile();
+  const { mode } = useFocus();
   const [recommendations, setRecommendations] = useState<DailyRecommendation[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
+  const [isCollapsed, setIsCollapsed] = useState(false); // Start expanded by default
   const [hiddenForToday, setHiddenForToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ completed: 0, total: 0 });
   const [bestCompletionDay, setBestCompletionDay] = useState<number | null>(null);
+  const [commonFocusTimes, setCommonFocusTimes] = useState<string[]>([]);
 
   // Check if hidden for today
   useEffect(() => {
@@ -166,14 +175,27 @@ export default function DailyBriefing({ date }: Props) {
         questsRes.json(),
       ]);
 
-      // Try to get pattern data for best completion day
+      // Try to get pattern data for best completion day and focus times
       let fetchedBestDay: number | null = null;
+      let fetchedFocusTimes: string[] = [];
       if (patternsRes?.ok) {
         try {
           const patternsData = await patternsRes.json();
-          if (patternsData.ok && patternsData.patterns?.best_completion_day !== undefined) {
-            fetchedBestDay = patternsData.patterns.best_completion_day;
-            setBestCompletionDay(fetchedBestDay);
+          if (patternsData.ok && patternsData.patterns) {
+            if (patternsData.patterns.best_completion_day !== undefined) {
+              fetchedBestDay = patternsData.patterns.best_completion_day;
+              setBestCompletionDay(fetchedBestDay);
+            }
+            // Get preferred focus hours (array of hours like [9, 14, 16])
+            if (patternsData.patterns.preferred_focus_hours?.length > 0) {
+              // Convert hours to readable format for the recommendation engine
+              fetchedFocusTimes = patternsData.patterns.preferred_focus_hours.map((hour: number) => {
+                const ampm = hour >= 12 ? "PM" : "AM";
+                const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                return `${displayHour} ${ampm}`;
+              });
+              setCommonFocusTimes(fetchedFocusTimes);
+            }
           }
         } catch {
           // Silent fail - patterns are optional
@@ -229,6 +251,8 @@ export default function DailyBriefing({ date }: Props) {
         hasReviewedToday,
         currentTime: new Date(),
         bestCompletionDay: fetchedBestDay,
+        commonFocusTimes: fetchedFocusTimes,
+        activeFocusSession: mode !== "idle",
       });
 
       setRecommendations(recs);
@@ -244,7 +268,7 @@ export default function DailyBriefing({ date }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [date, profile]);
+  }, [date, profile, mode]);
 
   useEffect(() => {
     loadData();

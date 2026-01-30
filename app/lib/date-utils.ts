@@ -4,7 +4,8 @@
 // Handles ISO date strings, week calculations, and time formatting.
 // =============================================================================
 
-import type { ISODateString, Task, TaskWithStatus, DayGroup, DayOfWeek } from "./types";
+import type { ISODateString, DayOfWeek } from "./types";
+import type { ParsedEvent } from "./ics-parser";
 
 // -----------------------------------------------------------------------------
 // Date String Conversions
@@ -33,32 +34,6 @@ export function toISODateString(d: Date): ISODateString {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-/**
- * Parse an ISO 8601 dateTime string and extract local date/time.
- * Handles timezone offsets correctly (e.g., "2025-01-16T19:00:00-05:00").
- *
- * @param isoDateTime - Full ISO 8601 dateTime string
- * @returns Object with date (YYYY-MM-DD) and time (HH:MM) in local timezone
- *
- * @example
- * ```ts
- * // If user is in EST (UTC-5) and input has -05:00 offset:
- * parseISOToLocal("2025-01-16T19:00:00-05:00");
- * // Returns: { date: "2025-01-16", time: "19:00" }
- *
- * // If input is UTC time viewed from EST:
- * parseISOToLocal("2025-01-16T19:00:00Z");
- * // Returns: { date: "2025-01-16", time: "14:00" } (converted to EST)
- * ```
- */
-export function parseISOToLocal(isoDateTime: string): { date: ISODateString; time: string } {
-  const parsed = new Date(isoDateTime);
-  return {
-    date: toISODateString(parsed),
-    time: `${String(parsed.getHours()).padStart(2, "0")}:${String(parsed.getMinutes()).padStart(2, "0")}`,
-  };
 }
 
 /**
@@ -254,83 +229,6 @@ export function getPreviousActiveDay(dateISO: ISODateString, activeDays: DayOfWe
 }
 
 // -----------------------------------------------------------------------------
-// Task Grouping Utilities
-// NOTE: These functions are reserved for future features
-// -----------------------------------------------------------------------------
-
-/**
- * Group tasks into 7 buckets (Mon-Sun) starting at `start`.
- *
- * @future Reserved for weekly calendar view with drag-drop task rescheduling.
- * This function will be used when implementing a full week calendar view
- * that allows users to drag tasks between days.
- *
- * @param tasks - Array of tasks to group
- * @param start - ISO date string of the Monday to start from
- * @returns Array of 7 DayGroup objects, one for each day Mon-Sun
- *
- * @example
- * ```ts
- * const weekGroups = groupTasksByWeek(tasks, "2025-01-13");
- * // Returns: [{ date: "2025-01-13", tasks: [...] }, ...]
- * ```
- */
-export function groupTasksByWeek(tasks: Task[], start: ISODateString): DayGroup[] {
-  const grouped: DayGroup[] = [];
-  for (let i = 0; i < 7; i++) {
-    const date = addDaysISO(start, i);
-    const tasksForDay = tasks.filter((t) => t.due_date === date);
-    grouped.push({ date, tasks: tasksForDay });
-  }
-  return grouped;
-}
-
-/**
- * Split tasks into overdue and today's tasks based on the given date.
- *
- * @future Reserved for split-view dashboard showing overdue vs today tasks.
- * This function will be used when implementing a dashboard that clearly
- * separates overdue tasks from today's tasks with different visual treatment.
- *
- * @param tasks - Array of tasks to split
- * @param today - ISO date string representing "today"
- * @returns Object with overdue and today arrays, each containing TaskWithStatus
- *
- * @example
- * ```ts
- * const { overdue, today } = splitTasksForToday(allTasks, "2025-01-16");
- * // overdue: tasks with due_date < today and not completed
- * // today: tasks with due_date === today (completed or not)
- * ```
- */
-export function splitTasksForToday(
-  tasks: Task[],
-  today: ISODateString
-): { overdue: TaskWithStatus[]; today: TaskWithStatus[] } {
-  const overdue: TaskWithStatus[] = [];
-  const todayList: TaskWithStatus[] = [];
-
-  for (const t of tasks) {
-    if (t.completed) {
-      if (compareISO(t.due_date, today) === 0) {
-        todayList.push({ ...t, status: "done" });
-      }
-      continue;
-    }
-
-    const cmp = compareISO(t.due_date, today);
-    if (cmp < 0) {
-      overdue.push({ ...t, status: "overdue" });
-    } else if (cmp === 0) {
-      todayList.push({ ...t, status: "planned" });
-    }
-  }
-
-  overdue.sort((a, b) => compareISO(a.due_date, b.due_date));
-  return { overdue, today: todayList };
-}
-
-// -----------------------------------------------------------------------------
 // Time Formatting
 // -----------------------------------------------------------------------------
 
@@ -446,4 +344,27 @@ export function getWeekRangeFromISO(dateISO: ISODateString): { start: ISODateStr
   const [y, m, d] = dateISO.split("-").map(Number);
   const date = new Date(y, m - 1, d);
   return getWeekRange(date);
+}
+
+// -----------------------------------------------------------------------------
+// Calendar Import Utilities
+// -----------------------------------------------------------------------------
+
+/**
+ * Determine how to import a calendar event based on user preference.
+ * Used by calendar sync and upload routes.
+ *
+ * @param event - Parsed calendar event
+ * @param preference - User's import preference ("tasks", "schedule", or "smart")
+ * @returns "task" or "schedule" based on preference and event type
+ */
+export function determineImportType(
+  event: ParsedEvent,
+  preference: string
+): "task" | "schedule" {
+  if (preference === "tasks") return "task";
+  if (preference === "schedule") return "schedule";
+
+  // Smart mode: all-day = task, timed = schedule
+  return event.isAllDay ? "task" : "schedule";
 }

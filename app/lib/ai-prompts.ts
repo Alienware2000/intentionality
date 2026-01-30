@@ -427,19 +427,6 @@ FOCUS DURATION:
 // -----------------------------------------------------------------------------
 
 /**
- * Get a time-appropriate greeting.
- */
-export function getTimeBasedGreeting(hour?: number): string {
-  const h = hour ?? new Date().getHours();
-
-  if (h < 5) return "Burning the midnight oil?";
-  if (h < 12) return "Good morning!";
-  if (h < 17) return "Good afternoon!";
-  if (h < 21) return "Good evening!";
-  return "Working late?";
-}
-
-/**
  * Truncate text to fit within a token budget.
  * Used when context is too large.
  */

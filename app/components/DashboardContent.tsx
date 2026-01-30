@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import anime from "animejs";
 import TodayClient from "./TodayClient";
@@ -88,10 +89,36 @@ export default function DashboardContent({ date }: Props) {
   const [statsTrigger, setStatsTrigger] = useState(0);
   const { isOnboardingDone, loading: onboardingLoading } = useOnboarding();
   const prefersReducedMotionHook = useReducedMotion();
+  const searchParams = useSearchParams();
+
+  // Section refs for scroll-to-section functionality
+  const focusRef = useRef<HTMLElement>(null);
+  const habitsRef = useRef<HTMLElement>(null);
+  const tasksRef = useRef<HTMLElement>(null);
 
   const refreshStats = useCallback(() => {
     setStatsTrigger((k) => k + 1);
   }, []);
+
+  // Handle scroll-to-section from URL query param
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (!section) return;
+
+    const refs: Record<string, React.RefObject<HTMLElement | null>> = {
+      focus: focusRef,
+      habits: habitsRef,
+      tasks: tasksRef,
+    };
+
+    const ref = refs[section];
+    if (ref?.current) {
+      // Small delay to ensure layout is complete
+      setTimeout(() => {
+        ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [searchParams]);
 
   return (
     <motion.div
@@ -125,7 +152,7 @@ export default function DashboardContent({ date }: Props) {
       {/* Focus + Habits row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Focus Session */}
-        <motion.section variants={sectionVariants}>
+        <motion.section ref={focusRef} variants={sectionVariants}>
           <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3 ">
             Focus
           </h2>
@@ -133,7 +160,7 @@ export default function DashboardContent({ date }: Props) {
         </motion.section>
 
         {/* Daily Habits Section */}
-        <motion.section variants={sectionVariants}>
+        <motion.section ref={habitsRef} variants={sectionVariants}>
           <HabitsClient date={date} onHabitToggle={refreshStats} />
         </motion.section>
       </div>
@@ -142,7 +169,7 @@ export default function DashboardContent({ date }: Props) {
       <AnimatedDivider />
 
       {/* Today's Tasks & Schedule Section */}
-      <motion.section variants={sectionVariants}>
+      <motion.section ref={tasksRef} variants={sectionVariants}>
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
             Today

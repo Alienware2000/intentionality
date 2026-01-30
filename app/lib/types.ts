@@ -920,7 +920,8 @@ export type RecommendationType =
   | 'planning_prompt'     // Gentle prompt to plan (any day, no plan exists)
   | 'review_reminder'     // Daily review reminder
   | 'milestone_countdown' // Close to streak milestone
-  | 'best_day';           // User's statistically best productivity day
+  | 'best_day'            // User's statistically best productivity day
+  | 'optimal_focus_time'; // Good time to start a focus session
 
 /**
  * A single recommendation for the daily briefing.
