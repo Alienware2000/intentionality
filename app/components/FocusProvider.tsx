@@ -60,6 +60,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   });
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Timestamp-based timing: store when current phase ends (ms since epoch)
+  const targetEndTimeRef = useRef<number | null>(null);
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp } = useCelebration();
 
@@ -85,16 +87,19 @@ export function FocusProvider({ children }: { children: ReactNode }) {
             mode = "completed";
             remaining = 0;
             isRunning = false;
+            targetEndTimeRef.current = null;
           } else if (elapsedSeconds >= totalWorkSeconds) {
             // Work done, in break period
             mode = "break";
             remaining = Math.max(0, totalWorkSeconds + totalBreakSeconds - elapsedSeconds);
             isRunning = remaining > 0;
+            targetEndTimeRef.current = startedAt + (totalWorkSeconds + totalBreakSeconds) * 1000;
           } else {
             // Still in work period
             mode = "work";
             remaining = totalWorkSeconds - elapsedSeconds;
             isRunning = remaining > 0;
+            targetEndTimeRef.current = startedAt + totalWorkSeconds * 1000;
           }
 
           setState({
@@ -112,35 +117,49 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     checkActiveSession();
   }, []);
 
-  // Timer interval
+  // Calculate time remaining from target end time (handles background tab throttling)
+  const calculateTimeRemaining = useCallback(() => {
+    if (!targetEndTimeRef.current) return 0;
+    return Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
+  }, []);
+
+  // Handle phase transitions
+  const handlePhaseComplete = useCallback(() => {
+    setState((prev) => {
+      if (prev.mode === "work") {
+        // Switch to break
+        const breakSeconds = (prev.session?.break_duration ?? 5) * 60;
+        targetEndTimeRef.current = Date.now() + breakSeconds * 1000;
+        return {
+          ...prev,
+          timeRemaining: breakSeconds,
+          mode: "break",
+          isRunning: breakSeconds > 0,
+        };
+      } else if (prev.mode === "break") {
+        // Break finished, show completion screen
+        targetEndTimeRef.current = null;
+        return {
+          ...prev,
+          timeRemaining: 0,
+          mode: "completed",
+          isRunning: false,
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  // Timer interval - uses timestamp-based calculation
   useEffect(() => {
     if (state.isRunning && state.timeRemaining > 0) {
       intervalRef.current = setInterval(() => {
-        setState((prev) => {
-          const newTime = prev.timeRemaining - 1;
-          if (newTime <= 0) {
-            // Timer finished
-            if (prev.mode === "work") {
-              // Switch to break
-              const breakSeconds = (prev.session?.break_duration ?? 5) * 60;
-              return {
-                ...prev,
-                timeRemaining: breakSeconds,
-                mode: "break",
-                isRunning: breakSeconds > 0,
-              };
-            } else {
-              // Break finished, show completion screen
-              return {
-                ...prev,
-                timeRemaining: 0,
-                mode: "completed",
-                isRunning: false,
-              };
-            }
-          }
-          return { ...prev, timeRemaining: newTime };
-        });
+        const remaining = calculateTimeRemaining();
+        if (remaining <= 0) {
+          handlePhaseComplete();
+        } else {
+          setState((prev) => ({ ...prev, timeRemaining: remaining }));
+        }
       }, 1000);
     }
 
@@ -150,7 +169,24 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         intervalRef.current = null;
       }
     };
-  }, [state.isRunning, state.timeRemaining]);
+  }, [state.isRunning, state.timeRemaining, calculateTimeRemaining, handlePhaseComplete]);
+
+  // Handle visibility change - recalculate time when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && state.isRunning) {
+        const remaining = calculateTimeRemaining();
+        if (remaining <= 0) {
+          handlePhaseComplete();
+        } else {
+          setState((prev) => ({ ...prev, timeRemaining: remaining }));
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [state.isRunning, calculateTimeRemaining, handlePhaseComplete]);
 
   const startSession = useCallback(
     async (options?: {
@@ -174,9 +210,11 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         });
 
         const session = data.session;
+        const workSeconds = session.work_duration * 60;
+        targetEndTimeRef.current = Date.now() + workSeconds * 1000;
         setState({
           session,
-          timeRemaining: session.work_duration * 60,
+          timeRemaining: workSeconds,
           isRunning: true,
           mode: "work",
           error: null,
@@ -189,11 +227,18 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   );
 
   const pauseSession = useCallback(() => {
-    setState((prev) => ({ ...prev, isRunning: false }));
-  }, []);
+    // Store remaining time in state, clear target (will recalculate on resume)
+    const remaining = calculateTimeRemaining();
+    targetEndTimeRef.current = null;
+    setState((prev) => ({ ...prev, isRunning: false, timeRemaining: remaining > 0 ? remaining : prev.timeRemaining }));
+  }, [calculateTimeRemaining]);
 
   const resumeSession = useCallback(() => {
-    setState((prev) => ({ ...prev, isRunning: true }));
+    // Set new target based on remaining time
+    setState((prev) => {
+      targetEndTimeRef.current = Date.now() + prev.timeRemaining * 1000;
+      return { ...prev, isRunning: true };
+    });
   }, []);
 
   const completeSession = useCallback(async () => {
@@ -204,6 +249,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     const sessionId = state.session.id;
 
     // 2. OPTIMISTIC UPDATE - Immediately clear session and show success
+    targetEndTimeRef.current = null;
     setState({
       session: null,
       timeRemaining: 0,
@@ -245,6 +291,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ sessionId: state.session.id }),
       });
 
+      targetEndTimeRef.current = null;
       setState({
         session: null,
         timeRemaining: 0,
@@ -260,6 +307,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const skipToBreak = useCallback(() => {
     if (state.mode !== "work") return;
     const breakSeconds = (state.session?.break_duration ?? 5) * 60;
+    targetEndTimeRef.current = Date.now() + breakSeconds * 1000;
     setState((prev) => ({
       ...prev,
       timeRemaining: breakSeconds,
@@ -270,6 +318,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const skipBreak = useCallback(() => {
     if (state.mode !== "break") return;
+    targetEndTimeRef.current = null;
     setState((prev) => ({
       ...prev,
       timeRemaining: 0,
