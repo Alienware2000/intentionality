@@ -16,8 +16,18 @@ import {
   type ReactNode,
 } from "react";
 import { useToast } from "./Toast";
-import type { OnboardingStep, OnboardingProgress } from "@/app/lib/types";
-import { TOTAL_ONBOARDING_STEPS } from "@/app/lib/onboarding";
+import type { OnboardingStep, OnboardingProgress, OnboardingTier } from "@/app/lib/types";
+import {
+  TOTAL_ONBOARDING_STEPS,
+  TOTAL_ESSENTIAL_STEPS,
+  TOTAL_POWER_STEPS,
+  ESSENTIAL_STEPS,
+  POWER_STEPS,
+  isTier1Complete as checkTier1Complete,
+  countTier1Complete,
+  countTier2Complete,
+  getCurrentTier,
+} from "@/app/lib/onboarding";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 
 // -----------------------------------------------------------------------------
@@ -36,6 +46,7 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
   focus_session: "Start a Focus Session",
   weekly_plan: "Complete Weekly Planning",
   daily_review: "Complete Daily Review",
+  meet_kofi: "Chat with Kofi",
 };
 
 // -----------------------------------------------------------------------------
@@ -65,6 +76,13 @@ type OnboardingContextValue = {
   // Legacy: markStepComplete for backward compatibility in case any component still calls it
   // This is now a no-op locally since APIs handle step completion
   markStepComplete: (step: OnboardingStep) => void;
+  // Tier tracking for progressive onboarding
+  currentTier: OnboardingTier;
+  isTier1Complete: boolean;
+  tier1CompletedCount: number;
+  tier2CompletedCount: number;
+  totalEssentialSteps: number;
+  totalPowerSteps: number;
 };
 
 // -----------------------------------------------------------------------------
@@ -157,6 +175,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     fetchOnboarding(localProgress);
   }, [fetchOnboarding]);
 
+  // Listen for external refresh requests (e.g., from AIProvider after marking meet_kofi step)
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchOnboarding();
+    };
+
+    window.addEventListener('onboarding-refresh', handleRefresh);
+    return () => window.removeEventListener('onboarding-refresh', handleRefresh);
+  }, [fetchOnboarding]);
+
   // Refresh onboarding data
   const refreshOnboarding = useCallback(async () => {
     setLoading(true);
@@ -237,9 +265,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [completedSteps, isDismissed, showToast]
   );
 
+  // Compute tier status
+  const tier1CompletedCount = countTier1Complete(completedSteps);
+  const tier2CompletedCount = countTier2Complete(completedSteps);
+  const isTier1Complete = checkTier1Complete(completedSteps);
+  const currentTier = getCurrentTier(completedSteps, isDismissed);
+
   // Check if onboarding is done (dismissed or all complete)
   const completedCount = completedSteps.length;
-  const isOnboardingDone = isDismissed || completedCount >= TOTAL_ONBOARDING_STEPS;
+  const isOnboardingDone = isDismissed || currentTier === 'complete';
 
   return (
     <OnboardingContext.Provider
@@ -253,6 +287,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         skipOnboarding,
         refreshOnboarding,
         markStepComplete,
+        currentTier,
+        isTier1Complete,
+        tier1CompletedCount,
+        tier2CompletedCount,
+        totalEssentialSteps: TOTAL_ESSENTIAL_STEPS,
+        totalPowerSteps: TOTAL_POWER_STEPS,
       }}
     >
       {children}

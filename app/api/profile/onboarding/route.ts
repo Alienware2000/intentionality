@@ -23,6 +23,7 @@ type UpdateBody = {
 // Default progress for new users
 const DEFAULT_PROGRESS: OnboardingProgress = {
   completed_steps: [],
+  current_tier: 'essential',
   dismissed: false,
   started_at: new Date().toISOString(),
   completed_at: null,

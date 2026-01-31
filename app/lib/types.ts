@@ -773,22 +773,30 @@ export type CelebrationEvent = {
 
 /**
  * Onboarding checklist step identifiers.
+ * Tier 1 (Essential): create_quest, add_task, focus_session
+ * Tier 2 (Power User): create_habit, brain_dump, meet_kofi
+ * Legacy (hidden from UI): complete_task, weekly_plan, daily_review
  */
 export type OnboardingStep =
   | 'create_quest'
   | 'add_task'
   | 'create_habit'
-  | 'complete_task'
+  | 'complete_task'  // Legacy - hidden from UI
   | 'brain_dump'
   | 'focus_session'
-  | 'weekly_plan'
-  | 'daily_review';
+  | 'weekly_plan'    // Legacy - hidden from UI
+  | 'daily_review'   // Legacy - hidden from UI
+  | 'meet_kofi';     // NEW - Chat with Kofi AI
+
+/** Onboarding tier for progressive disclosure */
+export type OnboardingTier = 'essential' | 'power' | 'complete';
 
 /**
  * User's onboarding progress stored in profile.
  */
 export type OnboardingProgress = {
   completed_steps: OnboardingStep[];
+  current_tier: OnboardingTier;
   dismissed: boolean;
   started_at: string;
   completed_at: string | null;

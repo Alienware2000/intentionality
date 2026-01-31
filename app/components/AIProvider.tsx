@@ -33,6 +33,7 @@ import type { AIAction, AIConversation, AIMessage, AIInsight } from "@/app/lib/t
 import { parseActionsFromResponse, stripActionsFromResponse } from "@/app/lib/ai-actions";
 import { ProactiveInsightContainer } from "./ProactiveInsight";
 import { fetchWithRetry } from "@/app/lib/fetch-with-retry";
+import { fetchApi } from "@/app/lib/api";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -129,6 +130,9 @@ export function AIProvider({ children }: Props) {
 
   // Ref to track if we're currently streaming
   const streamingRef = useRef(false);
+
+  // Ref to track if we've marked the meet_kofi onboarding step
+  const hasMarkedKofiStepRef = useRef(false);
 
   // Get timezone for API calls
   const getTimezone = useCallback(() => {
@@ -390,6 +394,22 @@ export function AIProvider({ children }: Props) {
 
         // Refresh conversations list
         await fetchConversations();
+
+        // Mark meet_kofi onboarding step as complete (only once)
+        if (!hasMarkedKofiStepRef.current) {
+          hasMarkedKofiStepRef.current = true;
+          try {
+            await fetchApi("/api/onboarding", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "complete", step: "meet_kofi" }),
+            });
+            // Dispatch event so OnboardingProvider can refresh its state
+            window.dispatchEvent(new CustomEvent('onboarding-refresh'));
+          } catch {
+            // Non-critical - ignore errors
+          }
+        }
       } catch (error) {
         console.error("Chat error:", error);
         setError(error instanceof Error ? error.message : "Failed to send message");

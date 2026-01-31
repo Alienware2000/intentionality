@@ -5,10 +5,14 @@
 // Persistent onboarding checklist that guides new users through key features.
 // Shows on dashboard until all steps are completed or dismissed.
 // Uses OnboardingProvider for state management across the app.
-// Includes name input step for personalized greetings.
+//
+// TIERED PROGRESSIVE ONBOARDING:
+// - Tier 1 (Essential): 3 steps shown immediately
+// - Tier 2 (Power User): 3 steps shown after Tier 1 complete (collapsible)
 // =============================================================================
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
@@ -21,104 +25,33 @@ import {
   ChevronUp,
   X,
   Sparkles,
-  ClipboardList,
-  BookOpen,
   User,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useOnboarding } from "./OnboardingProvider";
 import { useProfile } from "./ProfileProvider";
+import { useAI } from "./AIProvider";
 import type { OnboardingStep } from "@/app/lib/types";
+import type { OnboardingStepConfig } from "@/app/lib/onboarding";
+import { ESSENTIAL_STEPS, POWER_STEPS } from "@/app/lib/onboarding";
 import ConfirmModal from "./ConfirmModal";
+
+// -----------------------------------------------------------------------------
+// Icon Map
+// -----------------------------------------------------------------------------
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  Target,
+  CheckSquare,
+  Flame,
+  Brain,
+  Zap,
+  Sparkles,
+};
 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-
-type StepConfig = {
-  id: OnboardingStep;
-  icon: React.ElementType;
-  iconColor: string;
-  title: string;
-  description: string;
-  actionLabel: string;
-  actionHref?: string;
-};
-
-const STEPS: StepConfig[] = [
-  {
-    id: "create_quest",
-    icon: Target,
-    iconColor: "text-[var(--accent-primary)]",
-    title: "Create a Quest",
-    description: "Quests are your big goals. Each contains related tasks.",
-    actionLabel: "Go to Quests",
-    actionHref: "/quests",
-  },
-  {
-    id: "add_task",
-    icon: CheckSquare,
-    iconColor: "text-[var(--accent-success)]",
-    title: "Add a Task",
-    description: "Break down quests into actionable items with due dates.",
-    actionLabel: "Add Task",
-    actionHref: "/quests",
-  },
-  {
-    id: "create_habit",
-    icon: Flame,
-    iconColor: "text-[var(--accent-streak)]",
-    title: "Create a Daily Habit",
-    description: "Build consistency with recurring daily habits.",
-    actionLabel: "View Habits",
-    actionHref: "/dashboard?section=habits",
-  },
-  {
-    id: "complete_task",
-    icon: Check,
-    iconColor: "text-[var(--accent-success)]",
-    title: "Complete a Task",
-    description: "Check off a task to earn XP and build your streak.",
-    actionLabel: "View Tasks",
-    actionHref: "/dashboard?section=tasks",
-  },
-  {
-    id: "brain_dump",
-    icon: Brain,
-    iconColor: "text-[var(--accent-primary)]",
-    title: "Try Brain Dump",
-    description: "Press Ctrl+K (or tap the button) to quickly capture thoughts.",
-    actionLabel: "Open Inbox",
-    actionHref: "/inbox",
-  },
-  {
-    id: "focus_session",
-    icon: Zap,
-    iconColor: "text-[var(--accent-highlight)]",
-    title: "Start a Focus Session",
-    description: "Use the Pomodoro timer to stay focused and earn XP.",
-    actionLabel: "Start Focus",
-    actionHref: "/dashboard?section=focus",
-  },
-  {
-    id: "weekly_plan",
-    icon: ClipboardList,
-    iconColor: "text-[var(--accent-primary)]",
-    title: "Complete Weekly Planning",
-    description: "Set your goals and focus areas for the week.",
-    actionLabel: "Go to Week",
-    actionHref: "/week",
-  },
-  {
-    id: "daily_review",
-    icon: BookOpen,
-    iconColor: "text-[var(--accent-success)]",
-    title: "Complete Daily Review",
-    description: "Reflect on your day and plan tomorrow.",
-    actionLabel: "Start Review",
-    actionHref: "/review",
-  },
-];
 
 const COLLAPSE_FLAG_KEY = "intentionality_onboarding_collapsed";
 const NAME_ASKED_KEY = "intentionality_name_asked";
@@ -132,30 +65,49 @@ type Props = {
 };
 
 /**
- * GettingStartedChecklist displays an interactive checklist for new users.
+ * GettingStartedChecklist displays an interactive tiered checklist for new users.
  * Uses OnboardingProvider for global state management.
  * Steps auto-complete when users perform actions across the app.
- * Includes name input step for personalized greetings.
+ *
+ * Tier 1: Essential (3 steps) - shown immediately
+ * Tier 2: Power User (3 steps) - shown after Tier 1 complete
  */
 export default function GettingStartedChecklist({ onDismiss }: Props) {
-  const { loading, isOnboardingDone, isStepComplete, completedCount, totalSteps, skipOnboarding } = useOnboarding();
+  const {
+    loading,
+    isOnboardingDone,
+    isStepComplete,
+    completedSteps,
+    skipOnboarding,
+    isTier1Complete,
+    tier1CompletedCount,
+    tier2CompletedCount,
+    totalEssentialSteps,
+    totalPowerSteps,
+  } = useOnboarding();
   const { profile, refreshProfile } = useProfile();
+  const { openChat } = useAI();
 
   // Name input step state
   const [showNameInput, setShowNameInput] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [savingName, setSavingName] = useState(false);
 
+  // Tier 2 expansion state
+  const [tier2Expanded, setTier2Expanded] = useState(false);
+  const [showUnlockCelebration, setShowUnlockCelebration] = useState(false);
+
   // Initialize collapsed state from localStorage or if user has progress
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
-    // Check localStorage flag
     if (localStorage.getItem(COLLAPSE_FLAG_KEY) === "true") return true;
-    // Will be updated when progress loads if needed
     return false;
   });
   const [recentlyCompleted, setRecentlyCompleted] = useState<OnboardingStep | null>(null);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
+
+  // Track tier1 completion for celebration
+  const prevTier1CompleteRef = useRef<boolean>(false);
 
   // Track completed steps to detect new completions
   const prevCompletedCountRef = useRef<number>(0);
@@ -167,14 +119,11 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
   useEffect(() => {
     if (loading || !profile) return;
 
-    // Show name input if:
-    // 1. User doesn't have a display_name set
-    // 2. We haven't asked before (check localStorage)
     const hasAskedBefore = localStorage.getItem(NAME_ASKED_KEY) === "true";
-    if (!profile.display_name && !hasAskedBefore && completedCount === 0) {
+    if (!profile.display_name && !hasAskedBefore && tier1CompletedCount === 0) {
       setShowNameInput(true);
     }
-  }, [loading, profile, completedCount]);
+  }, [loading, profile, tier1CompletedCount]);
 
   // Handle saving name
   const handleSaveName = useCallback(async () => {
@@ -194,7 +143,6 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
       localStorage.setItem(NAME_ASKED_KEY, "true");
       setShowNameInput(false);
     } catch {
-      // Silent fail - user can still proceed
       localStorage.setItem(NAME_ASKED_KEY, "true");
       setShowNameInput(false);
     } finally {
@@ -208,42 +156,48 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
     setShowNameInput(false);
   }, []);
 
+  // Track tier1 completion for celebration animation
+  useEffect(() => {
+    if (isTier1Complete && !prevTier1CompleteRef.current) {
+      setShowUnlockCelebration(true);
+      setTier2Expanded(true);
+      setTimeout(() => setShowUnlockCelebration(false), 3000);
+    }
+    prevTier1CompleteRef.current = isTier1Complete;
+  }, [isTier1Complete]);
+
   // Auto-collapse when progress loads if user has completed steps
-  // Note: This is a legitimate initialization pattern that requires setState in effect
   useEffect(() => {
     if (hasCheckedProgressRef.current || loading) return;
     hasCheckedProgressRef.current = true;
 
-    if (completedCount > 0 && !isCollapsed) {
-       
+    if (tier1CompletedCount > 0 && !isCollapsed) {
       setIsCollapsed(true);
     }
-  }, [completedCount, loading, isCollapsed]);
+  }, [tier1CompletedCount, loading, isCollapsed]);
 
   // Detect when a step is newly completed and show animation
-  // Note: This is a legitimate animation trigger pattern that requires setState in effect
   useEffect(() => {
     if (loading) return;
 
+    const totalCompleted = tier1CompletedCount + tier2CompletedCount;
     const prevCount = prevCompletedCountRef.current;
 
-    if (completedCount > prevCount) {
+    if (totalCompleted > prevCount) {
       // Find a newly completed step
-      for (const step of STEPS) {
+      const allSteps = [...ESSENTIAL_STEPS, ...POWER_STEPS];
+      for (const step of allSteps) {
         if (isStepComplete(step.id)) {
-          // Show the most recent completion animation
-           
           setRecentlyCompleted(step.id);
-          // Clear after animation
           const timer = setTimeout(() => setRecentlyCompleted(null), 2000);
-          prevCompletedCountRef.current = completedCount;
+          prevCompletedCountRef.current = totalCompleted;
           return () => clearTimeout(timer);
         }
       }
     }
 
-    prevCompletedCountRef.current = completedCount;
-  }, [completedCount, loading, isStepComplete]);
+    prevCompletedCountRef.current = totalCompleted;
+  }, [tier1CompletedCount, tier2CompletedCount, loading, isStepComplete]);
 
   // Save collapsed state
   const handleToggleCollapse = useCallback(() => {
@@ -270,11 +224,16 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
     onDismiss?.();
   }, [skipOnboarding, onDismiss]);
 
+  // Handle Kofi step click
+  const handleKofiClick = useCallback(() => {
+    openChat();
+  }, [openChat]);
+
   // Don't render if loading, dismissed, or all complete
   if (loading) return null;
   if (isOnboardingDone) return null;
 
-  const progressPercent = (completedCount / totalSteps) * 100;
+  const tier1Progress = (tier1CompletedCount / totalEssentialSteps) * 100;
 
   // Show name input step for first-time users
   if (showNameInput) {
@@ -367,7 +326,8 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
                 Getting Started
               </h3>
               <p className="text-xs text-[var(--text-muted)]">
-                {completedCount}/{totalSteps} completed
+                {tier1CompletedCount}/{totalEssentialSteps} essentials
+                {isTier1Complete && ` · ${tier2CompletedCount}/${totalPowerSteps} bonus`}
               </p>
             </div>
           </div>
@@ -396,7 +356,7 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
           <motion.div
             className="h-full bg-[var(--accent-primary)]"
             initial={{ width: 0 }}
-            animate={{ width: `${progressPercent}%` }}
+            animate={{ width: `${tier1Progress}%` }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           />
         </div>
@@ -412,85 +372,84 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
               className="overflow-hidden"
             >
               <div className="p-4 space-y-2">
-                {STEPS.map((step) => {
-                  const isComplete = isStepComplete(step.id);
-                  const isRecentlyCompleted = recentlyCompleted === step.id;
-                  const Icon = step.icon;
+                {/* Tier 1: Essential Steps */}
+                {ESSENTIAL_STEPS.map((step) => (
+                  <StepRow
+                    key={step.id}
+                    step={step}
+                    isComplete={isStepComplete(step.id)}
+                    isRecentlyCompleted={recentlyCompleted === step.id}
+                  />
+                ))}
 
-                  return (
+                {/* Tier Transition Message */}
+                {!isTier1Complete && (
+                  <div className="text-center py-3 text-xs text-[var(--text-muted)]">
+                    Complete to unlock more features
+                  </div>
+                )}
+
+                {/* Unlock Celebration */}
+                <AnimatePresence>
+                  {showUnlockCelebration && (
                     <motion.div
-                      key={step.id}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg transition-colors",
-                        isComplete
-                          ? "bg-[var(--accent-success)]/10"
-                          : "bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)]"
-                      )}
-                      animate={isRecentlyCompleted ? {
-                        scale: [1, 1.02, 1],
-                        backgroundColor: ["rgba(34, 197, 94, 0)", "rgba(34, 197, 94, 0.2)", "rgba(34, 197, 94, 0.1)"]
-                      } : {}}
-                      transition={{ duration: 0.5 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="p-4 rounded-lg bg-[var(--accent-success)]/10 border border-[var(--accent-success)]/20"
                     >
-                      {/* Checkbox / Icon */}
-                      <div
-                        className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                          isComplete
-                            ? "bg-[var(--accent-success)] text-white"
-                            : "bg-[var(--bg-card)] border border-[var(--border-subtle)]"
-                        )}
-                      >
-                        {isComplete ? (
-                          <motion.div
-                            initial={isRecentlyCompleted ? { scale: 0 } : { scale: 1 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                          >
-                            <Check size={16} />
-                          </motion.div>
-                        ) : (
-                          <Icon size={16} className={step.iconColor} />
-                        )}
+                      <div className="flex items-center gap-2 text-[var(--accent-success)]">
+                        <Sparkles size={18} />
+                        <span className="font-medium">Power Features Unlocked!</span>
                       </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={cn(
-                            "text-sm font-medium",
-                            isComplete
-                              ? "text-[var(--accent-success)] line-through"
-                              : "text-[var(--text-primary)]"
-                          )}
-                        >
-                          {step.title}
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)] truncate">
-                          {step.description}
-                        </p>
-                      </div>
-
-                      {/* Action button - only show for incomplete steps */}
-                      {!isComplete && step.actionHref && (
-                        <a
-                          href={step.actionHref}
-                          className={cn(
-                            "px-3 py-1.5 text-xs font-medium rounded-lg",
-                            "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
-                            "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                            "hover:border-[var(--border-default)] transition-colors",
-                            "flex-shrink-0",
-                            // Ensure 44px touch target on mobile
-                            "min-h-[44px] sm:min-h-0 flex items-center"
-                          )}
-                        >
-                          {step.actionLabel}
-                        </a>
-                      )}
                     </motion.div>
-                  );
-                })}
+                  )}
+                </AnimatePresence>
+
+                {/* Tier 2: Power User Steps (collapsed by default, expands on unlock) */}
+                {isTier1Complete && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTier2Expanded(!tier2Expanded);
+                      }}
+                      className="w-full flex items-center justify-between py-3 text-sm"
+                    >
+                      <span className="font-medium text-[var(--text-primary)]">
+                        Discover More ({tier2CompletedCount}/{totalPowerSteps})
+                      </span>
+                      <ChevronDown
+                        size={16}
+                        className={cn(
+                          "transition-transform text-[var(--text-muted)]",
+                          tier2Expanded && "rotate-180"
+                        )}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {tier2Expanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="space-y-2 overflow-hidden"
+                        >
+                          {POWER_STEPS.map((step) => (
+                            <StepRow
+                              key={step.id}
+                              step={step}
+                              isComplete={isStepComplete(step.id)}
+                              isRecentlyCompleted={recentlyCompleted === step.id}
+                              onAction={step.id === 'meet_kofi' ? handleKofiClick : undefined}
+                            />
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </div>
 
               {/* Keyboard hint */}
@@ -538,5 +497,111 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
         onCancel={() => setShowDismissConfirm(false)}
       />
     </>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Step Row Component
+// -----------------------------------------------------------------------------
+
+type StepRowProps = {
+  step: OnboardingStepConfig;
+  isComplete: boolean;
+  isRecentlyCompleted: boolean;
+  onAction?: () => void;
+};
+
+function StepRow({ step, isComplete, isRecentlyCompleted, onAction }: StepRowProps) {
+  const Icon = ICON_MAP[step.icon] || Sparkles;
+
+  return (
+    <motion.div
+      className={cn(
+        "flex items-center gap-3 p-3 rounded-lg transition-colors",
+        isComplete
+          ? "bg-[var(--accent-success)]/10"
+          : "bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)]"
+      )}
+      animate={isRecentlyCompleted ? {
+        scale: [1, 1.02, 1],
+        backgroundColor: ["rgba(34, 197, 94, 0)", "rgba(34, 197, 94, 0.2)", "rgba(34, 197, 94, 0.1)"]
+      } : {}}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Checkbox / Icon */}
+      <div
+        className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+          isComplete
+            ? "bg-[var(--accent-success)] text-white"
+            : "bg-[var(--bg-card)] border border-[var(--border-subtle)]"
+        )}
+      >
+        {isComplete ? (
+          <motion.div
+            initial={isRecentlyCompleted ? { scale: 0 } : { scale: 1 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            <Check size={16} />
+          </motion.div>
+        ) : (
+          <Icon size={16} className="text-[var(--text-muted)]" />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p
+          className={cn(
+            "text-sm font-medium",
+            isComplete
+              ? "text-[var(--accent-success)] line-through"
+              : "text-[var(--text-primary)]"
+          )}
+        >
+          {step.title}
+        </p>
+        <p className="text-xs text-[var(--text-muted)] truncate">
+          {step.description}
+        </p>
+      </div>
+
+      {/* Action button - only show for incomplete steps */}
+      {!isComplete && (step.actionHref || onAction) && (
+        onAction ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction();
+            }}
+            className={cn(
+              "px-3 py-1.5 text-xs font-medium rounded-lg",
+              "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+              "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+              "hover:border-[var(--border-default)] transition-colors",
+              "flex-shrink-0",
+              "min-h-[44px] sm:min-h-0 flex items-center"
+            )}
+          >
+            {step.actionLabel}
+          </button>
+        ) : (
+          <Link
+            href={step.actionHref!}
+            className={cn(
+              "px-3 py-1.5 text-xs font-medium rounded-lg",
+              "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+              "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+              "hover:border-[var(--border-default)] transition-colors",
+              "flex-shrink-0",
+              "min-h-[44px] sm:min-h-0 flex items-center"
+            )}
+          >
+            {step.actionLabel}
+          </Link>
+        )
+      )}
+    </motion.div>
   );
 }

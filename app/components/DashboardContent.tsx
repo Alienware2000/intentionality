@@ -17,6 +17,7 @@ import HabitsClient from "./HabitsClient";
 import DashboardStats from "./DashboardStats";
 import FocusLauncher from "./FocusLauncher";
 import GettingStartedChecklist from "./GettingStartedChecklist";
+import SocialDiscoveryCard from "./SocialDiscoveryCard";
 import DailyBriefing from "./DailyBriefing";
 import { useOnboarding } from "./OnboardingProvider";
 import AnimatedContainer from "./ui/AnimatedContainer";
@@ -148,6 +149,13 @@ export default function DashboardContent({ date }: Props) {
         </h2>
         <DashboardStats date={date} refreshTrigger={statsTrigger} />
       </motion.section>
+
+      {/* Social Discovery - contextual for engaged users (after onboarding complete) */}
+      {!onboardingLoading && isOnboardingDone && (
+        <AnimatedContainer direction="down" delay={0.1}>
+          <SocialDiscoveryCard />
+        </AnimatedContainer>
+      )}
 
       {/* Focus + Habits row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

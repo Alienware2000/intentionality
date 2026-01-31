@@ -10,9 +10,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
-  CheckSquare,
-  Flame,
-  Brain,
   Zap,
   ChevronRight,
   Sparkles,
@@ -33,36 +30,25 @@ type Step = {
   description: string;
 };
 
+// Reduced to 3 focused slides for less overwhelming onboarding
 const steps: Step[] = [
   {
     icon: Target,
     iconColor: "text-[var(--accent-primary)]",
-    title: "Quests",
-    description: "Group your tasks by goal or project. Start by creating a quest like \"Study\" or \"Work\".",
-  },
-  {
-    icon: CheckSquare,
-    iconColor: "text-[var(--accent-success)]",
-    title: "Tasks",
-    description: "Break down your quests into actionable tasks with due dates and priorities.",
-  },
-  {
-    icon: Flame,
-    iconColor: "text-[var(--accent-streak)]",
-    title: "Habits",
-    description: "Build daily habits and track your streaks. Consistency is key!",
-  },
-  {
-    icon: Brain,
-    iconColor: "text-[var(--accent-primary)]",
-    title: "Brain Dump",
-    description: "Press Ctrl+K anytime to quickly capture thoughts. Review them later in your Inbox.",
+    title: "Organize Your Goals",
+    description: "Create Quests for your projects and break them into actionable tasks with due dates.",
   },
   {
     icon: Zap,
     iconColor: "text-[var(--accent-highlight)]",
-    title: "XP & Levels",
-    description: "Earn XP by completing tasks and habits. Level up and build your streak!",
+    title: "Stay Focused",
+    description: "Use Pomodoro-style focus sessions to get things done. Earn XP for every minute of deep work.",
+  },
+  {
+    icon: Sparkles,
+    iconColor: "text-[var(--accent-success)]",
+    title: "Level Up",
+    description: "Complete tasks, build streaks, and climb the leaderboard with friends. Your productivity is a game!",
   },
 ];
 
@@ -199,6 +185,15 @@ export default function OnboardingModal() {
               ))}
             </div>
 
+            {/* CTA on final slide */}
+            {isLastStep && (
+              <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                <p className="text-xs text-[var(--text-muted)] text-center mb-3">
+                  Complete 3 quick steps to unlock more features
+                </p>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-3">
               <button
@@ -221,7 +216,7 @@ export default function OnboardingModal() {
                   "hover:bg-[var(--accent-primary)]/80 transition-colors"
                 )}
               >
-                {isLastStep ? "Get Started" : "Next"}
+                {isLastStep ? "Let's Go!" : "Next"}
                 <ChevronRight size={16} />
               </button>
             </div>

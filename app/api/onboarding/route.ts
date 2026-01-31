@@ -14,9 +14,10 @@ import {
 import {
   getOnboardingProgress,
   skipOnboarding,
+  markOnboardingStepComplete,
   TOTAL_ONBOARDING_STEPS,
 } from "@/app/lib/onboarding";
-import type { OnboardingProgress } from "@/app/lib/types";
+import type { OnboardingProgress, OnboardingStep } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions
@@ -38,7 +39,13 @@ type ResetOnboardingBody = {
   action: "reset";
 };
 
-type RequestBody = SkipOnboardingBody | MigrationBody | ResetOnboardingBody;
+/** Request body for completing a specific step */
+type CompleteStepBody = {
+  action: "complete";
+  step: OnboardingStep;
+};
+
+type RequestBody = SkipOnboardingBody | MigrationBody | ResetOnboardingBody | CompleteStepBody;
 
 // -----------------------------------------------------------------------------
 // GET /api/onboarding
@@ -150,6 +157,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     // Reset onboarding progress (re-enable guide)
     const resetProgress: OnboardingProgress = {
       completed_steps: [],
+      current_tier: 'essential',
       dismissed: false,
       started_at: new Date().toISOString(),
       completed_at: null,
@@ -165,6 +173,29 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     }
 
     return successResponse({ reset: true });
+  }
+
+  if (body.action === "complete") {
+    const completeBody = body as CompleteStepBody;
+    if (!completeBody.step) {
+      return ApiErrors.badRequest("Missing step");
+    }
+
+    const result = await markOnboardingStepComplete(supabase, user.id, completeBody.step);
+
+    // Fetch updated progress
+    const progress = await getOnboardingProgress(supabase, user.id);
+    const completedCount = progress.completed_steps.length;
+
+    return successResponse({
+      marked: result.marked,
+      allComplete: result.allComplete,
+      progress,
+      completedSteps: progress.completed_steps,
+      completedCount,
+      totalSteps: TOTAL_ONBOARDING_STEPS,
+      isDismissed: progress.dismissed,
+    });
   }
 
   return ApiErrors.badRequest("Invalid action");
