@@ -194,6 +194,10 @@ export default function AuthContent() {
       options: {
         // Redirect back to our callback handler after Google consent
         redirectTo: `${window.location.origin}/auth/callback`,
+        // Force account picker even when user has an active Google session
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
 

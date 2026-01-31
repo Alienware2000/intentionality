@@ -53,7 +53,17 @@ export async function GET(request: NextRequest) {
 
   // Verify user is authenticated
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (error) {
+    console.error("Supabase auth network error:", error);
+    return NextResponse.redirect(
+      new URL("/settings?error=auth_unavailable", request.nextUrl.origin)
+    );
+  }
 
   if (!user || user.id !== stateData.userId) {
     return NextResponse.redirect(

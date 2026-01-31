@@ -35,7 +35,18 @@ export async function GET(request: NextRequest) {
 
   // Check authentication
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (error) {
+    console.error("Supabase auth network error:", error);
+    return NextResponse.json(
+      { ok: false, error: "Authentication service temporarily unavailable" },
+      { status: 503 }
+    );
+  }
 
   if (!user) {
     return NextResponse.json(
