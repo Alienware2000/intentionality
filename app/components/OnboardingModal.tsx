@@ -118,18 +118,23 @@ export default function OnboardingModal() {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]",
-              "w-full max-w-md p-6 rounded-xl mx-4 sm:mx-0",
-              "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
-              "shadow-2xl"
-            )}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           >
-            {/* Close button */}
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className={cn(
+                "relative w-full max-w-md p-5 sm:p-6 rounded-xl",
+                "bg-[var(--bg-card)] glass-card border border-[var(--border-default)]",
+                "shadow-2xl max-h-[90vh] overflow-y-auto"
+              )}
+            >
+              {/* Close button */}
             <button
               onClick={handleSkip}
               aria-label="Close onboarding"
@@ -225,6 +230,7 @@ export default function OnboardingModal() {
             <p className="text-center text-xs text-[var(--text-muted)] mt-4">
               Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] font-mono">Ctrl+K</kbd> anytime for quick capture
             </p>
+            </motion.div>
           </motion.div>
         </>
       )}

@@ -28,7 +28,19 @@ export async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
-  const response = await fetch(input, init);
+  let response: Response;
+
+  try {
+    response = await fetch(input, init);
+  } catch (error) {
+    // Network error (DNS failure, timeout, offline, etc.)
+    // Retry once after a short delay
+    console.warn("Fetch failed, retrying once:", error);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Second attempt - let this one throw if it fails
+    response = await fetch(input, init);
+  }
 
   // If we get a 401, retry once - the token may have been refreshed by another request
   if (response.status === 401) {
