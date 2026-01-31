@@ -15,6 +15,7 @@ import {
   useMemo,
   useRef,
 } from "react";
+import { fetchWithRetry } from "@/app/lib/fetch-with-retry";
 import type {
   FriendWithProfile,
   FriendRequest,
@@ -143,7 +144,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
     try {
       setFriendsLoading(true);
       setError(null);
-      const res = await fetch("/api/friends");
+      const res = await fetchWithRetry("/api/friends");
       const data = await res.json();
 
       if (data.ok) {
@@ -165,7 +166,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
   const refreshNotifications = useCallback(async () => {
     try {
       setNotificationsLoading(true);
-      const res = await fetch("/api/notifications");
+      const res = await fetchWithRetry("/api/notifications");
       const data = await res.json();
 
       if (data.ok) {
@@ -280,7 +281,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
     try {
       setGroupsLoading(true);
       setError(null);
-      const res = await fetch("/api/groups");
+      const res = await fetchWithRetry("/api/groups");
       const data = await res.json();
 
       if (data.ok) {

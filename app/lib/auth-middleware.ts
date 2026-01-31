@@ -143,18 +143,27 @@ export function withAuth(handler: AuthenticatedHandler) {
 
     // Verify user authentication via JWT validation
     // Note: Using getUser() instead of getSession() for security
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    // Return 401 if not authenticated
-    if (authError || !user) {
-      return unauthorizedResponse();
+      // Return 401 if not authenticated
+      if (authError || !user) {
+        return unauthorizedResponse();
+      }
+
+      // Call the handler with authenticated context
+      return handler({ user, supabase, request });
+    } catch (error) {
+      // Network error reaching Supabase Auth service
+      console.error("Supabase auth network error:", error);
+      return NextResponse.json(
+        { ok: false, error: "Authentication service temporarily unavailable" },
+        { status: 503 }
+      );
     }
-
-    // Call the handler with authenticated context
-    return handler({ user, supabase, request });
   };
 }
 

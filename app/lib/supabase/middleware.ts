@@ -62,9 +62,15 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Call getUser() to refresh the session.
   // This validates the JWT with Supabase Auth and refreshes if needed.
   // Do NOT use getSession() here - it doesn't validate the token.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (error) {
+    // Network error reaching Supabase - log and treat as unauthenticated
+    console.error("Supabase getUser() network error:", error);
+    // Continue with user = null, routes will handle their own auth
+  }
 
   // Define route types
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");

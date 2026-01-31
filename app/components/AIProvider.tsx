@@ -32,6 +32,7 @@ import {
 import type { AIAction, AIConversation, AIMessage, AIInsight } from "@/app/lib/types";
 import { parseActionsFromResponse, stripActionsFromResponse } from "@/app/lib/ai-actions";
 import { ProactiveInsightContainer } from "./ProactiveInsight";
+import { fetchWithRetry } from "@/app/lib/fetch-with-retry";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -155,7 +156,7 @@ export function AIProvider({ children }: Props) {
    */
   const fetchConversations = useCallback(async () => {
     try {
-      const response = await fetch("/api/ai/chat");
+      const response = await fetchWithRetry("/api/ai/chat");
       const data = await response.json();
       if (data.ok) {
         setConversations(data.conversations || []);
@@ -173,7 +174,7 @@ export function AIProvider({ children }: Props) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/ai/chat?conversationId=${conversationId}`);
+      const response = await fetchWithRetry(`/api/ai/chat?conversationId=${conversationId}`);
       const data = await response.json();
 
       if (data.ok) {
@@ -214,7 +215,7 @@ export function AIProvider({ children }: Props) {
   const deleteConversation = useCallback(
     async (conversationId: string) => {
       try {
-        const response = await fetch(`/api/ai/chat?conversationId=${conversationId}`, {
+        const response = await fetchWithRetry(`/api/ai/chat?conversationId=${conversationId}`, {
           method: "DELETE",
         });
         const data = await response.json();
@@ -284,7 +285,7 @@ export function AIProvider({ children }: Props) {
 
       try {
         // Send request
-        const response = await fetch("/api/ai/chat", {
+        const response = await fetchWithRetry("/api/ai/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -447,7 +448,7 @@ export function AIProvider({ children }: Props) {
 
       // First, request generation of new insights (POST)
       // This checks patterns and creates new insights if needed
-      const generateResponse = await fetch(`/api/ai/insights${params}`, {
+      const generateResponse = await fetchWithRetry(`/api/ai/insights${params}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timezone }),
@@ -460,7 +461,7 @@ export function AIProvider({ children }: Props) {
       }
 
       // Then fetch all pending insights (GET)
-      const fetchResponse = await fetch("/api/ai/insights");
+      const fetchResponse = await fetchWithRetry("/api/ai/insights");
       const data = await fetchResponse.json();
 
       if (data.ok && data.insights) {
@@ -479,7 +480,7 @@ export function AIProvider({ children }: Props) {
     setInsights((prev) => prev.filter((i) => i.id !== insightId));
 
     try {
-      await fetch("/api/ai/insights", {
+      await fetchWithRetry("/api/ai/insights", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
