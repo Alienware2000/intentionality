@@ -22,6 +22,20 @@ import { NextResponse, type NextRequest } from "next/server";
  * @returns NextResponse with updated auth cookies
  */
 export async function updateSession(request: NextRequest) {
+  // Redirect from Vercel domain to canonical domain in production
+  // This ensures users always use the same domain for consistent auth cookies
+  const host = request.headers.get("host") || "";
+  if (
+    process.env.NODE_ENV === "production" &&
+    host.includes("intentionality.vercel.app")
+  ) {
+    const url = request.nextUrl.clone();
+    url.host = "intentionality.io";
+    url.protocol = "https";
+    url.port = "";
+    return NextResponse.redirect(url, { status: 308 }); // Permanent redirect
+  }
+
   // Start with a simple "pass-through" response
   let supabaseResponse = NextResponse.next({
     request,
