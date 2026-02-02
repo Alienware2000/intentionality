@@ -1,6 +1,6 @@
 // =============================================================================
 // SYNC STATUS INDICATOR COMPONENT
-// Shows the current sync status for Canvas and Google Calendar integrations.
+// Shows the current sync status for Google Calendar integration.
 // Displays syncing animation, last sync time, or error state.
 // =============================================================================
 
@@ -31,24 +31,19 @@ type SyncStatusIndicatorProps = {
  * - Hidden: no connected integrations
  */
 export default function SyncStatusIndicator({ state }: SyncStatusIndicatorProps) {
-  const { canvas, googleCalendar, isAnySyncing } = state;
+  const { googleCalendar, isAnySyncing } = state;
 
   // Don't show if no integrations are connected
-  if (!canvas.connected && !googleCalendar.connected) {
+  if (!googleCalendar.connected) {
     return null;
   }
 
   // Check for any errors
-  const hasError = canvas.error || googleCalendar.error;
-  const errorMessage = [canvas.error, googleCalendar.error]
-    .filter(Boolean)
-    .join("; ");
+  const hasError = googleCalendar.error;
+  const errorMessage = googleCalendar.error || "";
 
-  // Get the most recent sync time
-  const lastSyncedAt = getLatestSyncTime(
-    canvas.lastSyncedAt,
-    googleCalendar.lastSyncedAt
-  );
+  // Get the sync time
+  const lastSyncedAt = googleCalendar.lastSyncedAt;
 
   // Determine display state
   if (isAnySyncing) {
@@ -97,22 +92,6 @@ export default function SyncStatusIndicator({ state }: SyncStatusIndicatorProps)
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-
-/**
- * Returns the more recent of two sync timestamps.
- */
-function getLatestSyncTime(
-  time1: string | null,
-  time2: string | null
-): string | null {
-  if (!time1 && !time2) return null;
-  if (!time1) return time2;
-  if (!time2) return time1;
-
-  const date1 = new Date(time1);
-  const date2 = new Date(time2);
-  return date1 > date2 ? time1 : time2;
-}
 
 /**
  * Formats a timestamp as a human-readable "time ago" string.

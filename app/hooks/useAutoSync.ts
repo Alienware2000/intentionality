@@ -1,6 +1,6 @@
 // =============================================================================
 // USE AUTO-SYNC HOOK
-// Automatically syncs Canvas and Google Calendar integrations on dashboard load.
+// Automatically syncs Google Calendar integration on dashboard load.
 // Implements cooldown logic to prevent excessive API calls.
 // =============================================================================
 
@@ -31,7 +31,6 @@ type ConnectionResponse = {
   connected: boolean;
   connection?: {
     last_synced_at: string | null;
-    selected_courses?: string[];
     selected_calendars?: string[];
   } | null;
 };
@@ -41,19 +40,18 @@ type ConnectionResponse = {
 // -----------------------------------------------------------------------------
 
 /**
- * Hook that manages automatic syncing of Canvas and Google Calendar.
+ * Hook that manages automatic syncing of Google Calendar.
  *
  * Features:
  * - Triggers sync on mount (respects cooldown)
  * - Triggers sync on window focus (respects cooldown + debounce)
- * - Tracks sync status for each integration
+ * - Tracks sync status for the integration
  * - Stores last sync timestamp in localStorage
  *
- * @returns AutoSyncState with current sync status for all integrations
+ * @returns AutoSyncState with current sync status
  */
 export function useAutoSync(): AutoSyncState {
   const [state, setState] = useState<AutoSyncState>({
-    canvas: createDefaultStatus(),
     googleCalendar: createDefaultStatus(),
     isAnySyncing: false,
   });
@@ -62,35 +60,24 @@ export function useAutoSync(): AutoSyncState {
   const isMountedRef = useRef(true);
 
   // ---------------------------------------------------------------------------
-  // Check connection status for both integrations
+  // Check connection status for Google Calendar
   // ---------------------------------------------------------------------------
 
   const checkConnections = useCallback(async () => {
-    const [canvasRes, googleRes] = await Promise.allSettled([
-      fetch("/api/integrations/canvas"),
-      fetch("/api/calendar/google"),
-    ]);
-
-    const canvasData: ConnectionResponse | null =
-      canvasRes.status === "fulfilled" && canvasRes.value.ok
-        ? await canvasRes.value.json()
-        : null;
+    const googleRes = await fetch("/api/calendar/google").catch(() => null);
 
     const googleData: ConnectionResponse | null =
-      googleRes.status === "fulfilled" && googleRes.value.ok
-        ? await googleRes.value.json()
-        : null;
+      googleRes && googleRes.ok ? await googleRes.json() : null;
 
-    return { canvasData, googleData };
+    return { googleData };
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Sync a single integration
+  // Sync Google Calendar
   // ---------------------------------------------------------------------------
 
   const syncIntegration = useCallback(
     async (
-      type: "canvas" | "googleCalendar",
       endpoint: string,
       hasSelection: boolean
     ): Promise<IntegrationSyncStatus> => {
@@ -106,20 +93,18 @@ export function useAutoSync(): AutoSyncState {
       // Update state to show syncing
       setState((prev) => ({
         ...prev,
-        [type]: { ...prev[type], syncing: true, error: null },
+        googleCalendar: { ...prev.googleCalendar, syncing: true, error: null },
         isAnySyncing: true,
       }));
 
       try {
         // Pass timezone for Google Calendar sync to ensure correct event times
-        const fetchOptions: RequestInit = { method: "POST" };
-        if (type === "googleCalendar") {
-          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          fetchOptions.headers = { "Content-Type": "application/json" };
-          fetchOptions.body = JSON.stringify({ timezone });
-        }
-
-        const response = await fetch(endpoint, fetchOptions);
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timezone }),
+        });
         const data = await response.json();
 
         if (!response.ok || !data.ok) {
@@ -167,30 +152,20 @@ export function useAutoSync(): AutoSyncState {
       }
 
       // Check connections
-      const { canvasData, googleData } = await checkConnections();
+      const { googleData } = await checkConnections();
 
       if (!isMountedRef.current) return;
 
       // Update connection status
-      const canvasConnected = canvasData?.connected ?? false;
       const googleConnected = googleData?.connected ?? false;
 
-      const canvasHasSelection =
-        canvasConnected &&
-        (canvasData?.connection?.selected_courses?.length ?? 0) > 0;
       const googleHasSelection =
         googleConnected &&
         (googleData?.connection?.selected_calendars?.length ?? 0) > 0;
 
       // If nothing to sync, just update connection status
-      if (!canvasHasSelection && !googleHasSelection) {
+      if (!googleHasSelection) {
         setState({
-          canvas: {
-            connected: canvasConnected,
-            syncing: false,
-            lastSyncedAt: canvasData?.connection?.last_synced_at ?? null,
-            error: null,
-          },
           googleCalendar: {
             connected: googleConnected,
             syncing: false,
@@ -205,30 +180,15 @@ export function useAutoSync(): AutoSyncState {
       // Record sync attempt timestamp
       localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
 
-      // Sync integrations in parallel
-      const [canvasResult, googleResult] = await Promise.all([
-        canvasHasSelection
-          ? syncIntegration("canvas", "/api/integrations/canvas/sync", true)
-          : Promise.resolve({
-              connected: canvasConnected,
-              syncing: false,
-              lastSyncedAt: canvasData?.connection?.last_synced_at ?? null,
-              error: null,
-            } as IntegrationSyncStatus),
-        googleHasSelection
-          ? syncIntegration("googleCalendar", "/api/calendar/google/sync", true)
-          : Promise.resolve({
-              connected: googleConnected,
-              syncing: false,
-              lastSyncedAt: googleData?.connection?.last_synced_at ?? null,
-              error: null,
-            } as IntegrationSyncStatus),
-      ]);
+      // Sync Google Calendar
+      const googleResult = await syncIntegration(
+        "/api/calendar/google/sync",
+        true
+      );
 
       if (!isMountedRef.current) return;
 
       setState({
-        canvas: canvasResult,
         googleCalendar: googleResult,
         isAnySyncing: false,
       });

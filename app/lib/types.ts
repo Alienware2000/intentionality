@@ -345,66 +345,6 @@ export type DayTimelineResponse = {
 };
 
 // =============================================================================
-// CANVAS INTEGRATION TYPES
-// =============================================================================
-
-/**
- * Canvas LMS connection for a user.
- * Stores OAuth credentials and sync settings.
- */
-export type CanvasConnection = {
-  id: Id;
-  user_id: string;
-  instance_url: string;
-  access_token: string;
-  refresh_token: string | null;
-  token_expires_at: string | null;
-  selected_courses: string[];
-  last_synced_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-/**
- * Synced assignment record linking Canvas assignment to task.
- */
-export type SyncedAssignment = {
-  id: Id;
-  user_id: string;
-  canvas_assignment_id: string;
-  canvas_course_id: string;
-  task_id: Id | null;
-  quest_id: Id;
-  assignment_name: string;
-  due_at: string | null;
-  last_synced_at: string;
-  created_at: string;
-};
-
-/**
- * Canvas course from the Canvas API.
- */
-export type CanvasCourse = {
-  id: number;
-  name: string;
-  course_code: string;
-  enrollment_term_id?: number;
-};
-
-/**
- * Canvas assignment from the Canvas API.
- */
-export type CanvasAssignment = {
-  id: number;
-  name: string;
-  description: string | null;
-  due_at: string | null;
-  points_possible: number | null;
-  course_id: number;
-  html_url: string;
-};
-
-// =============================================================================
 // CALENDAR IMPORT TYPES
 // =============================================================================
 
@@ -467,7 +407,7 @@ export type ImportedEvent = {
 // =============================================================================
 
 /**
- * Sync status for a single integration (Canvas or Google Calendar).
+ * Sync status for a single integration (Google Calendar).
  * Tracks connection state, sync progress, and any errors.
  */
 export type IntegrationSyncStatus = {
@@ -482,7 +422,6 @@ export type IntegrationSyncStatus = {
  * Used by the useAutoSync hook and SyncStatusIndicator component.
  */
 export type AutoSyncState = {
-  canvas: IntegrationSyncStatus;
   googleCalendar: IntegrationSyncStatus;
   isAnySyncing: boolean;
 };
