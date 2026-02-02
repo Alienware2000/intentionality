@@ -81,8 +81,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const origin = request.nextUrl.origin;
-  const redirectUri = `${origin}/api/calendar/google/callback`;
+  // Use canonical domain to ensure OAuth redirect_uri matches what was used in auth
+  const canonicalOrigin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const redirectUri = `${canonicalOrigin}/api/calendar/google/callback`;
 
   try {
     // Exchange authorization code for tokens

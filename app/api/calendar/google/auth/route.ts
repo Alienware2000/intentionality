@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Build the callback URL
-  const origin = request.nextUrl.origin;
-  const redirectUri = `${origin}/api/calendar/google/callback`;
+  // Build the callback URL - use canonical domain to ensure OAuth consistency
+  const canonicalOrigin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const redirectUri = `${canonicalOrigin}/api/calendar/google/callback`;
 
   // Generate state parameter (includes user ID for security)
   const state = Buffer.from(JSON.stringify({
