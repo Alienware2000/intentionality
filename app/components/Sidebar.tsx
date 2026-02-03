@@ -227,7 +227,7 @@ export default function Sidebar() {
             <Link href="/analytics" className="block group">
               <div
                 ref={xpBarRef}
-                className="space-y-3 p-3 -mx-3 rounded-lg transition-all duration-200 group-hover:bg-[var(--bg-hover)] group-hover:shadow-lg"
+                className="level-component-container space-y-3 p-3 -mx-3 rounded-lg transition-all duration-200 group-hover:bg-[var(--bg-hover)] group-hover:shadow-lg"
               >
                 <div className="space-y-1">
                   <div className="flex items-baseline justify-between">
@@ -246,7 +246,7 @@ export default function Sidebar() {
                       {profile.xp_total.toLocaleString()} XP
                     </span>
                   </div>
-                  <span className="text-xs font-medium text-[var(--accent-highlight)]">
+                  <span className="text-xs font-medium text-[var(--accent-highlight)] level-title-badge">
                     {getTitleForLevel(profile.level)}
                   </span>
                 </div>

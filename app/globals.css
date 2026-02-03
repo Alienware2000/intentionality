@@ -519,6 +519,25 @@ body {
   background: var(--border-subtle);
 }
 
+/* Level component container - subtle background in light mode for contrast */
+.level-component-container {
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+:root.light .level-component-container {
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Level title badge - gold-tinted semi-transparent background (matches StreakBadge pattern) */
+.level-title-badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background-color: rgba(var(--accent-highlight-rgb), 0.15);
+  border: 1px solid rgba(var(--accent-highlight-rgb), 0.3);
+  transition: all 150ms ease;
+}
+
 
 /* =============================================================================
    PREMIUM ANIMATIONS
