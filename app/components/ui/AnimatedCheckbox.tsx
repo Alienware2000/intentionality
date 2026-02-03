@@ -114,6 +114,8 @@ export default function AnimatedCheckbox({
         sizeClasses[size],
         "border-2 flex items-center justify-center",
         "transition-all duration-200",
+        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
         disabled
           ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] cursor-not-allowed"
           : checked

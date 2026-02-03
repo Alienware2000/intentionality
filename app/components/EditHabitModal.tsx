@@ -184,7 +184,12 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
+                className={cn(
+                  "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]",
+                  "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                )}
               >
                 <X size={18} className="text-[var(--text-muted)]" />
               </button>
@@ -203,10 +208,11 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                   onChange={(e) => setTitle(e.target.value)}
                   autoFocus
                   className={cn(
-                    "w-full px-3 py-2 rounded",
+                    "w-full px-3 py-3 rounded min-h-[44px]",
                     "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                     "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                     "focus:outline-none focus:border-[var(--accent-primary)]",
+                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                     "transition-colors"
                   )}
                 />
@@ -224,8 +230,11 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                       type="button"
                       onClick={() => setPriority(opt.value)}
                       className={cn(
-                        "flex-1 px-3 py-2 rounded text-sm font-medium",
+                        "flex-1 px-3 py-3 rounded text-sm font-medium min-h-[44px]",
                         "border-2 transition-all",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.98]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                         priority === opt.value
                           ? "border-current bg-[var(--bg-hover)]"
                           : "border-transparent bg-[var(--bg-elevated)] text-[var(--text-muted)]"
@@ -255,8 +264,11 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                       type="button"
                       onClick={() => handleFrequencyChange(opt.value)}
                       className={cn(
-                        "flex-1 px-2 py-2 rounded text-sm font-medium",
+                        "flex-1 px-2 py-3 rounded text-sm font-medium min-h-[44px]",
                         "border-2 transition-all",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.98]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                         frequency === opt.value
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
                           : "border-transparent bg-[var(--bg-elevated)] text-[var(--text-muted)]"
@@ -275,8 +287,11 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                       onClick={() => toggleDay(day.value)}
                       aria-label={day.label}
                       className={cn(
-                        "w-9 h-9 rounded-full text-sm font-medium",
+                        "w-10 h-10 sm:w-9 sm:h-9 rounded-full text-sm font-medium",
                         "border-2 transition-all",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.95]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
                         activeDays.includes(day.value)
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
                           : "border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
@@ -297,9 +312,12 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
               <button
                 onClick={onClose}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-                  "hover:bg-[var(--bg-elevated)] transition-colors"
+                  "hover:bg-[var(--bg-elevated)] transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                 )}
               >
                 Cancel
@@ -308,9 +326,12 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                 onClick={handleSave}
                 disabled={saving || !title.trim() || activeDays.length === 0}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--accent-primary)] text-white",
                   "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >

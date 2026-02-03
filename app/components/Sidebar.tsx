@@ -201,6 +201,7 @@ export default function Sidebar() {
               className={cn(
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-lg",
                 "transition-all duration-150",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
                 isActive
                   ? "bg-[var(--bg-card)] text-[var(--text-primary)]"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"

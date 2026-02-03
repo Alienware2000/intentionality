@@ -105,7 +105,10 @@ export default function MobileNav() {
                 href={item.href}
                 className={cn(
                   "relative flex flex-col items-center justify-center flex-1 h-full",
-                  "transition-colors min-w-[64px]",
+                  "transition-colors min-w-[64px] min-h-[44px]",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:bg-[var(--bg-hover)] active:scale-[0.97]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
                   isActive
                     ? "text-[var(--accent-primary)]"
                     : "text-[var(--text-muted)]"
@@ -117,7 +120,7 @@ export default function MobileNav() {
                 >
                   <Icon size={22} />
                 </motion.div>
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+                <span className="text-xs mt-1 font-medium">{item.label}</span>
                 {/* Animated indicator - bubble style */}
                 <AnimatePresence>
                   {isActive && (
@@ -142,11 +145,14 @@ export default function MobileNav() {
             aria-label="Open menu"
             className={cn(
               "flex flex-col items-center justify-center flex-1 h-full",
-              "text-[var(--text-muted)] min-w-[64px]"
+              "text-[var(--text-muted)] min-w-[64px] min-h-[44px]",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "active:bg-[var(--bg-hover)] active:scale-[0.97]",
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2"
             )}
           >
             <Menu size={22} />
-            <span className="text-[10px] mt-1 font-medium">More</span>
+            <span className="text-xs mt-1 font-medium">More</span>
           </motion.button>
         </div>
       </nav>
@@ -187,7 +193,12 @@ export default function MobileNav() {
                     whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                     aria-label="Close menu"
-                    className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                    className={cn(
+                      "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
+                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    )}
                   >
                     <X size={20} className="text-[var(--text-muted)]" />
                   </motion.button>
@@ -281,9 +292,12 @@ export default function MobileNav() {
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg",
+                        "flex items-center gap-3 px-4 py-3 rounded-lg min-h-[44px]",
                         "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                         "hover:bg-[var(--bg-hover)] transition-colors",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.98] active:bg-[var(--bg-hover)]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                         pathname === item.href && "bg-[var(--bg-card)] text-[var(--text-primary)]"
                       )}
                     >

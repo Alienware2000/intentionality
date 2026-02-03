@@ -141,9 +141,11 @@ export default function FocusTimer() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-xl",
+                "flex items-center gap-2 px-6 py-3 rounded-xl min-h-[48px]",
                 "bg-[var(--accent-highlight)] text-black font-medium",
                 "hover:bg-[var(--accent-highlight)]/90",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-highlight)] focus-visible:outline-offset-2",
                 "transition-all duration-200"
               )}
             >
@@ -154,7 +156,12 @@ export default function FocusTimer() {
               onClick={abandonSession}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] transition-colors"
+              className={cn(
+                "p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] transition-colors",
+                "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+              )}
               title="Discard session"
             >
               <X size={18} className="text-[var(--text-muted)]" />
@@ -181,8 +188,8 @@ export default function FocusTimer() {
       )}
     >
       <div className="flex flex-col items-center">
-        {/* Timer Ring */}
-        <div className="relative w-48 h-48 mb-4">
+        {/* Timer Ring - responsive sizing for small screens */}
+        <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-4">
           {/* Background ring */}
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
             <circle
@@ -271,6 +278,8 @@ export default function FocusTimer() {
             className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center",
               "transition-colors",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2",
               isBreak
                 ? "bg-[var(--accent-success)] hover:bg-[var(--accent-success)]/80"
                 : "bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/80"
@@ -290,7 +299,12 @@ export default function FocusTimer() {
               onClick={isBreak ? skipBreak : skipToBreak}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] transition-colors"
+              className={cn(
+                "p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] transition-colors",
+                "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+              )}
               title={isBreak ? "End break" : "Skip to break"}
             >
               <SkipForward size={18} className="text-[var(--text-muted)]" />
@@ -302,7 +316,12 @@ export default function FocusTimer() {
                 onClick={completeSession}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-3 rounded-xl bg-[var(--accent-success)] hover:bg-[var(--accent-success)]/80 transition-colors"
+                className={cn(
+                  "p-3 rounded-xl bg-[var(--accent-success)] hover:bg-[var(--accent-success)]/80 transition-colors",
+                  "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-success)]"
+                )}
                 title="Complete session"
               >
                 <Check size={18} className="text-white" />
@@ -314,7 +333,12 @@ export default function FocusTimer() {
               onClick={abandonSession}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/20 transition-colors"
+              className={cn(
+                "p-3 rounded-xl bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/20 transition-colors",
+                "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+              )}
               title="Abandon session"
             >
               <X size={18} className="text-[var(--text-muted)]" />

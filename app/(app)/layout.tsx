@@ -35,7 +35,7 @@ export default async function AppLayout({
                 <BrainDumpProvider>
                   <AIProvider>
                     <SocialProvider>
-                      <div className="relative flex h-screen overflow-hidden">
+                      <div className="relative flex min-h-dvh overflow-hidden">
                         {/* Desktop sidebar - hidden on mobile */}
                         <Sidebar />
 

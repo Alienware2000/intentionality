@@ -61,7 +61,12 @@ export default function ConfirmModal({
             {/* Close button */}
             <button
               onClick={onCancel}
-              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
+              className={cn(
+                "absolute top-3 right-3 p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]",
+                "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+              )}
             >
               <X size={18} className="text-[var(--text-muted)]" />
             </button>
@@ -86,9 +91,12 @@ export default function ConfirmModal({
               <button
                 onClick={onCancel}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-                  "hover:bg-[var(--bg-elevated)] transition-colors"
+                  "hover:bg-[var(--bg-elevated)] transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                 )}
               >
                 {cancelLabel}
@@ -96,9 +104,12 @@ export default function ConfirmModal({
               <button
                 onClick={onConfirm}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--accent-primary)] text-white",
-                  "hover:bg-[var(--accent-primary)]/80 transition-colors"
+                  "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                 )}
               >
                 {confirmLabel}

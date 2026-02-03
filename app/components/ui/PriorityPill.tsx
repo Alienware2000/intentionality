@@ -28,8 +28,8 @@ export default function PriorityPill({ priority, compact = false, className }: P
       className={cn(
         "font-medium uppercase tracking-wide rounded-full flex-shrink-0",
         compact
-          ? "text-[9px] px-1.5 py-0.5"
-          : "text-[10px] px-2 py-1",
+          ? "text-[10px] px-1.5 py-0.5"
+          : "text-xs px-2 py-1",
         PRIORITY_PILL_COLORS[priority],
         className
       )}

@@ -206,7 +206,12 @@ export default function AddScheduleModal({
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]"
+                className={cn(
+                  "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-all hover:rotate-[15deg]",
+                  "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                )}
               >
                 <X size={18} className="text-[var(--text-muted)]" />
               </button>
@@ -226,10 +231,11 @@ export default function AddScheduleModal({
                   placeholder="CS 101, Gym, Work..."
                   autoFocus
                   className={cn(
-                    "w-full px-3 py-2 rounded",
+                    "w-full px-3 py-3 rounded min-h-[44px]",
                     "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                     "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                     "focus:outline-none focus:border-[var(--accent-primary)]",
+                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                     "transition-colors"
                   )}
                 />
@@ -246,10 +252,11 @@ export default function AddScheduleModal({
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                     className={cn(
-                      "w-full px-3 py-2 rounded",
+                      "w-full px-3 py-3 rounded min-h-[44px]",
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                       "transition-colors",
                       "theme-color-scheme"
                     )}
@@ -264,10 +271,11 @@ export default function AddScheduleModal({
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                     className={cn(
-                      "w-full px-3 py-2 rounded",
+                      "w-full px-3 py-3 rounded min-h-[44px]",
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                       "transition-colors",
                       "theme-color-scheme"
                     )}
@@ -288,7 +296,10 @@ export default function AddScheduleModal({
                       onClick={() => toggleDay(day.value)}
                       title={day.label}
                       className={cn(
-                        "flex-1 min-w-[40px] h-10 rounded text-sm font-medium transition-all",
+                        "flex-1 min-w-[40px] min-h-[44px] rounded text-sm font-medium transition-all",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.95]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                         daysOfWeek.includes(day.value)
                           ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
@@ -312,7 +323,10 @@ export default function AddScheduleModal({
                       type="button"
                       onClick={() => setColor(c)}
                       className={cn(
-                        "w-8 h-8 rounded-full transition-all",
+                        "w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-all",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.9]",
+                        "focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2",
                         color === c && "ring-2 ring-white ring-offset-2 ring-offset-[var(--bg-card)]"
                       )}
                       style={{ backgroundColor: c }}
@@ -332,10 +346,11 @@ export default function AddScheduleModal({
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Room 302, Building A..."
                   className={cn(
-                    "w-full px-3 py-2 rounded",
+                    "w-full px-3 py-3 rounded min-h-[44px]",
                     "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                     "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
                     "focus:outline-none focus:border-[var(--accent-primary)]",
+                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                     "transition-colors"
                   )}
                 />
@@ -352,10 +367,11 @@ export default function AddScheduleModal({
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value as ISODateString)}
                     className={cn(
-                      "w-full px-3 py-2 rounded",
+                      "w-full px-3 py-3 rounded min-h-[44px]",
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                       "transition-colors",
                       "theme-color-scheme"
                     )}
@@ -370,10 +386,11 @@ export default function AddScheduleModal({
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value as ISODateString)}
                     className={cn(
-                      "w-full px-3 py-2 rounded",
+                      "w-full px-3 py-3 rounded min-h-[44px]",
                       "bg-[var(--bg-elevated)] border border-[var(--border-default)]",
                       "text-[var(--text-primary)]",
                       "focus:outline-none focus:border-[var(--accent-primary)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                       "transition-colors",
                       "theme-color-scheme"
                     )}
@@ -436,9 +453,12 @@ export default function AddScheduleModal({
               <button
                 onClick={onClose}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-                  "hover:bg-[var(--bg-elevated)] transition-colors"
+                  "hover:bg-[var(--bg-elevated)] transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                 )}
               >
                 Cancel
@@ -447,9 +467,12 @@ export default function AddScheduleModal({
                 onClick={handleSave}
                 disabled={saving || !title.trim() || daysOfWeek.length === 0}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 text-sm font-medium rounded min-h-[44px]",
                   "bg-[var(--accent-primary)] text-white",
                   "hover:bg-[var(--accent-primary)]/80 transition-colors",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.98]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >

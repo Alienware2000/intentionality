@@ -180,7 +180,13 @@ export default function ChatPanel() {
                 {showHistory ? (
                   <button
                     onClick={() => setShowHistory(false)}
-                    className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                    className={cn(
+                      "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
+                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "active:scale-[0.95]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    )}
                   >
                     <ChevronLeft size={18} className="text-[var(--text-muted)]" />
                   </button>
@@ -207,14 +213,26 @@ export default function ChatPanel() {
                   <>
                     <button
                       onClick={() => setShowHistory(true)}
-                      className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                      className={cn(
+                        "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
+                        "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.95] active:bg-[var(--bg-hover)]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                      )}
                       title="Conversation history"
                     >
                       <History size={18} className="text-[var(--text-muted)]" />
                     </button>
                     <button
                       onClick={startNewConversation}
-                      className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                      className={cn(
+                        "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
+                        "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "active:scale-[0.95] active:bg-[var(--bg-hover)]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                      )}
                       title="New conversation"
                     >
                       <Plus size={18} className="text-[var(--text-muted)]" />
@@ -223,7 +241,13 @@ export default function ChatPanel() {
                 )}
                 <button
                   onClick={closeChat}
-                  className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                  className={cn(
+                    "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
+                    "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                    "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                    "active:scale-[0.95] active:bg-[var(--bg-hover)]",
+                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                  )}
                   title="Close (Esc)"
                 >
                   <X size={18} className="text-[var(--text-muted)]" />
@@ -373,9 +397,12 @@ export default function ChatPanel() {
                       type="submit"
                       disabled={!input.trim() || isLoading}
                       className={cn(
-                        "flex-shrink-0 m-2 p-2 rounded-lg transition-colors",
+                        "flex-shrink-0 m-1.5 p-2.5 rounded-lg transition-colors",
+                        "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
                         input.trim() && !isLoading
-                          ? "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90"
+                          ? "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 active:scale-[0.95]"
                           : "bg-transparent text-[var(--text-muted)] cursor-not-allowed"
                       )}
                     >

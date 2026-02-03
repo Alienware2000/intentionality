@@ -141,7 +141,12 @@ function HabitCard({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             aria-label="Edit habit"
-            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
+            className={cn(
+              "p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors",
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+            )}
           >
             <Pencil size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Pencil size={12} className="text-[var(--text-muted)] hidden sm:block" />
@@ -154,7 +159,12 @@ function HabitCard({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             aria-label="Delete habit"
-            className="p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
+            className={cn(
+              "p-2.5 sm:p-1.5 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors",
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+            )}
           >
             <Trash2 size={14} className="text-[var(--text-muted)] sm:hidden" />
             <Trash2 size={12} className="text-[var(--text-muted)] hidden sm:block" />
