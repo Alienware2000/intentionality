@@ -38,10 +38,23 @@ export default function LandingPage() {
               Intentionality
             </span>
           </div>
-          <p className="text-sm text-[var(--text-muted)]">
-            © {new Date().getFullYear()} Intentionality. Made for students, by
-            students.
-          </p>
+          <div className="flex items-center gap-4">
+            <a
+              href="/privacy"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              Privacy
+            </a>
+            <a
+              href="/terms"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              Terms
+            </a>
+            <span className="text-sm text-[var(--text-muted)]">
+              © {new Date().getFullYear()} Intentionality
+            </span>
+          </div>
         </div>
       </footer>
     </>

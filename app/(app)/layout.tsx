@@ -40,7 +40,7 @@ export default async function AppLayout({
                         <Sidebar />
 
                         {/* Main content area with bottom padding for mobile nav */}
-                        <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pb-20 md:pb-0">
+                        <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pb-20 md:pb-0 md:ml-64">
                           <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
                             {children}
                           </div>

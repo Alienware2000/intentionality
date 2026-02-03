@@ -116,7 +116,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex h-screen w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex-col glass-card">
+    <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 h-screen w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex-col glass-card">
       {/* Header - fixed */}
       <div className="flex-shrink-0 p-6 pb-4">
         <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
