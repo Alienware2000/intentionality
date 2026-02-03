@@ -338,7 +338,21 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
                 e.stopPropagation();
                 handleDismissClick();
               }}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors"
+              className={cn(
+                "p-2 sm:p-1.5 rounded-lg",
+                "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+                "hover:bg-[var(--bg-elevated)]",
+                // Mobile accessibility (44px minimum)
+                "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+                "flex items-center justify-center",
+                // Touch responsiveness
+                "[touch-action:manipulation]",
+                "active:scale-[0.97] active:bg-[var(--bg-hover)]",
+                // Keyboard accessibility
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+                // Fast transitions
+                "transition-all duration-100"
+              )}
               aria-label="Dismiss checklist"
             >
               <X size={16} />
@@ -414,7 +428,14 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
                         e.stopPropagation();
                         setTier2Expanded(!tier2Expanded);
                       }}
-                      className="w-full flex items-center justify-between py-3 text-sm"
+                      className={cn(
+                        "w-full flex items-center justify-between py-3 text-sm",
+                        "min-h-[44px] sm:min-h-0",
+                        "[touch-action:manipulation]",
+                        "active:bg-[var(--bg-hover)]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+                        "transition-colors duration-100 rounded-lg"
+                      )}
                     >
                       <span className="font-medium text-[var(--text-primary)]">
                         Discover More ({tier2CompletedCount}/{totalPowerSteps})
@@ -576,12 +597,22 @@ function StepRow({ step, isComplete, isRecentlyCompleted, onAction }: StepRowPro
               onAction();
             }}
             className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-lg",
+              // Base styling
+              "px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
               "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-              "hover:border-[var(--border-default)] transition-colors",
+              "hover:border-[var(--border-default)]",
               "flex-shrink-0",
-              "min-h-[44px] sm:min-h-0 flex items-center"
+              // Mobile accessibility (44px minimum)
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+              "flex items-center justify-center",
+              // Touch responsiveness
+              "[touch-action:manipulation]",
+              "active:scale-[0.97] active:bg-[var(--bg-hover)]",
+              // Keyboard accessibility
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+              // Fast transitions
+              "transition-all duration-100"
             )}
           >
             {step.actionLabel}
@@ -590,12 +621,22 @@ function StepRow({ step, isComplete, isRecentlyCompleted, onAction }: StepRowPro
           <Link
             href={step.actionHref!}
             className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-lg",
+              // Base styling
+              "px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg",
               "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
               "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-              "hover:border-[var(--border-default)] transition-colors",
+              "hover:border-[var(--border-default)]",
               "flex-shrink-0",
-              "min-h-[44px] sm:min-h-0 flex items-center"
+              // Mobile accessibility (44px minimum)
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+              "flex items-center justify-center",
+              // Touch responsiveness
+              "[touch-action:manipulation]",
+              "active:scale-[0.97] active:bg-[var(--bg-hover)]",
+              // Keyboard accessibility
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+              // Fast transitions
+              "transition-all duration-100"
             )}
           >
             {step.actionLabel}

@@ -688,6 +688,17 @@ body {
 }
 
 /* =============================================================================
+   MOBILE TOUCH ACCESSIBILITY
+   Utilities for touch-friendly interactions
+   ============================================================================= */
+
+/* Touch button utility - eliminates 300ms tap delay */
+.touch-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =============================================================================
    MOBILE SAFE AREA
    Support for notched phones (iPhone X+, etc.)
    ============================================================================= */

@@ -130,7 +130,13 @@ export default function OnboardingQuestCard() {
               setIsExpanded(!isExpanded);
             }
           }}
-          className="w-full p-4 text-left cursor-pointer"
+          className={cn(
+            "w-full p-4 text-left cursor-pointer",
+            "[touch-action:manipulation]",
+            "active:bg-[var(--bg-hover)]",
+            "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+            "transition-colors duration-100"
+          )}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -241,7 +247,14 @@ export default function OnboardingQuestCard() {
                         e.stopPropagation();
                         setTier2Expanded(!tier2Expanded);
                       }}
-                      className="w-full flex items-center justify-between py-3 text-sm"
+                      className={cn(
+                        "w-full flex items-center justify-between py-3 text-sm",
+                        "min-h-[44px] sm:min-h-0",
+                        "[touch-action:manipulation]",
+                        "active:bg-[var(--bg-hover)]",
+                        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+                        "transition-colors duration-100 rounded-lg"
+                      )}
                     >
                       <span className="font-medium text-[var(--text-primary)]">
                         Discover More ({tier2CompletedCount}/{totalPowerSteps})
@@ -377,11 +390,22 @@ function StepRow({ step, isComplete, onAction }: StepRowProps) {
               onAction();
             }}
             className={cn(
-              "px-2 py-1 text-xs font-medium rounded",
+              // Base styling
+              "px-3 py-2 sm:px-2 sm:py-1 text-xs font-medium rounded-lg sm:rounded",
               "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
               "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-              "hover:border-[var(--border-default)] transition-colors",
-              "flex-shrink-0"
+              "hover:border-[var(--border-default)]",
+              "flex-shrink-0",
+              // Mobile accessibility (44px minimum)
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+              "flex items-center justify-center",
+              // Touch responsiveness
+              "[touch-action:manipulation]",
+              "active:scale-[0.97] active:bg-[var(--bg-hover)]",
+              // Keyboard accessibility
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+              // Fast transitions (100ms < 200ms TBT threshold)
+              "transition-all duration-100"
             )}
           >
             {step.actionLabel}
@@ -391,11 +415,22 @@ function StepRow({ step, isComplete, onAction }: StepRowProps) {
             href={step.actionHref!}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "px-2 py-1 text-xs font-medium rounded",
+              // Base styling
+              "px-3 py-2 sm:px-2 sm:py-1 text-xs font-medium rounded-lg sm:rounded",
               "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
               "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-              "hover:border-[var(--border-default)] transition-colors",
-              "flex-shrink-0"
+              "hover:border-[var(--border-default)]",
+              "flex-shrink-0",
+              // Mobile accessibility (44px minimum)
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+              "flex items-center justify-center",
+              // Touch responsiveness
+              "[touch-action:manipulation]",
+              "active:scale-[0.97] active:bg-[var(--bg-hover)]",
+              // Keyboard accessibility
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] focus-visible:outline-offset-2",
+              // Fast transitions (100ms < 200ms TBT threshold)
+              "transition-all duration-100"
             )}
           >
             {step.actionLabel}
