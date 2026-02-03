@@ -170,57 +170,54 @@ export default function MobileNav() {
               onClick={() => setMenuOpen(false)}
             />
 
-            {/* Menu Panel - Glass effect */}
+            {/* Bottom Sheet Menu */}
             <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setMenuOpen(false);
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
               className={cn(
-                "fixed top-0 right-0 bottom-0 w-full max-w-xs z-50 md:hidden",
-                "glass-card-elevated border-l border-[var(--border-default)]",
-                "flex flex-col pb-20"
+                "fixed left-0 right-0 bottom-0 z-50 md:hidden",
+                "glass-card-elevated border-t border-[var(--border-default)]",
+                "rounded-t-2xl max-h-[85vh]",
+                "flex flex-col"
               )}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[var(--border-default)]">
-                <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                  Menu
-                </h2>
-                <div className="flex items-center gap-1">
-                  <motion.button
-                    onClick={() => setMenuOpen(false)}
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="Close menu"
-                    className={cn(
-                      "p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors",
-                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
-                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
-                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
-                    )}
-                  >
-                    <X size={20} className="text-[var(--text-muted)]" />
-                  </motion.button>
-                </div>
+              {/* Drag Handle */}
+              <div
+                className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+                aria-hidden="true"
+              >
+                <div className="w-10 h-1 rounded-full bg-[var(--text-muted)]/30" />
               </div>
 
-              {/* Kofi AI Button - Prominent placement in mobile menu */}
-              <div className="p-4 border-b border-[var(--border-default)]">
+              {/* Kofi AI Button - Full width prominent placement */}
+              <div className="px-4 pb-3">
                 <motion.button
                   onClick={() => {
                     setMenuOpen(false);
                     openChat();
                   }}
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl",
+                    "w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl",
                     "bg-[var(--accent-primary)]/10",
                     "border border-[var(--accent-primary)]/20",
-                    "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/20",
+                    "text-[var(--text-primary)]",
                     "transition-all duration-200",
-                    "glow-primary-hover"
+                    "min-h-[44px]",
+                    "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                    "active:bg-[var(--accent-primary)]/20 active:scale-[0.98]",
+                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
                   )}
                 >
                   <Sparkles size={20} className="text-[var(--accent-primary)]" />
@@ -228,48 +225,16 @@ export default function MobileNav() {
                 </motion.button>
               </div>
 
-              {/* Profile Section */}
-              <div className="p-4 border-b border-[var(--border-default)]">
-                {loading ? (
-                  <div className="h-20 animate-pulse bg-[var(--skeleton-bg)] rounded-lg" />
-                ) : profile ? (
-                  <motion.div
-                    className="space-y-3"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-3xl font-mono font-bold text-[var(--text-primary)]">
-                          LVL {profile.level}
-                        </span>
-                        <span className="text-sm font-mono text-[var(--text-muted)]">
-                          {profile.xp_total.toLocaleString()} XP
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium text-[var(--accent-highlight)]">
-                        {getTitleForLevel(profile.level)}
-                      </span>
-                    </div>
-                    <XpBar totalXp={profile.xp_total} showLevel={false} size="sm" />
-                    <div className="pt-2">
-                      <StreakBadge streak={profile.current_streak} size="sm" />
-                    </div>
-                  </motion.div>
-                ) : null}
-              </div>
-
-              {/* Menu Items with stagger animation */}
+              {/* 2-Column Navigation Grid */}
               <motion.div
-                className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-1"
+                className="grid grid-cols-2 gap-3 px-4 pb-4"
                 initial="hidden"
                 animate="visible"
                 variants={{
                   hidden: { opacity: 0 },
                   visible: {
                     opacity: 1,
-                    transition: { staggerChildren: 0.05, delayChildren: 0.15 },
+                    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
                   },
                 }}
               >
@@ -284,66 +249,110 @@ export default function MobileNav() {
                   <motion.div
                     key={item.href}
                     variants={{
-                      hidden: { opacity: 0, x: 20 },
-                      visible: { opacity: 1, x: 0 },
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 },
                     }}
                   >
                     <Link
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg min-h-[44px]",
-                        "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                        "hover:bg-[var(--bg-hover)] transition-colors",
+                        "flex flex-col items-center justify-center gap-2",
+                        "p-4 rounded-xl min-h-[80px]",
+                        "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                        "transition-all duration-200",
                         "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
-                        "active:scale-[0.98] active:bg-[var(--bg-hover)]",
+                        "active:scale-[0.97] active:bg-[var(--bg-hover)]",
                         "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
-                        pathname === item.href && "bg-[var(--bg-card)] text-[var(--text-primary)]"
+                        pathname === item.href
+                          ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5"
+                          : "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]"
                       )}
                     >
-                      <item.icon size={20} />
-                      {item.label}
+                      <item.icon
+                        size={24}
+                        className={cn(
+                          pathname === item.href
+                            ? "text-[var(--accent-primary)]"
+                            : "text-[var(--text-secondary)]"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          pathname === item.href
+                            ? "text-[var(--accent-primary)]"
+                            : "text-[var(--text-primary)]"
+                        )}
+                      >
+                        {item.label}
+                      </span>
                     </Link>
                   </motion.div>
                 ))}
               </motion.div>
 
-              {/* Bottom Actions */}
+              {/* Compact Profile Footer */}
               <motion.div
-                className="p-4 border-t border-[var(--border-default)] space-y-1"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-default)] pb-safe"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
               >
-                <motion.button
-                  onClick={toggleTheme}
-                  whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg",
-                    "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                    "hover:bg-[var(--bg-hover)] transition-colors"
-                  )}
-                >
-                  <motion.div
-                    animate={{ rotate: theme === "dark" ? 0 : 180 }}
-                    transition={{ duration: 0.3 }}
+                {/* Profile Info */}
+                <div className="flex items-center gap-3">
+                  {loading ? (
+                    <div className="h-6 w-20 animate-pulse bg-[var(--skeleton-bg)] rounded" />
+                  ) : profile ? (
+                    <>
+                      <span className="text-lg font-mono font-bold text-[var(--text-primary)]">
+                        LVL {profile.level}
+                      </span>
+                      <StreakBadge streak={profile.current_streak} size="sm" />
+                    </>
+                  ) : null}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1">
+                  <motion.button
+                    onClick={toggleTheme}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    className={cn(
+                      "p-3 rounded-lg",
+                      "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                      "hover:bg-[var(--bg-hover)] transition-colors",
+                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "active:scale-[0.95] active:bg-[var(--bg-hover)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    )}
                   >
-                    {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-                  </motion.div>
-                  <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-                </motion.button>
-                <motion.button
-                  onClick={handleSignOut}
-                  whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg",
-                    "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                    "hover:bg-[var(--bg-hover)] transition-colors"
-                  )}
-                >
-                  <LogOut size={20} />
-                  <span>Sign out</span>
-                </motion.button>
+                    <motion.div
+                      animate={{ rotate: theme === "dark" ? 0 : 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+                    </motion.div>
+                  </motion.button>
+                  <motion.button
+                    onClick={handleSignOut}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Sign out"
+                    className={cn(
+                      "p-3 rounded-lg",
+                      "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                      "hover:bg-[var(--bg-hover)] transition-colors",
+                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "active:scale-[0.95] active:bg-[var(--bg-hover)]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    )}
+                  >
+                    <LogOut size={20} />
+                  </motion.button>
+                </div>
               </motion.div>
             </motion.div>
           </>
