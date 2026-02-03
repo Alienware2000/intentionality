@@ -851,6 +851,7 @@ export default function CalendarDayView({
       ref={gridRef}
       className={cn(
         "relative overflow-y-auto overflow-x-hidden custom-scrollbar",
+        "overscroll-y-contain", // Prevent scroll from bubbling to page
         compact ? "max-h-[400px]" : "max-h-[500px]"
       )}
       style={{ height: Math.min(totalHeight + 20, compact ? 400 : 500) }}

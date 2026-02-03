@@ -51,3 +51,6 @@ next-env.d.ts
 dev.db
 dev.db-journal
 
+# Favicon preview (temporary)
+public/favicon-preview/
+
