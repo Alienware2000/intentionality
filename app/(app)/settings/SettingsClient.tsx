@@ -10,6 +10,7 @@ import GoogleCalendarCard from "./GoogleCalendarCard";
 import AILearningCard from "./AILearningCard";
 import PrivacySettingsCard from "./PrivacySettingsCard";
 import AppearanceSettingsCard from "./AppearanceSettingsCard";
+import PremiumSettingsCard from "./PremiumSettingsCard";
 
 export default function SettingsClient() {
   return (
@@ -31,6 +32,16 @@ export default function SettingsClient() {
         </h2>
         <div className="space-y-4">
           <PrivacySettingsCard />
+        </div>
+      </section>
+
+      {/* Your Plan Section */}
+      <section>
+        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
+          Your Plan
+        </h2>
+        <div className="space-y-4">
+          <PremiumSettingsCard />
         </div>
       </section>
 

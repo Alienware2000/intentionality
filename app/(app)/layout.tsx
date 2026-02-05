@@ -20,6 +20,7 @@ import { ToastProvider } from "../components/Toast";
 import { OnboardingProvider } from "../components/OnboardingProvider";
 import { AIProvider } from "../components/AIProvider";
 import { SocialProvider } from "../components/SocialProvider";
+import { FreemiumProvider } from "../components/FreemiumProvider";
 
 export default async function AppLayout({
   children,
@@ -35,9 +36,10 @@ export default async function AppLayout({
             <FocusProvider>
               <ToastProvider>
                 <OnboardingProvider>
-                  <BrainDumpProvider>
-                    <AIProvider>
-                      <SocialProvider>
+                  <FreemiumProvider>
+                    <BrainDumpProvider>
+                      <AIProvider>
+                        <SocialProvider>
                         <div className="relative flex min-h-dvh overflow-hidden">
                           {/* Desktop sidebar - hidden on mobile */}
                           <Sidebar />
@@ -56,9 +58,10 @@ export default async function AppLayout({
                           {/* AI Chat Panel (slide-out) */}
                           <ChatPanel />
                         </div>
-                      </SocialProvider>
-                    </AIProvider>
-                  </BrainDumpProvider>
+                        </SocialProvider>
+                      </AIProvider>
+                    </BrainDumpProvider>
+                  </FreemiumProvider>
                 </OnboardingProvider>
               </ToastProvider>
             </FocusProvider>

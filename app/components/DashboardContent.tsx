@@ -19,6 +19,7 @@ import FocusLauncher from "./FocusLauncher";
 import GettingStartedChecklist from "./GettingStartedChecklist";
 import SocialDiscoveryCard from "./SocialDiscoveryCard";
 import DailyBriefing from "./DailyBriefing";
+import PremiumUsageBanner from "./PremiumUsageBanner";
 import { useOnboarding } from "./OnboardingProvider";
 import AnimatedContainer from "./ui/AnimatedContainer";
 import type { ISODateString } from "@/app/lib/types";
@@ -154,6 +155,13 @@ export default function DashboardContent({ date }: Props) {
       {!onboardingLoading && isOnboardingDone && (
         <AnimatedContainer direction="down" delay={0.1}>
           <SocialDiscoveryCard />
+        </AnimatedContainer>
+      )}
+
+      {/* Premium Usage Banner - subtle usage indicator for AI features */}
+      {!onboardingLoading && isOnboardingDone && (
+        <AnimatedContainer direction="down" delay={0.15}>
+          <PremiumUsageBanner />
         </AnimatedContainer>
       )}
 

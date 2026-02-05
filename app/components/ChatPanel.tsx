@@ -36,7 +36,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useAI } from "./AIProvider";
+import { useFreemium } from "./FreemiumProvider";
 import ChatMessage from "./ChatMessage";
+import PremiumBadge from "./PremiumBadge";
+import UsageIndicator from "./UsageIndicator";
 
 // -----------------------------------------------------------------------------
 // Component
@@ -57,6 +60,8 @@ export default function ChatPanel() {
     isLoading,
     error,
   } = useAI();
+
+  const { usage, openUpgradeModal, openLimitReachedModal, refreshUsage } = useFreemium();
 
   const [input, setInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -94,6 +99,23 @@ export default function ChatPanel() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, showHistory, closeChat]);
+
+  // Detect rate limit errors and trigger LimitReachedModal
+  useEffect(() => {
+    if (error && error.startsWith("RATE_LIMIT:")) {
+      openLimitReachedModal("chat");
+    }
+  }, [error, openLimitReachedModal]);
+
+  // Track previous loading state to detect successful sends
+  const prevLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    // When loading transitions from true to false without error, refresh usage
+    if (prevLoadingRef.current && !isLoading && !error) {
+      refreshUsage();
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading, error, refreshUsage]);
 
   /**
    * Handle form submission.
@@ -196,13 +218,26 @@ export default function ChatPanel() {
                     <Sparkles size={18} className="text-[var(--accent-primary)]" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-[var(--text-primary)] text-sm">
-                      {showHistory ? "Conversations" : "Kofi"}
-                    </h2>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="font-semibold text-[var(--text-primary)] text-sm">
+                        {showHistory ? "Conversations" : "Kofi"}
+                      </h2>
+                      {!showHistory && (
+                        <PremiumBadge
+                          variant="chip"
+                          size="sm"
+                          onClick={() => openUpgradeModal("chat_badge")}
+                        />
+                      )}
+                    </div>
                     {!showHistory && (
-                      <p className="text-xs text-[var(--text-muted)]">
-                        AI Assistant
-                      </p>
+                      <UsageIndicator
+                        feature="chat"
+                        usage={usage?.chat || null}
+                        compact
+                        alwaysShow
+                        onClick={() => openUpgradeModal("chat_usage")}
+                      />
                     )}
                   </div>
                 </div>
@@ -368,8 +403,8 @@ export default function ChatPanel() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Error Display */}
-                {error && (
+                {/* Error Display - hide rate limit errors (shown in modal instead) */}
+                {error && !error.startsWith("RATE_LIMIT:") && (
                   <div className="mx-4 mb-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
                     <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
                     <p className="text-sm text-red-500">{error}</p>

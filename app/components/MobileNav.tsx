@@ -29,6 +29,7 @@ import {
   Trophy,
   Users,
   UsersRound,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { getTitleForLevel } from "@/app/lib/gamification";
@@ -36,6 +37,7 @@ import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { useBrainDump } from "./BrainDumpProvider";
 import { useAI } from "./AIProvider";
+import { useFreemium } from "./FreemiumProvider";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
 import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
@@ -62,6 +64,7 @@ export default function MobileNav() {
   const { theme, toggleTheme } = useTheme();
   const { openBrainDump } = useBrainDump();
   const { openChat } = useAI();
+  const { openUpgradeModal } = useFreemium();
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleSignOut() {
@@ -315,6 +318,25 @@ export default function MobileNav() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-1">
+                  <motion.button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openUpgradeModal("mobile_menu");
+                    }}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Upgrade to Pro"
+                    className={cn(
+                      "p-3 rounded-lg",
+                      "text-[var(--accent-highlight)]",
+                      "hover:bg-[var(--accent-highlight)]/10 transition-colors",
+                      "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "active:scale-[0.95] active:bg-[var(--accent-highlight)]/10",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                    )}
+                  >
+                    <Crown size={20} />
+                  </motion.button>
                   <motion.button
                     onClick={toggleTheme}
                     whileTap={{ scale: 0.9 }}

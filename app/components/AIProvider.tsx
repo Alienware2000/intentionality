@@ -303,6 +303,10 @@ export function AIProvider({ children }: Props) {
 
         if (!response.ok) {
           const errorData = await response.json();
+          // Prefix rate limit errors so ChatPanel can detect them
+          if (response.status === 429) {
+            throw new Error(`RATE_LIMIT:${errorData.error || "Daily limit reached"}`);
+          }
           throw new Error(errorData.error || "Failed to send message");
         }
 

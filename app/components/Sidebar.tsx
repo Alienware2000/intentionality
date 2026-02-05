@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, Sparkles, Trophy, Users, UsersRound, Palette, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, Sparkles, Trophy, Users, UsersRound, Palette, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
@@ -21,6 +21,7 @@ import { useProfile } from "./ProfileProvider";
 import { useTheme, ACCENT_THEMES, ACCENT_THEME_ORDER, BASE_THEMES, BASE_THEME_ORDER } from "./ThemeProvider";
 import { useAI } from "./AIProvider";
 import { useSidebar } from "./SidebarProvider";
+import { useFreemium } from "./FreemiumProvider";
 import { getTitleForLevel } from "@/app/lib/gamification";
 import { XpBarTooltip } from "./HelpTooltip";
 import { fetchApi } from "@/app/lib/api";
@@ -61,6 +62,7 @@ export default function Sidebar() {
   const { theme, accent, baseTheme, setTheme, setAccent, setBaseTheme } = useTheme();
   const { openChat } = useAI();
   const { isCollapsed, toggleSidebar, animationsEnabled } = useSidebar();
+  const { openUpgradeModal } = useFreemium();
   const xpBarRef = useRef<HTMLDivElement>(null);
   const prevXpRef = useRef<number | null>(null);
   const themePickerRef = useRef<HTMLDivElement>(null);
@@ -149,9 +151,21 @@ export default function Sidebar() {
             </div>
           </SidebarTooltip>
         ) : (
-          <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-            Intentionality
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
+              Intentionality
+            </h1>
+            <motion.button
+              type="button"
+              onClick={() => openUpgradeModal("sidebar_header")}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-1.5 rounded-lg text-[var(--accent-highlight)] hover:bg-[var(--accent-highlight)]/10 transition-colors"
+              title="Upgrade to Pro"
+            >
+              <Crown size={14} />
+            </motion.button>
+          </div>
         )}
       </div>
 
@@ -320,8 +334,20 @@ export default function Sidebar() {
       {/* Compact Footer - fixed */}
       <div className={cn("flex-shrink-0 border-t border-[var(--border-subtle)]", isCollapsed ? "p-2" : "p-4")}>
         {isCollapsed ? (
-          // Collapsed footer: toggle button only (no streak - too noisy)
-          <div className="flex items-center justify-center">
+          // Collapsed footer: crown and toggle button
+          <div className="flex flex-col items-center gap-1">
+            <SidebarTooltip label="Upgrade to Pro">
+              <motion.button
+                type="button"
+                onClick={() => openUpgradeModal("sidebar")}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-lg text-[var(--accent-highlight)] hover:bg-[var(--accent-highlight)]/10 transition-colors"
+                aria-label="Upgrade to Pro"
+              >
+                <Crown size={16} />
+              </motion.button>
+            </SidebarTooltip>
             <SidebarTooltip label="Expand sidebar" shortcut="Ctrl+B">
               <motion.button
                 type="button"

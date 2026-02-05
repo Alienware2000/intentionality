@@ -20,6 +20,9 @@ import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { parseTaskInput } from "@/app/lib/nlp-parser";
 import { useOnboarding } from "./OnboardingProvider";
+import { useFreemium } from "./FreemiumProvider";
+import UsageIndicator from "./UsageIndicator";
+import PremiumBadge from "./PremiumBadge";
 import type { BrainDumpEntry, ParsedTaskInput, AIProcessBrainDumpResponse, Priority } from "@/app/lib/types";
 
 // Type for AI suggestions
@@ -43,6 +46,7 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { markStepComplete } = useOnboarding();
+  const { usage, openUpgradeModal, openLimitReachedModal, refreshUsage } = useFreemium();
 
   // AI processing state
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -139,8 +143,16 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
       setAiSuggestions(result.suggestions || []);
       setAiNotes(result.notes || null);
       setShowAiResults(true);
+      // Refresh usage after successful AI process
+      refreshUsage();
     } catch (e) {
-      setError(getErrorMessage(e));
+      const errorMsg = getErrorMessage(e);
+      // Check for rate limit error (429 status returns this message from backend)
+      if (errorMsg.includes("daily") && errorMsg.toLowerCase().includes("limit")) {
+        openLimitReachedModal("brain_dump");
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setAiProcessing(false);
     }
@@ -289,9 +301,12 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
                   <Brain size={20} className="text-[var(--accent-primary)]" />
                 </motion.div>
                 <div>
-                  <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-                    Brain Dump
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
+                      Brain Dump
+                    </h2>
+                    <PremiumBadge variant="chip" size="sm" onClick={() => openUpgradeModal("brain_dump_badge")} />
+                  </div>
                   <p className="text-xs text-[var(--text-muted)]">
                     Capture your thoughts
                   </p>
@@ -567,30 +582,40 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
 
               {/* Action buttons */}
               <div className="flex items-center gap-2">
-                {/* AI Process Button */}
-                <motion.button
-                  onClick={handleAiProcess}
-                  disabled={aiProcessing || !content.trim()}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl min-h-[44px]",
-                    "bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)] border border-[var(--accent-highlight)]/20",
-                    "hover:bg-[var(--accent-highlight)]/20 transition-all duration-200",
-                    "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
-                    "focus-visible:outline-2 focus-visible:outline-[var(--accent-highlight)]",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                >
-                  {aiProcessing ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Bot size={14} />
-                  )}
-                  <span className="hidden sm:inline">
-                    {aiProcessing ? "Processing..." : "AI Process"}
-                  </span>
-                </motion.button>
+                {/* AI Process Button with Usage Indicator */}
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    onClick={handleAiProcess}
+                    disabled={aiProcessing || !content.trim()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl min-h-[44px]",
+                      "bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)] border border-[var(--accent-highlight)]/20",
+                      "hover:bg-[var(--accent-highlight)]/20 transition-all duration-200",
+                      "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                      "focus-visible:outline-2 focus-visible:outline-[var(--accent-highlight)]",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    {aiProcessing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Bot size={14} />
+                    )}
+                    <span className="hidden sm:inline">
+                      {aiProcessing ? "Processing..." : "AI Process"}
+                    </span>
+                  </motion.button>
+                  {/* Usage indicator - always show with subtle styling when low */}
+                  <UsageIndicator
+                    feature="brain_dump"
+                    usage={usage?.brain_dump || null}
+                    compact
+                    alwaysShow
+                    onClick={() => openUpgradeModal("brain_dump_usage")}
+                  />
+                </div>
 
                 {/* Capture Button */}
                 <motion.button
