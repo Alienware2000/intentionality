@@ -15,6 +15,7 @@ import {
   Check,
   AlertCircle,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -65,10 +66,22 @@ type SyncResult = {
 };
 
 // -----------------------------------------------------------------------------
+// Types (Component Props)
+// -----------------------------------------------------------------------------
+
+type GoogleCalendarCardProps = {
+  isExpanded?: boolean;
+  onToggle?: () => void;
+};
+
+// -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
-export default function GoogleCalendarCard() {
+export default function GoogleCalendarCard({
+  isExpanded: controlledExpanded,
+  onToggle,
+}: GoogleCalendarCardProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
@@ -83,6 +96,19 @@ export default function GoogleCalendarCard() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Use controlled state if provided, otherwise internal state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const isExpanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (isControlled && onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -221,61 +247,98 @@ export default function GoogleCalendarCard() {
       "overflow-hidden"
     )}>
       {/* Header */}
-      <div className="p-4 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-2 rounded-lg",
-              connected
-                ? "bg-[var(--accent-success)]/10"
-                : "bg-[var(--bg-hover)]"
-            )}>
-              <Calendar
-                size={20}
-                className={connected ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"}
-              />
-            </div>
-            <div>
-              <h3 className="font-medium text-[var(--text-primary)]">
-                Google Calendar
-              </h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                {connected
-                  ? `Connected as ${connection?.email ?? "Unknown"}`
-                  : "Sync events from Google Calendar"}
-              </p>
-            </div>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={cn(
+          "w-full flex items-center justify-between p-4 text-left",
+          "hover:bg-[var(--bg-hover)]/50 transition-colors",
+          "min-h-[44px]",
+          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+          "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "p-2 rounded-lg",
+            connected
+              ? "bg-[var(--accent-success)]/10"
+              : "bg-[var(--bg-hover)]"
+          )}>
+            <Calendar
+              size={20}
+              className={connected ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"}
+            />
           </div>
-
-          {connected ? (
-            <button
-              onClick={handleDisconnect}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
-                "text-[var(--text-muted)] hover:text-[var(--priority-high)]",
-                "hover:bg-[var(--bg-hover)] transition-colors"
-              )}
-            >
-              <Link2Off size={14} />
-              Disconnect
-            </button>
-          ) : (
-            <button
-              onClick={handleConnect}
-              disabled={connecting || !isConfigured}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
-                "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
-                "hover:bg-[var(--accent-primary)]/20 transition-colors",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              )}
-            >
-              <Link2 size={14} />
-              {connecting ? "Connecting..." : "Connect"}
-            </button>
-          )}
+          <div>
+            <h3 className="font-semibold text-[var(--text-primary)]">
+              Google Calendar
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              {connected
+                ? `Connected as ${connection?.email ?? "Unknown"}`
+                : "Sync events from Google Calendar"}
+            </p>
+          </div>
         </div>
-      </div>
+
+        <div className="flex items-center gap-2">
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown size={18} className="text-[var(--text-muted)]" />
+          </motion.div>
+        </div>
+      </button>
+
+      {/* Expandable Content */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-[var(--border-subtle)]">
+              {/* Connection Actions */}
+              <div className="p-4 border-b border-[var(--border-subtle)]">
+                {connected ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDisconnect();
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
+                      "text-[var(--text-muted)] hover:text-[var(--priority-high)]",
+                      "hover:bg-[var(--bg-hover)] transition-colors"
+                    )}
+                  >
+                    <Link2Off size={14} />
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConnect();
+                    }}
+                    disabled={connecting || !isConfigured}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
+                      "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+                      "hover:bg-[var(--accent-primary)]/20 transition-colors",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    <Link2 size={14} />
+                    {connecting ? "Connecting..." : "Connect"}
+                  </button>
+                )}
+              </div>
 
       {/* Not Configured Warning */}
       {!isConfigured && !connected && (
@@ -457,6 +520,11 @@ export default function GoogleCalendarCard() {
           </AnimatePresence>
         </div>
       )}
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -50,21 +50,47 @@ const COMPARISON_ROWS = [
 ];
 
 // -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+type PremiumSettingsCardProps = {
+  isExpanded?: boolean;
+  onToggle?: () => void;
+};
+
+// -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
-export default function PremiumSettingsCard() {
+export default function PremiumSettingsCard({
+  isExpanded: controlledExpanded,
+  onToggle,
+}: PremiumSettingsCardProps) {
   const { usage, isLoadingUsage, isOnWaitlist, openUpgradeModal } = useFreemium();
-  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Use controlled state if provided, otherwise internal state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const isExpanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (isControlled && onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
       {/* Header - Always visible */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        type="button"
+        onClick={handleToggle}
         className={cn(
           "w-full flex items-center justify-between p-4",
           "text-left hover:bg-[var(--bg-hover)]/50 transition-colors",
+          "min-h-[44px]",
           "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
           "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
         )}

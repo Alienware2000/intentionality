@@ -68,18 +68,42 @@ const MOTIVATION_DRIVERS: Array<{ value: MotivationDriver; label: string }> = [
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // -----------------------------------------------------------------------------
+// Types (Component Props)
+// -----------------------------------------------------------------------------
+
+type AILearningCardProps = {
+  isExpanded?: boolean;
+  onToggle?: () => void;
+};
+
+// -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
-export default function AILearningCard() {
+export default function AILearningCard({
+  isExpanded: controlledExpanded,
+  onToggle,
+}: AILearningCardProps) {
   const [data, setData] = useState<LearningData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [newGoal, setNewGoal] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Use controlled state if provided, otherwise internal state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const expanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (isControlled && onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   // Fetch learning data
   const fetchData = useCallback(async () => {
@@ -234,9 +258,16 @@ export default function AILearningCard() {
   return (
     <div className="rounded-xl bg-[var(--bg-card)] glass-card border border-[var(--border-subtle)] overflow-hidden">
       {/* Header */}
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-        onClick={() => setExpanded(!expanded)}
+      <button
+        type="button"
+        className={cn(
+          "w-full flex items-center justify-between p-4 text-left",
+          "hover:bg-[var(--bg-hover)] transition-colors",
+          "min-h-[44px]",
+          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+          "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+        )}
+        onClick={handleToggle}
       >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-[var(--accent-highlight)]/10">
@@ -267,7 +298,7 @@ export default function AILearningCard() {
             <ChevronDown size={18} className="text-[var(--text-muted)]" />
           )}
         </div>
-      </div>
+      </button>
 
       {/* Content */}
       {expanded && (

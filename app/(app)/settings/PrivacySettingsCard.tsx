@@ -121,16 +121,40 @@ function SettingRow({
 }
 
 // -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+type PrivacySettingsCardProps = {
+  isExpanded?: boolean;
+  onToggle?: () => void;
+};
+
+// -----------------------------------------------------------------------------
 // Main Component
 // -----------------------------------------------------------------------------
 
-export default function PrivacySettingsCard() {
+export default function PrivacySettingsCard({
+  isExpanded: controlledExpanded,
+  onToggle,
+}: PrivacySettingsCardProps) {
   const [settings, setSettings] = useState<PrivacySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
+
+  // Use controlled state if provided, otherwise internal state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const expanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (isControlled && onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   // Fetch settings
   const fetchSettings = useCallback(async () => {
@@ -219,9 +243,16 @@ export default function PrivacySettingsCard() {
   return (
     <div className="rounded-xl bg-[var(--bg-card)] glass-card border border-[var(--border-subtle)] overflow-hidden">
       {/* Header */}
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
-        onClick={() => setExpanded(!expanded)}
+      <button
+        type="button"
+        className={cn(
+          "w-full flex items-center justify-between p-4 text-left",
+          "hover:bg-[var(--bg-hover)] transition-colors",
+          "min-h-[44px]",
+          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+          "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+        )}
+        onClick={handleToggle}
       >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
@@ -252,7 +283,7 @@ export default function PrivacySettingsCard() {
             <ChevronDown size={18} className="text-[var(--text-muted)]" />
           )}
         </div>
-      </div>
+      </button>
 
       {/* Content */}
       {expanded && (

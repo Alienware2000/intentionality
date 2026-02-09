@@ -62,14 +62,39 @@ type UploadResult = {
 };
 
 // -----------------------------------------------------------------------------
+// Types (Component Props)
+// -----------------------------------------------------------------------------
+
+type CalendarImportCardProps = {
+  isExpanded?: boolean;
+  onToggle?: () => void;
+};
+
+// -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
-export default function CalendarImportCard() {
+export default function CalendarImportCard({
+  isExpanded: controlledExpanded,
+  onToggle,
+}: CalendarImportCardProps) {
   const [loading, setLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<CalendarSubscription[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Use controlled state if provided, otherwise internal state
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isControlled = controlledExpanded !== undefined;
+  const isExpanded = isControlled ? controlledExpanded : internalExpanded;
+
+  const handleToggle = () => {
+    if (isControlled && onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   // Add subscription form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -251,54 +276,85 @@ export default function CalendarImportCard() {
       "overflow-hidden"
     )}>
       {/* Header */}
-      <div className="p-4 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
-              <Calendar size={20} className="text-[var(--accent-primary)]" />
-            </div>
-            <div>
-              <h3 className="font-medium text-[var(--text-primary)]">
-                Calendar Import
-              </h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                Import from ICS feeds or files (Canvas, Google Calendar, etc.)
-              </p>
-            </div>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={cn(
+          "w-full flex items-center justify-between p-4 text-left",
+          "hover:bg-[var(--bg-hover)]/50 transition-colors",
+          "min-h-[44px]",
+          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+          "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
+            <Calendar size={20} className="text-[var(--accent-primary)]" />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setShowUploadForm(!showUploadForm);
-                setShowAddForm(false);
-              }}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
-                "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
-                "hover:bg-[var(--bg-hover)] transition-colors"
-              )}
-            >
-              <Upload size={14} />
-              Upload
-            </button>
-            <button
-              onClick={() => {
-                setShowAddForm(!showAddForm);
-                setShowUploadForm(false);
-              }}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
-                "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
-                "hover:bg-[var(--accent-primary)]/20 transition-colors"
-              )}
-            >
-              <Plus size={14} />
-              Add Feed
-            </button>
+          <div>
+            <h3 className="font-semibold text-[var(--text-primary)]">
+              Calendar Import
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              Import from ICS feeds or files
+            </p>
           </div>
         </div>
-      </div>
+
+        <div className="flex items-center gap-2">
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown size={18} className="text-[var(--text-muted)]" />
+          </motion.div>
+        </div>
+      </button>
+
+      {/* Expandable Content */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-[var(--border-subtle)]">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 p-4 border-b border-[var(--border-subtle)]">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowUploadForm(!showUploadForm);
+                    setShowAddForm(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
+                    "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors"
+                  )}
+                >
+                  <Upload size={14} />
+                  Upload ICS
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAddForm(!showAddForm);
+                    setShowUploadForm(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium",
+                    "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+                    "hover:bg-[var(--accent-primary)]/20 transition-colors"
+                  )}
+                >
+                  <Plus size={14} />
+                  Add Feed
+                </button>
+              </div>
 
       {/* Error Message */}
       {error && (
@@ -871,6 +927,11 @@ export default function CalendarImportCard() {
                 )}
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
