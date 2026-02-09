@@ -15,12 +15,16 @@ import AILearningCard from "./AILearningCard";
 import PrivacySettingsCard from "./PrivacySettingsCard";
 import AppearanceSettingsCard from "./AppearanceSettingsCard";
 import PremiumSettingsCard from "./PremiumSettingsCard";
+import ProfileSettingsCard from "./ProfileSettingsCard";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-type SectionKey = "appearance" | "privacy" | "plan" | "ai" | "calendar" | "google";
+type SectionKey = "profile" | "appearance" | "privacy" | "plan" | "ai" | "calendar" | "google";
+
+// All section keys (defined outside component to avoid recreation on each render)
+const ALL_SECTIONS: SectionKey[] = ["profile", "appearance", "privacy", "plan", "ai", "calendar", "google"];
 
 // -----------------------------------------------------------------------------
 // Component
@@ -30,8 +34,7 @@ export default function SettingsClient() {
   // Centralized expansion state - empty set means all collapsed
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set());
 
-  const allSections: SectionKey[] = ["appearance", "privacy", "plan", "ai", "calendar", "google"];
-  const allExpanded = expandedSections.size === allSections.length;
+  const allExpanded = expandedSections.size === ALL_SECTIONS.length;
   const noneExpanded = expandedSections.size === 0;
 
   const toggleSection = useCallback((key: SectionKey) => {
@@ -52,7 +55,7 @@ export default function SettingsClient() {
       setExpandedSections(new Set());
     } else {
       // Expand all
-      setExpandedSections(new Set(allSections));
+      setExpandedSections(new Set(ALL_SECTIONS));
     }
   }, [allExpanded]);
 
@@ -80,6 +83,12 @@ export default function SettingsClient() {
           {allExpanded ? "Collapse All" : noneExpanded ? "Expand All" : "Expand All"}
         </button>
       </div>
+
+      {/* Profile & Sharing Section */}
+      <ProfileSettingsCard
+        isExpanded={isSectionExpanded("profile")}
+        onToggle={() => toggleSection("profile")}
+      />
 
       {/* Appearance Section */}
       <AppearanceSettingsCard

@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { motion } from "framer-motion";
-import { User, Flame, Zap, Crown, Shield, MoreHorizontal } from "lucide-react";
+import { User, Flame, Zap, Crown, Shield } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import GlowCard from "@/app/components/ui/GlowCard";
 import type { LevelTitle } from "@/app/lib/types";

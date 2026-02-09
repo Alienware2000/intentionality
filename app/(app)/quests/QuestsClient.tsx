@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, Circle, MoreVertical, Target } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, MoreVertical, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Id, Quest, Task, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";

@@ -271,7 +271,7 @@ export default function AnalyticsClient() {
       >
         <span className="text-sm text-[var(--text-muted)]">Period:</span>
         <div className="relative flex gap-1">
-          {[7, 14, 30, 60, 90].map((d, index) => (
+          {[7, 14, 30, 60, 90].map((d) => (
             <motion.button
               key={d}
               onClick={() => setDays(d)}

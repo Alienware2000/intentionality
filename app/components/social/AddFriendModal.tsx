@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useSocial } from "@/app/components/SocialProvider";
+import { useToast } from "@/app/components/Toast";
 import { SOCIAL_LIMITS } from "@/app/lib/constants";
 import type { UserSearchResult } from "@/app/lib/types";
 
@@ -37,10 +38,12 @@ type AddFriendModalProps = {
  */
 export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps) {
   const { searchUsers, sendFriendRequest } = useSocial();
+  const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
 
@@ -60,6 +63,7 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
   const handleSearch = useCallback(
     (query: string) => {
       setSearchQuery(query);
+      setSearchError(null);
 
       // Clear any pending search
       if (debounceRef.current) {
@@ -76,9 +80,16 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
 
       // Debounce the actual API call
       debounceRef.current = setTimeout(async () => {
-        const users = await searchUsers(query);
-        setResults(users);
-        setIsSearching(false);
+        try {
+          const users = await searchUsers(query);
+          setResults(users);
+          setSearchError(null);
+        } catch (e) {
+          setResults([]);
+          setSearchError(e instanceof Error ? e.message : "Search unavailable");
+        } finally {
+          setIsSearching(false);
+        }
       }, SOCIAL_LIMITS.SEARCH_DEBOUNCE_MS);
     },
     [searchUsers]
@@ -92,6 +103,9 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
 
     if (success) {
       setSentTo((prev) => new Set(prev).add(userId));
+      showToast({ message: "Friend request sent!", type: "success" });
+    } else {
+      showToast({ message: "Failed to send friend request", type: "error" });
     }
   };
 
@@ -99,7 +113,13 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
   const handleClose = () => {
     setSearchQuery("");
     setResults([]);
+    setSearchError(null);
     setSentTo(new Set());
+    // Clear any pending debounced search
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
     onClose();
   };
 
@@ -173,7 +193,22 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
 
               {/* Results */}
               <div className="max-h-80 overflow-y-auto">
-                {results.length === 0 && searchQuery.length >= 2 && !isSearching && (
+                {/* Search error state */}
+                {searchError && !isSearching && (
+                  <div className="p-8 text-center">
+                    <User
+                      size={32}
+                      className="mx-auto text-red-400 mb-2"
+                    />
+                    <p className="text-[var(--text-secondary)]">Search unavailable</p>
+                    <p className="text-sm text-[var(--text-muted)]">
+                      {searchError}
+                    </p>
+                  </div>
+                )}
+
+                {/* No results state */}
+                {!searchError && results.length === 0 && searchQuery.length >= 2 && !isSearching && (
                   <div className="p-8 text-center">
                     <User
                       size={32}
@@ -206,6 +241,9 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
                           {user.display_name || "Anonymous"}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                          {user.username && (
+                            <span className="text-[var(--accent-primary)]">@{user.username}</span>
+                          )}
                           <span className="flex items-center gap-1">
                             <Zap size={10} className="text-[var(--accent-primary)]" />
                             Lv.{user.level}
@@ -216,7 +254,6 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
                               {user.current_streak}d
                             </span>
                           )}
-                          <span>{user.title}</span>
                         </div>
                       </div>
 

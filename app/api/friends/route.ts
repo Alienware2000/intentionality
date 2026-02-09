@@ -10,6 +10,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { isValidUUID } from "@/app/lib/api-utils";
 import type { FriendWithProfile, FriendRequest, LevelTitle } from "@/app/lib/types";
 
 // Valid level titles for type safety
@@ -87,6 +88,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
   const userIdArray = Array.from(userIds);
   let profiles: Record<string, {
     display_name: string | null;
+    username: string | null;
     xp_total: number;
     level: number;
     current_streak: number;
@@ -95,10 +97,14 @@ export const GET = withAuth(async ({ user, supabase }) => {
   }> = {};
 
   if (userIdArray.length > 0) {
-    const { data: profilesData } = await supabase
+    const { data: profilesData, error: profilesError } = await supabase
       .from("user_profiles")
-      .select("user_id, display_name, xp_total, level, current_streak, longest_streak, title")
+      .select("user_id, display_name, username, xp_total, level, current_streak, longest_streak, title")
       .in("user_id", userIdArray);
+
+    if (profilesError) {
+      return ApiErrors.serverError("Failed to load friend profiles");
+    }
 
     if (profilesData) {
       profiles = Object.fromEntries(
@@ -116,6 +122,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
       user_id: friendUserId,
       status: f.status,
       display_name: profile?.display_name ?? null,
+      username: profile?.username ?? null,
       xp_total: profile?.xp_total ?? 0,
       level: profile?.level ?? 1,
       current_streak: profile?.current_streak ?? 0,
@@ -134,6 +141,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
       id: f.id,
       from_user_id: f.user_id,
       from_display_name: profile?.display_name ?? null,
+      from_username: profile?.username ?? null,
       from_level: profile?.level ?? 1,
       from_current_streak: profile?.current_streak ?? 0,
       requested_at: f.requested_at,
@@ -148,6 +156,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
       user_id: f.friend_id,
       status: f.status,
       display_name: profile?.display_name ?? null,
+      username: profile?.username ?? null,
       xp_total: profile?.xp_total ?? 0,
       level: profile?.level ?? 1,
       current_streak: profile?.current_streak ?? 0,
@@ -196,6 +205,11 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("user_id is required");
   }
 
+  // Validate UUID format
+  if (!isValidUUID(targetUserId)) {
+    return ApiErrors.badRequest("Invalid user_id format");
+  }
+
   // Can't friend yourself
   if (targetUserId === user.id) {
     return ApiErrors.badRequest("Cannot send friend request to yourself");
@@ -211,6 +225,16 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   // If no privacy settings, assume defaults (allow requests)
   if (targetPrivacy && !targetPrivacy.allow_friend_requests) {
     return ApiErrors.badRequest("This user is not accepting friend requests");
+  }
+
+  // Check if either user has blocked the other (using database function)
+  const { data: isBlocked } = await supabase.rpc("users_blocked", {
+    user1: user.id,
+    user2: targetUserId,
+  });
+
+  if (isBlocked) {
+    return ApiErrors.badRequest("Cannot send friend request to this user");
   }
 
   // Check if friendship already exists in either direction

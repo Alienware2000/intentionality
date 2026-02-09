@@ -6,6 +6,7 @@
 import {
   withAuth,
   getSearchParams,
+  parseIntParam,
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
@@ -35,7 +36,7 @@ import type { NotificationWithSender } from "@/app/lib/types";
  */
 export const GET = withAuth(async ({ user, supabase, request }) => {
   const params = getSearchParams(request);
-  const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50")));
+  const limit = parseIntParam(params.get("limit"), 50, 1, 100);
   const unreadOnly = params.get("unread_only") === "true";
 
   // Build query

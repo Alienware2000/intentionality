@@ -7,7 +7,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/app/lib/cn";
 
 type NotificationBellProps = {
@@ -35,13 +35,20 @@ export default function NotificationBell({
   const prevCountRef = useRef(unreadCount);
 
   // Animate when unread count increases
-  useEffect(() => {
+  // Using useLayoutEffect + queueMicrotask to avoid cascading render warnings
+  useLayoutEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (unreadCount > prevCountRef.current) {
-      setShouldAnimate(true);
-      const timer = setTimeout(() => setShouldAnimate(false), 500);
-      return () => clearTimeout(timer);
+      // Defer state update to avoid synchronous setState in effect warning
+      queueMicrotask(() => {
+        setShouldAnimate(true);
+      });
+      timer = setTimeout(() => setShouldAnimate(false), 500);
     }
     prevCountRef.current = unreadCount;
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [unreadCount]);
 
   return (

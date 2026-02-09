@@ -41,18 +41,19 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Search query must be at least 2 characters");
   }
 
-  // Search for users with matching display names
+  // Search for users with matching display names OR usernames
   // Only return users who have opted into being discoverable
   const { data: profiles, error: searchError } = await supabase
     .from("user_profiles")
     .select(`
       user_id,
       display_name,
+      username,
       level,
       current_streak,
       title
     `)
-    .ilike("display_name", `%${query}%`)
+    .or(`display_name.ilike.%${query}%,username.ilike.%${query}%`)
     .neq("user_id", user.id) // Exclude self
     .limit(20);
 
@@ -112,6 +113,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       return {
         user_id: p.user_id,
         display_name: p.display_name,
+        username: p.username,
         level: p.level,
         current_streak: p.current_streak,
         title: (p.title as LevelTitle) ?? "Novice",

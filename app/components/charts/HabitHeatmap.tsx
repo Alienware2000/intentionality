@@ -145,7 +145,6 @@ export default function HabitHeatmap({ habits }: Props) {
     if (prefersReducedMotionHook || !gridRef.current) return;
 
     const cells = gridRef.current.querySelectorAll(".habit-heatmap-cell");
-    const cols = weeks.length;
     const rows = 7;
 
     // Diagonal wave animation

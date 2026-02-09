@@ -36,10 +36,6 @@ import type {
   AILearningContext,
   Task,
   HabitWithStatus,
-  ScheduleBlock,
-  FocusSession,
-  WeeklyPlan,
-  DailyReflection,
   AICommunicationStyle,
   UserLearningProfile,
   UserPatternAggregates,
@@ -51,9 +47,6 @@ import { estimateTokens } from './gemini';
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-
-/** Maximum tokens to allocate for user context */
-const MAX_CONTEXT_TOKENS = 1500;
 
 /** Days to look back for "recent" statistics */
 const RECENT_DAYS = 7;
@@ -108,14 +101,6 @@ function getDayOfWeek(date: string): string {
   const [year, month, day] = date.split('-').map(Number);
   const d = new Date(year, month - 1, day, 12, 0, 0);
   return DAY_NAMES[d.getDay()];
-}
-
-/**
- * Parse time string to hour for pattern analysis.
- */
-function getHourFromTime(time: string): number {
-  const parts = time.split(':');
-  return parseInt(parts[0], 10);
 }
 
 /**

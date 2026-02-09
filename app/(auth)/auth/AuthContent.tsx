@@ -20,6 +20,30 @@ import { Mail, Loader2, ArrowLeft } from "lucide-react";
 
 type AuthView = "form" | "check-email";
 
+/**
+ * Process any stored invite code after successful authentication.
+ * Called when a user signs up via an invite link.
+ */
+async function processStoredInvite() {
+  const storedUsername = localStorage.getItem("invite_username");
+
+  if (storedUsername) {
+    try {
+      await fetch("/api/friends/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: storedUsername }),
+      });
+    } catch {
+      // Silently fail - user can still add friend manually
+    } finally {
+      // Clear stored invite data
+      localStorage.removeItem("invite_code");
+      localStorage.removeItem("invite_username");
+    }
+  }
+}
+
 export default function AuthContent() {
   // Create Supabase client once per component lifecycle
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -101,10 +125,14 @@ export default function AuthContent() {
 
     // Subscribe to auth state changes
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (event === "SIGNED_IN" && session) {
           setUserId(session.user.id);
           setStatus("Logged in - redirecting...");
+
+          // Process any stored invite code
+          await processStoredInvite();
+
           router.push("/dashboard");
         } else if (event === "SIGNED_OUT") {
           setUserId(null);

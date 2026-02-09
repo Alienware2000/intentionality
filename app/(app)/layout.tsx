@@ -8,6 +8,7 @@
 import Sidebar from "../components/Sidebar";
 import MobileNav from "../components/MobileNav";
 import OnboardingModal from "../components/OnboardingModal";
+import UsernameSetupModal from "../components/UsernameSetupModal";
 import ChatPanel from "../components/ChatPanel";
 import MainContentWrapper from "../components/MainContentWrapper";
 import { FocusProvider } from "../components/FocusProvider";
@@ -54,6 +55,9 @@ export default async function AppLayout({
 
                           {/* Onboarding modal for first-time users */}
                           <OnboardingModal />
+
+                          {/* Username setup modal for users without username */}
+                          <UsernameSetupModal />
 
                           {/* AI Chat Panel (slide-out) */}
                           <ChatPanel />

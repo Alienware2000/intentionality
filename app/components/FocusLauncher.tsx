@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Zap, ChevronDown } from "lucide-react";
 import { useFocus } from "./FocusProvider";
 import { useOnboarding } from "./OnboardingProvider";
 import { getFocusTotalXp, getFocusMilestoneBonus } from "@/app/lib/gamification";

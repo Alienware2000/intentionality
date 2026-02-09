@@ -72,6 +72,16 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     );
   }
 
+  // Check if either user has blocked the other
+  const { data: isBlocked } = await supabase.rpc("users_blocked", {
+    user1: user.id,
+    user2: to_user_id,
+  });
+
+  if (isBlocked) {
+    return ApiErrors.badRequest("Cannot nudge this user");
+  }
+
   // Verify they are friends
   const { data: friendship } = await supabase
     .from("friendships")

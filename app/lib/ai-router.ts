@@ -16,8 +16,8 @@
 // - Brain Dump: Gemini (primary) - structured JSON output
 // =============================================================================
 
-import { gemini, GeminiMessage, GeminiError, GeminiResult } from './gemini';
-import { groq, GroqError, GroqResult } from './groq';
+import { gemini, GeminiMessage, GeminiError } from './gemini';
+import { groq, GroqError } from './groq';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // -----------------------------------------------------------------------------

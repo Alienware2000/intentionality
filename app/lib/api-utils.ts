@@ -49,3 +49,19 @@ export function validateMaxLength(
   }
   return null;
 }
+
+/**
+ * Validates that a string is a valid UUID v4 format.
+ *
+ * @param id - The string to validate
+ * @returns true if valid UUID format, false otherwise
+ *
+ * @example
+ * isValidUUID("550e8400-e29b-41d4-a716-446655440000") // true
+ * isValidUUID("not-a-uuid") // false
+ * isValidUUID("") // false
+ */
+export function isValidUUID(id: string): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}

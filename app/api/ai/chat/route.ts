@@ -23,7 +23,6 @@
 // =============================================================================
 
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { withAuth, ApiErrors, parseJsonBody } from '@/app/lib/auth-middleware';
 import { GeminiMessage } from '@/app/lib/gemini';
 import { aiRouter, AIRouterError } from '@/app/lib/ai-router';
@@ -116,7 +115,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     });
 
     // Save user message to database
-    const { data: userMessage, error: userMsgError } = await supabase
+    const { error: userMsgError } = await supabase
       .from('ai_messages')
       .insert({
         conversation_id: activeConversationId,

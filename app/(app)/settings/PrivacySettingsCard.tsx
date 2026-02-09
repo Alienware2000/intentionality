@@ -169,7 +169,7 @@ export default function PrivacySettingsCard({
       } else {
         setError(result.error || "Failed to load privacy settings");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to connect to server");
     } finally {
       setLoading(false);
@@ -208,7 +208,7 @@ export default function PrivacySettingsCard({
         setSettings((prev) => (prev ? { ...prev, [key]: !value } : null));
         setError(result.error || "Failed to save");
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setSettings((prev) => (prev ? { ...prev, [key]: !value } : null));
       setError("Failed to save changes");

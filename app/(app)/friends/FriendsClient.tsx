@@ -6,7 +6,7 @@
 // Features smooth animations and responsive design.
 // =============================================================================
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -22,7 +22,6 @@ import { cn } from "@/app/lib/cn";
 import { formatRelativeTime } from "@/app/lib/format-time";
 import { useSocial } from "@/app/components/SocialProvider";
 import {
-  UserCard,
   FriendRequestCard,
   NoRequestsMessage,
   AddFriendModal,
@@ -104,12 +103,21 @@ function TabButton({ active, onClick, icon, label, count, alert }: TabButtonProp
 type FriendCardProps = {
   friend: FriendWithProfile;
   onNudge: (friendId: string) => Promise<boolean>;
-  index?: number;
 };
 
-function FriendCard({ friend, onNudge, index = 0 }: FriendCardProps) {
+function FriendCard({ friend, onNudge }: FriendCardProps) {
   const [nudging, setNudging] = useState(false);
   const [nudged, setNudged] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleNudge = async () => {
     setNudging(true);
@@ -117,6 +125,8 @@ function FriendCard({ friend, onNudge, index = 0 }: FriendCardProps) {
     setNudging(false);
     if (success) {
       setNudged(true);
+      // Reset the "Sent!" state after 3 seconds so user can nudge again later
+      timeoutRef.current = setTimeout(() => setNudged(false), 3000);
     }
   };
 
@@ -136,7 +146,12 @@ function FriendCard({ friend, onNudge, index = 0 }: FriendCardProps) {
             <p className="font-medium text-[var(--text-primary)] truncate">
               {friend.display_name || "Anonymous"}
             </p>
-            <p className="text-sm text-[var(--text-muted)]">{friend.title}</p>
+            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+              {friend.username && (
+                <span className="text-[var(--accent-primary)]">@{friend.username}</span>
+              )}
+              <span>{friend.title}</span>
+            </div>
           </div>
         </div>
 
@@ -211,6 +226,9 @@ function SentRequestCard({ request }: SentRequestCardProps) {
             {request.display_name || "Anonymous"}
           </p>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            {request.username && (
+              <span className="text-[var(--accent-primary)]">@{request.username}</span>
+            )}
             <span>Lv.{request.level}</span>
             {request.current_streak > 0 && (
               <span>{request.current_streak}d streak</span>
@@ -447,12 +465,11 @@ export default function FriendsClient() {
                     animate="visible"
                     className="space-y-3"
                   >
-                    {friends.map((friend, index) => (
+                    {friends.map((friend) => (
                       <FriendCard
                         key={friend.user_id}
                         friend={friend}
                         onNudge={handleNudge}
-                        index={index}
                       />
                     ))}
                   </motion.div>

@@ -277,19 +277,6 @@ export function useDayTimeline(
     [] // No dependencies - reads from refs
   );
 
-  // Find schedule block xp_value (uses refs to avoid stale closures)
-  const findScheduleBlockXpValue = useCallback(
-    (blockId: string): number | undefined => {
-      for (const item of scheduledItemsRef.current) {
-        if (item.type === "schedule_block" && item.data.id === blockId) {
-          return item.data.xp_value ?? 10; // Default to 10 XP
-        }
-      }
-      return undefined;
-    },
-    [] // No dependencies - reads from refs
-  );
-
   const toggleScheduleBlock = useCallback(
     async (blockId: string) => {
       // Guard against duplicate in-flight toggles
@@ -301,7 +288,6 @@ export function useDayTimeline(
       const wasCompleted = findScheduleBlockCompleted(blockId);
       if (wasCompleted === undefined) return;
       const isCompleting = !wasCompleted;
-      const xpValue = findScheduleBlockXpValue(blockId);
 
       // Mark as in-flight
       inFlightBlockToggles.current.add(blockId);
@@ -356,7 +342,7 @@ export function useDayTimeline(
         inFlightBlockToggles.current.delete(blockId);
       }
     },
-    [date, findScheduleBlockCompleted, findScheduleBlockXpValue, updateScheduleBlockInState, options]
+    [date, findScheduleBlockCompleted, updateScheduleBlockInState, options]
   );
 
   return {

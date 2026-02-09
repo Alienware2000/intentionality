@@ -6,6 +6,7 @@
 import {
   withAuth,
   getSearchParams,
+  parseIntParam,
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
@@ -58,7 +59,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   }
 
   const params = getSearchParams(request);
-  const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50")));
+  const limit = parseIntParam(params.get("limit"), 50, 1, 100);
   const cursor = params.get("cursor");
 
   // Verify user is a member of this group

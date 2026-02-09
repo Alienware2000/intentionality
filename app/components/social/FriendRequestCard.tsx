@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { User, Check, X, Flame, Zap, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/app/lib/cn";
+import { useToast } from "@/app/components/Toast";
 import GlowCard from "@/app/components/ui/GlowCard";
 import type { FriendRequest } from "@/app/lib/types";
 
@@ -40,6 +41,7 @@ export default function FriendRequestCard({
   onReject,
   index = 0,
 }: FriendRequestCardProps) {
+  const { showToast } = useToast();
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -48,14 +50,23 @@ export default function FriendRequestCard({
     setIsAccepting(true);
     const success = await onAccept(request.id);
     setIsAccepting(false);
-    if (success) setIsDone(true);
+    if (success) {
+      setIsDone(true);
+      showToast({ message: "Friend request accepted!", type: "success" });
+    } else {
+      showToast({ message: "Failed to accept request", type: "error" });
+    }
   };
 
   const handleReject = async () => {
     setIsRejecting(true);
     const success = await onReject(request.id);
     setIsRejecting(false);
-    if (success) setIsDone(true);
+    if (success) {
+      setIsDone(true);
+    } else {
+      showToast({ message: "Failed to decline request", type: "error" });
+    }
   };
 
   const isLoading = isAccepting || isRejecting;

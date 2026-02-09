@@ -43,7 +43,6 @@ type Props = {
 
 function TaskDaySelector({ task, quests, onSelectDay, onSelectQuest, onToggleInclude, onRemove }: Props) {
   const priorityConfig = PRIORITY_CONFIG[task.priority];
-  const selectedQuest = quests.find((q) => q.id === task.selected_quest_id);
 
   return (
     <div

@@ -139,7 +139,6 @@ export default function ActivityHeatmap({ data, onDayClick }: Props) {
     if (cells.length === 0) return;
 
     // Calculate diagonal delay based on position (row + col)
-    const cols = weeks.length;
     const rows = 7;
 
     anime({
@@ -355,7 +354,7 @@ export default function ActivityHeatmap({ data, onDayClick }: Props) {
                   color: "text-[var(--accent-streak)]",
                   delay: 0.2,
                 },
-              ].map((stat, i) => (
+              ].map((stat) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}

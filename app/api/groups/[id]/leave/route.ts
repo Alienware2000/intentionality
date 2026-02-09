@@ -53,10 +53,10 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Group ID is required");
   }
 
-  // Check membership and role
+  // Check membership and role, also get group name for activity log
   const { data: membership, error: memberError } = await supabase
     .from("group_members")
-    .select("id, role")
+    .select("id, role, group:groups(id, name)")
     .eq("group_id", groupId)
     .eq("user_id", user.id)
     .single();
@@ -72,6 +72,11 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
     );
   }
 
+  // Get group info before leaving
+  // Note: Supabase returns joined relations as arrays even for single items
+  const groupData = membership.group as unknown;
+  const group = Array.isArray(groupData) ? groupData[0] : groupData as { id: string; name: string } | null;
+
   // Delete the membership
   const { error: deleteError } = await supabase
     .from("group_members")
@@ -80,6 +85,22 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
 
   if (deleteError) {
     return ApiErrors.serverError(deleteError.message);
+  }
+
+  // Record activity for leaving group
+  if (group) {
+    const { error: activityError } = await supabase.from("activity_feed").insert({
+      user_id: user.id,
+      activity_type: "left_group",
+      metadata: { group_id: group.id, group_name: group.name },
+      message: `Left the group "${group.name}"`,
+      reference_type: "group",
+      reference_id: group.id,
+    });
+
+    if (activityError) {
+      console.error("Failed to record leave activity:", activityError.message);
+    }
   }
 
   return successResponse({ message: "Left the group successfully" });

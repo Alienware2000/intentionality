@@ -11,6 +11,7 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getParamFromUrl } from "@/app/lib/api-utils";
 import { getTitleForLevel } from "@/app/lib/gamification";
+import { SOCIAL_LIMITS, GROUP_LIMITS } from "@/app/lib/constants";
 import type { GroupMemberWithProfile } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -183,12 +184,37 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("No fields to update");
   }
 
+  // Validate name length if provided
+  const trimmedName = name?.trim();
+  if (trimmedName !== undefined && trimmedName.length > SOCIAL_LIMITS.GROUP_NAME_MAX_LENGTH) {
+    return ApiErrors.badRequest(
+      `name must be ${SOCIAL_LIMITS.GROUP_NAME_MAX_LENGTH} characters or less`
+    );
+  }
+
+  // Validate description length if provided
+  const trimmedDescription = description?.trim();
+  if (trimmedDescription && trimmedDescription.length > SOCIAL_LIMITS.GROUP_DESCRIPTION_MAX_LENGTH) {
+    return ApiErrors.badRequest(
+      `description must be ${SOCIAL_LIMITS.GROUP_DESCRIPTION_MAX_LENGTH} characters or less`
+    );
+  }
+
+  // Validate max_members if provided - cannot reduce below current member count
+  if (max_members !== undefined) {
+    if (max_members < group.member_count) {
+      return ApiErrors.badRequest(
+        `Cannot reduce max_members below current member count (${group.member_count})`
+      );
+    }
+  }
+
   // Build update object
   const updates: Record<string, unknown> = {};
-  if (name) updates.name = name.trim();
-  if (description !== undefined) updates.description = description?.trim() || null;
+  if (trimmedName) updates.name = trimmedName;
+  if (description !== undefined) updates.description = trimmedDescription || null;
   if (max_members !== undefined) {
-    updates.max_members = Math.min(50, Math.max(2, max_members));
+    updates.max_members = Math.min(GROUP_LIMITS.MAX_MEMBERS, Math.max(GROUP_LIMITS.MIN_MEMBERS, max_members));
   }
   if (is_public !== undefined) updates.is_public = is_public;
 
@@ -235,10 +261,10 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Group ID is required");
   }
 
-  // Verify user is owner
+  // Verify user is owner and get group details for activity log
   const { data: group, error: groupError } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, name")
     .eq("id", groupId)
     .single();
 
@@ -249,6 +275,20 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
   if (group.owner_id !== user.id) {
     // Return notFound to avoid leaking group existence to non-owners
     return ApiErrors.notFound("Group not found");
+  }
+
+  // Record activity for the owner before deleting
+  const { error: activityError } = await supabase.from("activity_feed").insert({
+    user_id: user.id,
+    activity_type: "group_deleted",
+    metadata: { group_id: groupId, group_name: group.name },
+    message: `Deleted the group "${group.name}"`,
+    reference_type: "group",
+    reference_id: groupId,
+  });
+
+  if (activityError) {
+    console.error("Failed to record delete activity:", activityError.message);
   }
 
   // Delete the group (members cascade)

@@ -10,7 +10,7 @@
 // - Tone: Understanding, not sales-y
 // =============================================================================
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Lightbulb, Crown, X } from "lucide-react";
 import { cn } from "@/app/lib/cn";

@@ -146,8 +146,6 @@ export default function DailyBriefing({ date }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ completed: 0, total: 0 });
-  const [bestCompletionDay, setBestCompletionDay] = useState<number | null>(null);
-  const [commonFocusTimes, setCommonFocusTimes] = useState<string[]>([]);
 
   // Check if hidden for today
   useEffect(() => {
@@ -184,7 +182,6 @@ export default function DailyBriefing({ date }: Props) {
           if (patternsData.ok && patternsData.patterns) {
             if (patternsData.patterns.best_completion_day !== undefined) {
               fetchedBestDay = patternsData.patterns.best_completion_day;
-              setBestCompletionDay(fetchedBestDay);
             }
             // Get preferred focus hours (array of hours like [9, 14, 16])
             if (patternsData.patterns.preferred_focus_hours?.length > 0) {
@@ -194,7 +191,6 @@ export default function DailyBriefing({ date }: Props) {
                 const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
                 return `${displayHour} ${ampm}`;
               });
-              setCommonFocusTimes(fetchedFocusTimes);
             }
           }
         } catch {

@@ -90,7 +90,6 @@ function AnimatedDivider() {
 export default function DashboardContent({ date }: Props) {
   const [statsTrigger, setStatsTrigger] = useState(0);
   const { isOnboardingDone, loading: onboardingLoading } = useOnboarding();
-  const prefersReducedMotionHook = useReducedMotion();
   const searchParams = useSearchParams();
 
   // Section refs for scroll-to-section functionality

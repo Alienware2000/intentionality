@@ -33,6 +33,10 @@ export type UserProfile = {
   longest_streak: number;
   last_active_date: ISODateString | null;
   display_name: string | null;
+  username: string | null;
+  invite_code: string | null;
+  referred_by: string | null;
+  referral_count: number;
   created_at: string;
 };
 
@@ -1498,6 +1502,7 @@ export type FriendWithProfile = {
   user_id: string;
   status: FriendshipStatus;
   display_name: string | null;
+  username: string | null;
   xp_total: number;
   level: number;
   current_streak: number;
@@ -1515,6 +1520,7 @@ export type FriendRequest = {
   id: Id;
   from_user_id: string;
   from_display_name: string | null;
+  from_username: string | null;
   from_level: number;
   from_current_streak: number;
   requested_at: string;
@@ -1595,6 +1601,7 @@ export type LeaderboardEntry = {
   rank: number;
   user_id: string;
   display_name: string | null;
+  username: string | null;
   value: number;
   level?: number;
   current_streak?: number;
@@ -1819,6 +1826,7 @@ export type NudgeResponse = {
 export type UserSearchResult = {
   user_id: string;
   display_name: string | null;
+  username: string | null;
   level: number;
   current_streak: number;
   title: LevelTitle;

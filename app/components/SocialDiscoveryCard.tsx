@@ -7,7 +7,7 @@
 // Dismissible with localStorage persistence.
 // =============================================================================
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Trophy, X } from "lucide-react";
@@ -16,6 +16,12 @@ import { cn } from "@/app/lib/cn";
 import type { UserProfileV2 } from "@/app/lib/types";
 
 const STORAGE_KEY = "intentionality_social_discovery_dismissed";
+
+// Check localStorage on client only
+function wasAlreadyDismissed(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(STORAGE_KEY) === "true";
+}
 
 /**
  * SocialDiscoveryCard introduces social features (Friends, Groups, Leaderboard)
@@ -29,32 +35,25 @@ const STORAGE_KEY = "intentionality_social_discovery_dismissed";
  */
 export default function SocialDiscoveryCard() {
   const { profile } = useProfile();
-  const [dismissed, setDismissed] = useState(true); // Start hidden
+  const [manuallyDismissed, setManuallyDismissed] = useState(false);
 
-  // Check if should show
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const wasDismissed = localStorage.getItem(STORAGE_KEY) === "true";
-    if (wasDismissed) return;
+  // Compute visibility based on profile and dismiss state
+  const shouldShow = useMemo(() => {
+    if (manuallyDismissed) return false;
+    if (wasAlreadyDismissed()) return false;
 
     // Show after level 2 OR 5+ completed tasks
-    // Cast to UserProfileV2 to access lifetime_tasks_completed
     const extendedProfile = profile as UserProfileV2 | null;
-    const shouldShow = (profile?.level ?? 0) >= 2 ||
-                       (extendedProfile?.lifetime_tasks_completed ?? 0) >= 5;
-
-    if (shouldShow) {
-      setDismissed(false);
-    }
-  }, [profile]);
+    return (profile?.level ?? 0) >= 2 ||
+           (extendedProfile?.lifetime_tasks_completed ?? 0) >= 5;
+  }, [profile, manuallyDismissed]);
 
   const handleDismiss = () => {
-    setDismissed(true);
+    setManuallyDismissed(true);
     localStorage.setItem(STORAGE_KEY, "true");
   };
 
-  if (dismissed) return null;
+  if (!shouldShow) return null;
 
   return (
     <AnimatePresence>

@@ -10,7 +10,7 @@
 // - Tier 2 (Power User): 3 steps shown after Tier 1 complete (collapsible)
 // =============================================================================
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -26,7 +26,6 @@ import {
 import { cn } from "@/app/lib/cn";
 import { useOnboarding } from "./OnboardingProvider";
 import { useAI } from "./AIProvider";
-import type { OnboardingStep } from "@/app/lib/types";
 import type { OnboardingStepConfig } from "@/app/lib/onboarding";
 import { ONBOARDING_QUEST_TITLE, ESSENTIAL_STEPS, POWER_STEPS } from "@/app/lib/onboarding";
 import ConfirmModal from "./ConfirmModal";
@@ -80,13 +79,21 @@ export default function OnboardingQuestCard() {
   const prevTier1CompleteRef = useRef<boolean>(false);
 
   // Track tier1 completion for celebration animation
-  useEffect(() => {
+  // Using useLayoutEffect + queueMicrotask to avoid cascading render warning
+  useLayoutEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (isTier1Complete && !prevTier1CompleteRef.current) {
-      setShowUnlockCelebration(true);
-      setTier2Expanded(true);
-      setTimeout(() => setShowUnlockCelebration(false), 3000);
+      // Defer state updates to avoid synchronous setState in effect warning
+      queueMicrotask(() => {
+        setShowUnlockCelebration(true);
+        setTier2Expanded(true);
+      });
+      timer = setTimeout(() => setShowUnlockCelebration(false), 3000);
     }
     prevTier1CompleteRef.current = isTier1Complete;
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isTier1Complete]);
 
   // Persist expanded state to localStorage

@@ -7,6 +7,7 @@
 import {
   withAuth,
   getSearchParams,
+  parseIntParam,
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
@@ -26,6 +27,7 @@ import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
  *
  * @query {string} [metric="xp"] - Ranking metric: xp, streak, level
  * @query {number} [limit=50] - Max results
+ * @query {number} [offset=0] - Pagination offset
  *
  * @returns {Object} Response object
  * @returns {boolean} ok - Success indicator
@@ -42,7 +44,8 @@ import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
 export const GET = withAuth(async ({ user, supabase, request }) => {
   const params = getSearchParams(request);
   const metric = (params.get("metric") ?? "xp") as LeaderboardMetric;
-  const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50")));
+  const limit = parseIntParam(params.get("limit"), 50, 1, 100);
+  const offset = parseIntParam(params.get("offset"), 0, 0);
 
   // Validate metric
   if (!["xp", "streak", "level"].includes(metric)) {
@@ -71,32 +74,58 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   });
 
   const userIds = Array.from(friendIds);
+  const totalParticipants = userIds.length; // Total count before pagination
 
   // Determine the ordering column
   const orderColumn =
     metric === "streak" ? "current_streak" : metric === "level" ? "level" : "xp_total";
 
-  // Fetch profiles for all friends + self
+  // First, get current user's profile to calculate their rank
+  let myRank: number | null = null;
+  let myValue: number | null = null;
+
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("xp_total, level, current_streak")
+    .eq("user_id", user.id)
+    .single();
+
+  if (myProfile) {
+    myValue =
+      metric === "streak"
+        ? myProfile.current_streak
+        : metric === "level"
+        ? myProfile.level
+        : myProfile.xp_total;
+
+    // Count friends (+ self) with higher values to determine rank
+    const { count: usersAhead } = await supabase
+      .from("user_profiles")
+      .select("*", { count: "exact", head: true })
+      .in("user_id", userIds)
+      .gt(orderColumn, myValue);
+
+    myRank = (usersAhead ?? 0) + 1;
+  }
+
+  // Fetch profiles for friends + self with pagination
   const { data: profiles, error: profilesError } = await supabase
     .from("user_profiles")
-    .select("user_id, display_name, xp_total, level, current_streak")
+    .select("user_id, display_name, username, xp_total, level, current_streak, created_at")
     .in("user_id", userIds)
     .order(orderColumn, { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: true }) // Tie-breaker for stable rankings
+    .range(offset, offset + limit - 1);
 
   if (profilesError) {
     return ApiErrors.serverError(profilesError.message);
   }
 
   const allProfiles = profiles ?? [];
-  const totalParticipants = allProfiles.length;
 
-  // Build ranked entries and find user's rank
-  let myRank: number | null = null;
-  let myValue: number | null = null;
-
+  // Build ranked entries
   const entries: LeaderboardEntry[] = allProfiles.map((p, index) => {
-    const rank = index + 1;
+    const rank = offset + index + 1; // Account for pagination offset
     const isCurrentUser = p.user_id === user.id;
 
     let value: number;
@@ -111,15 +140,11 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
         value = p.xp_total;
     }
 
-    if (isCurrentUser) {
-      myRank = rank;
-      myValue = value;
-    }
-
     return {
       rank,
       user_id: p.user_id,
       display_name: p.display_name,
+      username: p.username,
       value,
       level: p.level,
       current_streak: p.current_streak,
@@ -127,9 +152,6 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       is_friend: !isCurrentUser, // All non-self entries are friends
     };
   });
-
-  // Calculate "X away from friend Y" hints for motivation
-  // (This could be enhanced to show relative positioning)
 
   return successResponse({
     leaderboard_type: "friends",

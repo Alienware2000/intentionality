@@ -109,7 +109,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   const typedProfile = profile as UserProfileV2;
 
   // Calculate streak (for tracking/achievements, NOT for XP multipliers)
-  const { newStreak, isNewDay, streakBroken } = calculateNewStreak(
+  const { newStreak, streakBroken } = calculateNewStreak(
     typedProfile.last_active_date,
     typedProfile.current_streak,
     today

@@ -223,6 +223,42 @@ export function getSearchParams(request: Request | NextRequest): URLSearchParams
   return url.searchParams;
 }
 
+/**
+ * Safely parses an integer from a string with NaN protection.
+ * Returns the default value if the string is null, empty, or not a valid integer.
+ *
+ * @param value - The string to parse (can be null/undefined)
+ * @param defaultValue - The default value to return if parsing fails
+ * @param min - Optional minimum value (clamps result)
+ * @param max - Optional maximum value (clamps result)
+ * @returns Parsed integer, clamped to min/max if provided
+ *
+ * @example
+ * ```ts
+ * const params = getSearchParams(request);
+ * const limit = parseIntParam(params.get("limit"), 50, 1, 100);
+ * const offset = parseIntParam(params.get("offset"), 0, 0);
+ * ```
+ */
+export function parseIntParam(
+  value: string | null | undefined,
+  defaultValue: number,
+  min?: number,
+  max?: number
+): number {
+  const parsed = parseInt(value ?? "", 10);
+  let result = Number.isNaN(parsed) ? defaultValue : parsed;
+
+  if (min !== undefined) {
+    result = Math.max(min, result);
+  }
+  if (max !== undefined) {
+    result = Math.min(max, result);
+  }
+
+  return result;
+}
+
 // -----------------------------------------------------------------------------
 // Success Response Helper
 // -----------------------------------------------------------------------------

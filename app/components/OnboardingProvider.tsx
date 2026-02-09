@@ -21,8 +21,6 @@ import {
   TOTAL_ONBOARDING_STEPS,
   TOTAL_ESSENTIAL_STEPS,
   TOTAL_POWER_STEPS,
-  ESSENTIAL_STEPS,
-  POWER_STEPS,
   isTier1Complete as checkTier1Complete,
   countTier1Complete,
   countTier2Complete,

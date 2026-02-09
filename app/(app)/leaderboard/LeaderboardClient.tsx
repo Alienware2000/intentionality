@@ -48,6 +48,9 @@ type LeaderboardResponse = {
   total_participants: number;
 };
 
+/** Items per page for pagination */
+const ITEMS_PER_PAGE = 50;
+
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -381,7 +384,7 @@ function GroupSelector({ groups, selectedGroupId, onSelect }: GroupSelectorProps
 // -----------------------------------------------------------------------------
 
 export default function LeaderboardClient() {
-  const { groups } = useSocial();
+  const { groups, sendFriendRequest, sentRequests } = useSocial();
 
   const [tab, setTab] = useState<LeaderboardTab>("friends");
   const [metric, setMetric] = useState<LeaderboardMetric>("xp");
@@ -391,7 +394,14 @@ export default function LeaderboardClient() {
   const [userRank, setUserRank] = useState<number | undefined>();
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Use a ref to track the current offset to avoid stale closure issues in loadLeaderboard
+  const offsetRef = useRef(0);
+  // Use a ref for synchronous loading guard (React state batching can't bypass this)
+  const loadingRef = useRef(false);
 
   // Note: SocialProvider handles groups fetching - no need to refresh on mount
 
@@ -403,39 +413,74 @@ export default function LeaderboardClient() {
   }, [tab, groups, selectedGroupId]);
 
   // Fetch leaderboard data
-  const loadLeaderboard = useCallback(async () => {
-    setLoading(true);
+  // Note: We use offsetRef to avoid stale closure issues in the useCallback
+  // We use loadingRef for synchronous guard to prevent race conditions from rapid clicks
+  const loadLeaderboard = useCallback(async (loadMore = false) => {
+    // Synchronous guard using ref (React state batching can't bypass this)
+    if (loadMore && loadingRef.current) {
+      return;
+    }
+
+    if (loadMore) {
+      loadingRef.current = true;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      offsetRef.current = 0;
+    }
     setError(null);
 
     try {
+      const currentOffset = loadMore ? offsetRef.current : 0;
       let url: string;
 
       if (tab === "global") {
-        url = `/api/leaderboard/global?metric=${metric}&limit=50`;
+        url = `/api/leaderboard/global?metric=${metric}&limit=${ITEMS_PER_PAGE}&offset=${currentOffset}`;
       } else if (tab === "friends") {
-        url = `/api/leaderboard/friends?metric=${metric}&limit=50`;
+        url = `/api/leaderboard/friends?metric=${metric}&limit=${ITEMS_PER_PAGE}&offset=${currentOffset}`;
       } else if (tab === "groups" && selectedGroupId) {
-        url = `/api/groups/${selectedGroupId}/leaderboard?metric=${metric}&limit=50`;
+        url = `/api/groups/${selectedGroupId}/leaderboard?metric=${metric}&limit=${ITEMS_PER_PAGE}&offset=${currentOffset}`;
       } else {
         setEntries([]);
         setLoading(false);
+        loadingRef.current = false;
         return;
       }
 
       const data = await fetchApi<LeaderboardResponse>(url);
-      setEntries(data.entries);
+
+      if (loadMore) {
+        setEntries(prev => [...prev, ...data.entries]);
+      } else {
+        setEntries(data.entries);
+      }
+
       setUserRank(data.my_rank ?? undefined);
       setTotalCount(data.total_participants);
+
+      const newOffset = currentOffset + data.entries.length;
+      const newHasMore = data.entries.length === ITEMS_PER_PAGE && newOffset < data.total_participants;
+      setHasMore(newHasMore);
+      offsetRef.current = newOffset;
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+      loadingRef.current = false;
     }
   }, [tab, metric, selectedGroupId]);
 
+  // Load more handler
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      loadLeaderboard(true);
+    }
+  }, [loadLeaderboard, loadingMore, hasMore]);
+
   useEffect(() => {
-    loadLeaderboard();
-  }, [loadLeaderboard]);
+    loadLeaderboard(false);
+  }, [tab, metric, selectedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get user's value for current metric from entries
   const userEntry = entries.find((e) => e.is_current_user);
@@ -541,12 +586,59 @@ export default function LeaderboardClient() {
             animate="visible"
             className="space-y-1"
           >
-            {entries.map((entry, index) => (
-              <motion.div key={entry.user_id} variants={itemVariants}>
-                <RankingRow entry={entry} metric={metric} index={index} />
-              </motion.div>
-            ))}
+            {entries.map((entry, index) => {
+              // Check if we have a pending request to this user
+              const hasPendingRequest = sentRequests.some(
+                (sr) => sr.user_id === entry.user_id
+              );
+
+              return (
+                <motion.div
+                  key={entry.user_id}
+                  initial="hidden"
+                  animate="visible"
+                  variants={itemVariants}
+                >
+                  <RankingRow
+                    entry={entry}
+                    metric={metric}
+                    index={index}
+                    onAddFriend={tab === "global" ? sendFriendRequest : undefined}
+                    hasPendingRequest={hasPendingRequest}
+                  />
+                </motion.div>
+              );
+            })}
           </motion.div>
+        )}
+
+        {/* Load More Button */}
+        {!loading && hasMore && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
+                "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
+                "hover:bg-[var(--bg-hover)] transition-colors",
+                "text-sm font-medium",
+                "disabled:opacity-50"
+              )}
+            >
+              {loadingMore ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <ChevronRight size={16} className="rotate-90" />
+                  Load More ({totalCount - entries.length} remaining)
+                </>
+              )}
+            </button>
+          </div>
         )}
       </GlowCard>
     </div>

@@ -27,7 +27,12 @@ type ProfileUpdateBody = {
   update_streak?: boolean;
   /** User's preferred display name */
   display_name?: string;
+  /** User's unique username (3-20 chars, lowercase alphanumeric + underscores) */
+  username?: string;
 };
+
+/** Username validation regex: 3-20 chars, lowercase alphanumeric + underscores, must start/end with alphanumeric */
+const USERNAME_REGEX = /^[a-z0-9][a-z0-9_]*[a-z0-9]$|^[a-z0-9]{1,2}$/;
 
 // -----------------------------------------------------------------------------
 // GET /api/profile
@@ -165,6 +170,35 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
   // Update display name if provided
   if (display_name !== undefined) {
     updates.display_name = display_name.trim() || null;
+  }
+
+  // Update username if provided
+  if (body?.username !== undefined) {
+    const username = body.username.toLowerCase().trim();
+
+    // Validate format
+    if (username.length < 3 || username.length > 20) {
+      return ApiErrors.badRequest("Username must be 3-20 characters");
+    }
+    if (!USERNAME_REGEX.test(username)) {
+      return ApiErrors.badRequest(
+        "Username can only contain lowercase letters, numbers, and underscores. Must start and end with a letter or number."
+      );
+    }
+
+    // Check uniqueness (case-insensitive)
+    const { data: existing } = await supabase
+      .from("user_profiles")
+      .select("user_id")
+      .ilike("username", username)
+      .neq("user_id", user.id)
+      .single();
+
+    if (existing) {
+      return ApiErrors.badRequest("Username is already taken");
+    }
+
+    updates.username = username;
   }
 
   // Update streak if requested

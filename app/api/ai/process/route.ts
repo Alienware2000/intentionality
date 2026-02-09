@@ -135,7 +135,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
       }
 
       parsed = JSON.parse(jsonStr);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse AI response as JSON:', result.text);
       // Return a fallback response with the raw text as a note
       return NextResponse.json({

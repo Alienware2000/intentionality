@@ -77,7 +77,6 @@ export default function GettingStartedChecklist({ onDismiss }: Props) {
     loading,
     isOnboardingDone,
     isStepComplete,
-    completedSteps,
     skipOnboarding,
     isTier1Complete,
     tier1CompletedCount,

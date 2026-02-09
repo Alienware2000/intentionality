@@ -326,7 +326,6 @@ function generateRuleBasedInsights(
 
   // Helper for motivation-aware framing
   const isAchievementMotivated = config.motivationDrivers.includes('achievement');
-  const isDeadlineMotivated = config.motivationDrivers.includes('deadline');
 
   // Streak risk (evening, nothing completed, has streak)
   if (

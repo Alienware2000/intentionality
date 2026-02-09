@@ -15,7 +15,7 @@ import {
   parseJsonBody,
   ApiErrors,
 } from "@/app/lib/auth-middleware";
-import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
+import { getLevelFromXpV2 } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
 
 // -----------------------------------------------------------------------------

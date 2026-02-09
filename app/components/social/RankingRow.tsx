@@ -6,8 +6,9 @@
 // Optimized for displaying ranked lists with visual hierarchy.
 // =============================================================================
 
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Flame, TrendingUp, User } from "lucide-react";
+import { Flame, User, UserPlus, Loader2, Check } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
 
@@ -20,6 +21,10 @@ type RankingRowProps = {
   index?: number;
   /** Click handler */
   onClick?: () => void;
+  /** Handler for adding friend (if provided, shows add button) */
+  onAddFriend?: (userId: string) => Promise<boolean>;
+  /** Whether a friend request is already pending to this user */
+  hasPendingRequest?: boolean;
 };
 
 /** Format value based on metric type */
@@ -37,16 +42,6 @@ function formatValue(value: number, metric: LeaderboardMetric): string {
       return Math.floor(value / 60) + "h " + (value % 60) + "m";
     default:
       return value.toString();
-  }
-}
-
-/** Get icon for metric */
-function getMetricIcon(metric: LeaderboardMetric) {
-  switch (metric) {
-    case "streak":
-      return Flame;
-    default:
-      return TrendingUp;
   }
 }
 
@@ -81,9 +76,43 @@ export default function RankingRow({
   metric,
   index = 0,
   onClick,
+  onAddFriend,
+  hasPendingRequest = false,
 }: RankingRowProps) {
-  const Icon = getMetricIcon(metric);
   const isTopThree = entry.rank <= 3;
+
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  // Track in-flight request to prevent rapid double-clicks
+  const pendingRef = useRef(false);
+
+  // Show add friend button if:
+  // - onAddFriend handler is provided
+  // - Not current user
+  // - Not already friends
+  // - No pending request
+  const showAddFriend =
+    onAddFriend &&
+    !entry.is_current_user &&
+    !entry.is_friend &&
+    !hasPendingRequest &&
+    !sent;
+
+  const handleAddFriend = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger row click
+    if (!onAddFriend || sending || pendingRef.current) return;
+
+    pendingRef.current = true;
+    setSending(true);
+    const success = await onAddFriend(entry.user_id);
+    setSending(false);
+    pendingRef.current = false;
+
+    if (success) {
+      setSent(true);
+    }
+  };
 
   return (
     <motion.div
@@ -150,6 +179,9 @@ export default function RankingRow({
 
           {/* Secondary stats */}
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            {entry.username && (
+              <span className="text-[var(--accent-primary)]">@{entry.username}</span>
+            )}
             {entry.level !== undefined && <span>Lv.{entry.level}</span>}
             {entry.current_streak !== undefined && entry.current_streak > 0 && (
               <span className="flex items-center gap-0.5">
@@ -178,6 +210,52 @@ export default function RankingRow({
           {formatValue(entry.value, metric)}
         </p>
       </div>
+
+      {/* Add Friend Button */}
+      {showAddFriend && (
+        <button
+          onClick={handleAddFriend}
+          disabled={sending}
+          className={cn(
+            "p-2 rounded-lg shrink-0",
+            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+            "disabled:opacity-50"
+          )}
+          title="Add friend"
+        >
+          {sending ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <UserPlus size={16} />
+          )}
+        </button>
+      )}
+
+      {/* Sent indicator */}
+      {sent && (
+        <div
+          className={cn(
+            "p-2 rounded-lg shrink-0",
+            "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+          )}
+          title="Request sent"
+        >
+          <Check size={16} />
+        </div>
+      )}
+
+      {/* Pending indicator */}
+      {hasPendingRequest && !sent && (
+        <div
+          className={cn(
+            "px-2 py-1 rounded-lg shrink-0 text-xs",
+            "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+          )}
+        >
+          Pending
+        </div>
+      )}
     </motion.div>
   );
 }

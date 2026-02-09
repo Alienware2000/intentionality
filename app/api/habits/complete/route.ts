@@ -18,8 +18,8 @@ import {
 } from "@/app/lib/auth-middleware";
 import { getLevelFromXpV2, getLocalDateString } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
-import { getPreviousActiveDay, isActiveDay } from "@/app/lib/date-utils";
-import type { ISODateString, DayOfWeek } from "@/app/lib/types";
+import { getPreviousActiveDay } from "@/app/lib/date-utils";
+import type { DayOfWeek } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Type Definitions

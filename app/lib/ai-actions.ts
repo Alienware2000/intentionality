@@ -729,24 +729,6 @@ export async function markOutcomeActionTaken(
   }
 }
 
-/**
- * Map action types to suggestion types for tracking.
- */
-function actionTypeToSuggestionType(actionType: AIActionType): AISuggestionType {
-  const mapping: Record<AIActionType, AISuggestionType> = {
-    CREATE_TASK: 'task_suggestion',
-    UPDATE_TASK: 'task_suggestion',
-    COMPLETE_TASK: 'task_suggestion',
-    DELETE_TASK: 'task_suggestion',
-    START_FOCUS: 'focus_suggestion',
-    CREATE_HABIT: 'habit_suggestion',
-    CREATE_QUEST: 'task_suggestion',
-    NAVIGATE: 'general_advice',
-    OPEN_MODAL: 'general_advice',
-  };
-  return mapping[actionType] || 'general_advice';
-}
-
 // -----------------------------------------------------------------------------
 // Utility Functions
 // -----------------------------------------------------------------------------

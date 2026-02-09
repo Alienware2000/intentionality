@@ -805,9 +805,9 @@ export default function WeeklyPlanModal({
   onTasksCreated,
 }: Props) {
   const { refreshProfile } = useProfile();
-  const { showXpGain, showLevelUp } = useCelebration();
+  const { showXpGain } = useCelebration();
 
-  const { state, actions } = useWeeklyPlanWizard(weekStart);
+  const { state, actions } = useWeeklyPlanWizard();
 
   // Handle manual selection - just close the modal
   const handleSelectManual = useCallback(() => {

@@ -99,7 +99,6 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   // Create tasks
   const results: TaskResult[] = [];
-  const totalXp = 0;
 
   for (const task of tasks) {
     const trimmedTitle = task.title.trim();

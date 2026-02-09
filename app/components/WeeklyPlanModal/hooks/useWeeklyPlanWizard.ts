@@ -190,9 +190,7 @@ const INITIAL_STATE: WizardState = {
 // Hook
 // -----------------------------------------------------------------------------
 
-export function useWeeklyPlanWizard(
-  weekStart: ISODateString
-): { state: WizardState; actions: WizardActions } {
+export function useWeeklyPlanWizard(): { state: WizardState; actions: WizardActions } {
   const [state, setState] = useState<WizardState>(() => INITIAL_STATE);
 
   // ---------------------------------------------------------------------------

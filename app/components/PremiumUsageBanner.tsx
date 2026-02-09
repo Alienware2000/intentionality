@@ -10,12 +10,11 @@
 // Design: Non-intrusive, informative not sales-y.
 // =============================================================================
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Brain, Sparkles, FileText, ChevronDown, X, Crown } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useFreemium } from "./FreemiumProvider";
-import UsageIndicator from "./UsageIndicator";
 import { getUsageColorsFromPercentage } from "@/app/lib/usage-utils";
 
 // -----------------------------------------------------------------------------
@@ -38,24 +37,24 @@ type FeatureKey = keyof typeof FEATURE_CONFIG;
 // Component
 // -----------------------------------------------------------------------------
 
+// Check if banner should be dismissed (runs on client only)
+function checkIsDismissed(): boolean {
+  if (typeof window === "undefined") return true;
+  const dismissedAt = localStorage.getItem(DISMISS_KEY);
+  if (dismissedAt) {
+    const dismissedDate = new Date(dismissedAt);
+    const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceDismissed < DISMISS_DAYS) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export default function PremiumUsageBanner() {
   const { usage, isLoadingUsage, openUpgradeModal } = useFreemium();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(true); // Default to hidden until we check
-
-  // Check if banner was dismissed
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (dismissedAt) {
-      const dismissedDate = new Date(dismissedAt);
-      const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < DISMISS_DAYS) {
-        setIsDismissed(true);
-        return;
-      }
-    }
-    setIsDismissed(false);
-  }, []);
+  const [isDismissed, setIsDismissed] = useState(() => checkIsDismissed());
 
   // Find the highest usage feature to show in collapsed state
   const highestUsageFeature = useMemo(() => {

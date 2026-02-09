@@ -5,7 +5,7 @@
 // Shows group details with tabs for leaderboard, activity, and members.
 // =============================================================================
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -18,9 +18,7 @@ import {
   Crown,
   Shield,
   LogOut,
-  Trash2,
   Loader2,
-  Settings,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -29,7 +27,6 @@ import {
   RankingRow,
   RankingRowSkeleton,
   ActivityFeedItem,
-  ActivityFeedSkeleton,
   NoActivityMessage,
 } from "@/app/components/social";
 import GlowCard from "@/app/components/ui/GlowCard";
@@ -164,10 +161,9 @@ function MetricFilter({ metric, onChange }: MetricFilterProps) {
 type MemberRowProps = {
   member: GroupMember;
   isCurrentUser: boolean;
-  isOwner: boolean;
 };
 
-function MemberRow({ member, isCurrentUser, isOwner }: MemberRowProps) {
+function MemberRow({ member, isCurrentUser }: MemberRowProps) {
   // Format relative time
   const formatJoinDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -275,6 +271,9 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
+  // Track if component is mounted to prevent state updates after unmount
+  const mountedRef = useRef(true);
+
   // Load group data
   const loadGroup = useCallback(async () => {
     try {
@@ -317,15 +316,23 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     }
   }, [groupId]);
 
-  // Initial load
+  // Initial load with cleanup to prevent memory leaks
   useEffect(() => {
+    mountedRef.current = true;
+
     const load = async () => {
       setLoading(true);
       await loadGroup();
+      if (!mountedRef.current) return;
       await Promise.all([loadLeaderboard(), loadActivity()]);
+      if (!mountedRef.current) return;
       setLoading(false);
     };
     load();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [loadGroup, loadLeaderboard, loadActivity]);
 
   // Reload leaderboard when metric changes
@@ -644,7 +651,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                   key={member.user_id}
                   member={member}
                   isCurrentUser={member.user_id === currentUserId}
-                  isOwner={group.my_role === "owner"}
                 />
               ))}
             </motion.div>

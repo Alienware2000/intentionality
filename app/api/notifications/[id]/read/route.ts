@@ -38,24 +38,37 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Notification ID is required");
   }
 
-  // Update the notification (RLS ensures user can only update their own)
-  const { data: updated, error: updateError } = await supabase
+  // First check if notification exists and belongs to user
+  const { data: existing, error: fetchError } = await supabase
+    .from("notifications")
+    .select("id, read_at")
+    .eq("id", notificationId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (fetchError) {
+    return ApiErrors.serverError(fetchError.message);
+  }
+
+  if (!existing) {
+    return ApiErrors.notFound("Notification not found");
+  }
+
+  // Check if already read
+  if (existing.read_at) {
+    return successResponse({ message: "Notification was already read", already_read: true });
+  }
+
+  // Update the notification
+  const { error: updateError } = await supabase
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
     .eq("id", notificationId)
-    .eq("user_id", user.id)
-    .is("read_at", null) // Only update if not already read
-    .select("id")
-    .maybeSingle();
+    .eq("user_id", user.id);
 
   if (updateError) {
     return ApiErrors.serverError(updateError.message);
   }
 
-  // If no row was updated, notification was either not found or already read
-  if (!updated) {
-    return successResponse({ message: "Notification was already read or not found" });
-  }
-
-  return successResponse({ message: "Notification marked as read" });
+  return successResponse({ message: "Notification marked as read", already_read: false });
 });

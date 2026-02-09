@@ -16,7 +16,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import anime from "animejs";
 import { useTheme } from "@/app/components/ThemeProvider";
 

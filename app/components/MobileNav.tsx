@@ -17,7 +17,6 @@ import {
   Calendar,
   BarChart3,
   Menu,
-  X,
   LogOut,
   Sun,
   Moon,
@@ -32,14 +31,12 @@ import {
   Crown,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
-import { getTitleForLevel } from "@/app/lib/gamification";
 import { useProfile } from "./ProfileProvider";
 import { useTheme } from "./ThemeProvider";
 import { useBrainDump } from "./BrainDumpProvider";
 import { useAI } from "./AIProvider";
 import { useFreemium } from "./FreemiumProvider";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/client";
-import XpBar from "./XpBar";
 import StreakBadge from "./StreakBadge";
 
 // -----------------------------------------------------------------------------

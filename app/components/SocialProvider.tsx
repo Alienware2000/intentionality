@@ -181,6 +181,25 @@ export function SocialProvider({ children }: SocialProviderProps) {
   }, []);
 
   const sendFriendRequest = useCallback(async (userId: string): Promise<boolean> => {
+    // Optimistic update: Add to sent requests immediately
+    const optimisticRequest: FriendWithProfile = {
+      friendship_id: `temp-${Date.now()}`, // Temporary ID
+      user_id: userId,
+      status: "pending",
+      display_name: null,
+      username: null,
+      xp_total: 0,
+      level: 1,
+      current_streak: 0,
+      longest_streak: 0,
+      title: "Novice",
+      is_requester: true,
+      requested_at: new Date().toISOString(),
+      responded_at: null,
+    };
+    const previousSentRequests = sentRequests;
+    setSentRequests(prev => [...prev, optimisticRequest]);
+
     try {
       const res = await fetch("/api/friends", {
         method: "POST",
@@ -190,16 +209,26 @@ export function SocialProvider({ children }: SocialProviderProps) {
       const data = await res.json();
 
       if (data.ok) {
+        // Sync with server to get accurate data
         await refreshFriends();
         return true;
       }
+      // Revert on failure
+      setSentRequests(previousSentRequests);
       return false;
     } catch {
+      // Revert on error
+      setSentRequests(previousSentRequests);
       return false;
     }
-  }, [refreshFriends]);
+  }, [refreshFriends, sentRequests]);
 
   const acceptFriendRequest = useCallback(async (friendshipId: Id): Promise<boolean> => {
+    // Optimistic update: Remove from pending requests immediately
+    const previousPendingRequests = pendingRequests;
+    const acceptedRequest = pendingRequests.find(r => r.id === friendshipId);
+    setPendingRequests(prev => prev.filter(r => r.id !== friendshipId));
+
     try {
       const res = await fetch(`/api/friends/${friendshipId}`, {
         method: "PATCH",
@@ -209,16 +238,30 @@ export function SocialProvider({ children }: SocialProviderProps) {
       const data = await res.json();
 
       if (data.ok) {
+        // Sync with server to get accurate friend list
         await refreshFriends();
         return true;
       }
+      // Revert on failure
+      if (acceptedRequest) {
+        setPendingRequests(previousPendingRequests);
+      }
       return false;
     } catch {
+      // Revert on error
+      if (acceptedRequest) {
+        setPendingRequests(previousPendingRequests);
+      }
       return false;
     }
-  }, [refreshFriends]);
+  }, [refreshFriends, pendingRequests]);
 
   const rejectFriendRequest = useCallback(async (friendshipId: Id): Promise<boolean> => {
+    // Optimistic update: Remove from pending requests immediately
+    const previousPendingRequests = pendingRequests;
+    const rejectedRequest = pendingRequests.find(r => r.id === friendshipId);
+    setPendingRequests(prev => prev.filter(r => r.id !== friendshipId));
+
     try {
       const res = await fetch(`/api/friends/${friendshipId}`, {
         method: "PATCH",
@@ -228,14 +271,23 @@ export function SocialProvider({ children }: SocialProviderProps) {
       const data = await res.json();
 
       if (data.ok) {
+        // Sync with server
         await refreshFriends();
         return true;
       }
+      // Revert on failure
+      if (rejectedRequest) {
+        setPendingRequests(previousPendingRequests);
+      }
       return false;
     } catch {
+      // Revert on error
+      if (rejectedRequest) {
+        setPendingRequests(previousPendingRequests);
+      }
       return false;
     }
-  }, [refreshFriends]);
+  }, [refreshFriends, pendingRequests]);
 
   const removeFriend = useCallback(async (friendshipId: Id): Promise<boolean> => {
     try {
@@ -442,19 +494,16 @@ export function SocialProvider({ children }: SocialProviderProps) {
 
   const searchUsers = useCallback(
     async (query: string): Promise<UserSearchResult[]> => {
-      try {
-        const res = await fetch(
-          `/api/friends/search?q=${encodeURIComponent(query)}`
-        );
-        const data = await res.json();
+      const res = await fetch(
+        `/api/friends/search?q=${encodeURIComponent(query)}`
+      );
+      const data = await res.json();
 
-        if (data.ok) {
-          return data.users ?? [];
-        }
-        return [];
-      } catch {
-        return [];
+      if (data.ok) {
+        return data.users ?? [];
       }
+      // Throw error with the API error message for the UI to handle
+      throw new Error(data.error || "Search failed");
     },
     []
   );

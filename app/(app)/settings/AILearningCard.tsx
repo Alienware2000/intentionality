@@ -18,7 +18,6 @@ import {
   Target,
   Clock,
   Zap,
-  Moon,
   RefreshCw,
   Plus,
   X,
@@ -118,7 +117,7 @@ export default function AILearningCard({
       } else {
         setError(result.error || "Failed to load learning data");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to connect to server");
     } finally {
       setLoading(false);
@@ -151,7 +150,7 @@ export default function AILearningCard({
       } else {
         setError(result.error || "Failed to save");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to save changes");
     } finally {
       setSaving(false);
@@ -202,7 +201,7 @@ export default function AILearningCard({
       } else {
         setError(result.error || "Failed to reset");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to reset data");
     } finally {
       setSaving(false);
@@ -223,7 +222,7 @@ export default function AILearningCard({
       } else {
         setError(result.error || "Failed to compute patterns");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to compute patterns");
     } finally {
       setSaving(false);

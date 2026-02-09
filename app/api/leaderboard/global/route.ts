@@ -6,10 +6,11 @@
 import {
   withAuth,
   getSearchParams,
+  parseIntParam,
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import type { LeaderboardEntry, LeaderboardType, LeaderboardMetric } from "@/app/lib/types";
+import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // GET /api/leaderboard/global
@@ -44,8 +45,8 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   const metric = (params.get("metric") ?? "xp") as LeaderboardMetric;
   // Note: period parameter is accepted but not yet implemented - always returns alltime
   // const period = params.get("period") ?? "alltime";
-  const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50")));
-  const offset = Math.max(0, parseInt(params.get("offset") ?? "0"));
+  const limit = parseIntParam(params.get("limit"), 50, 1, 100);
+  const offset = parseIntParam(params.get("offset"), 0, 0);
 
   // Validate metric
   if (!["xp", "streak", "level"].includes(metric)) {
@@ -55,40 +56,59 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Determine the ordering column
   const orderColumn = metric === "streak" ? "current_streak" : metric === "level" ? "level" : "xp_total";
 
-  // Fetch ALL user profiles, ordered by the metric
-  const { data: profiles, error: profilesError } = await supabase
+  // Get total count of all users on the leaderboard
+  // Note: All users are shown by default. Privacy opt-out can be added later
+  // via a separate RLS policy that allows reading the opt-out status.
+  const { count: totalParticipants, error: countError } = await supabase
     .from("user_profiles")
-    .select("user_id, display_name, xp_total, level, current_streak")
-    .order(orderColumn, { ascending: false });
+    .select("*", { count: "exact", head: true });
 
-  if (profilesError) {
-    return ApiErrors.serverError(profilesError.message);
+  if (countError) {
+    return ApiErrors.serverError(countError.message);
   }
-
-  const allProfiles = profiles ?? [];
-  const totalParticipants = allProfiles.length;
 
   // Find current user's rank
   let myRank: number | null = null;
   let myValue: number | null = null;
 
-  const myIndex = allProfiles.findIndex((p) => p.user_id === user.id);
-  if (myIndex >= 0) {
-    myRank = myIndex + 1;
-    const myProfile = allProfiles[myIndex];
+  const { data: myProfile } = await supabase
+    .from("user_profiles")
+    .select("xp_total, level, current_streak, created_at")
+    .eq("user_id", user.id)
+    .single();
+
+  if (myProfile) {
     myValue =
       metric === "streak"
         ? myProfile.current_streak
         : metric === "level"
         ? myProfile.level
         : myProfile.xp_total;
+
+    // Count users with higher values to determine rank
+    // For ties, users who joined earlier rank higher
+    const { count: usersAhead } = await supabase
+      .from("user_profiles")
+      .select("*", { count: "exact", head: true })
+      .gt(orderColumn, myValue);
+
+    myRank = (usersAhead ?? 0) + 1;
   }
 
-  // Paginate the results
-  const paginatedProfiles = allProfiles.slice(offset, offset + limit);
+  // Fetch all users with pagination
+  const { data: paginatedProfiles, error: profilesError } = await supabase
+    .from("user_profiles")
+    .select("user_id, display_name, username, xp_total, level, current_streak, created_at")
+    .order(orderColumn, { ascending: false })
+    .order("created_at", { ascending: true }) // Tie-breaker for stable rankings
+    .range(offset, offset + limit - 1);
+
+  if (profilesError) {
+    return ApiErrors.serverError(profilesError.message);
+  }
 
   // Build ranked entries
-  const entries: LeaderboardEntry[] = paginatedProfiles.map((p, index) => {
+  const entries: LeaderboardEntry[] = (paginatedProfiles ?? []).map((p, index) => {
     const rank = offset + index + 1;
     let value: number;
 
@@ -107,6 +127,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       rank,
       user_id: p.user_id,
       display_name: p.display_name,
+      username: p.username,
       value,
       level: p.level,
       current_streak: p.current_streak,
@@ -115,7 +136,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   });
 
   return successResponse({
-    leaderboard_type: "global" as LeaderboardType,
+    leaderboard_type: "global",
     metric,
     period_start: null,
     entries,
