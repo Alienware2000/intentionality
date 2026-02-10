@@ -19,7 +19,8 @@ import type { UserSearchResult, LevelTitle } from "@/app/lib/types";
  * GET /api/friends/search?q=query
  *
  * Search for users by display name.
- * Returns users who have opted into global visibility or have public profiles.
+ * Users are discoverable by default. Only excludes users who explicitly set
+ * profile_visibility to "private".
  *
  * @authentication Required
  *
@@ -100,11 +101,13 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   });
 
   // Filter and map results
+  // Users are discoverable by default - only exclude those who explicitly set private
   const users: UserSearchResult[] = profiles
     .filter((p) => {
       // Check if user allows being found
       const privacy = privacyMap.get(p.user_id);
-      // Default: allow if no privacy settings or not explicitly private
+      // Users without privacy settings ARE searchable (discoverable by default)
+      // Only exclude users who explicitly set profile_visibility to "private"
       if (!privacy) return true;
       return privacy.profile_visibility !== "private";
     })

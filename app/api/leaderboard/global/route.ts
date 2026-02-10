@@ -56,18 +56,35 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Determine the ordering column
   const orderColumn = metric === "streak" ? "current_streak" : metric === "level" ? "level" : "xp_total";
 
-  // Get total count of all users on the leaderboard
-  // Note: All users are shown by default. Privacy opt-out can be added later
-  // via a separate RLS policy that allows reading the opt-out status.
-  const { count: totalParticipants, error: countError } = await supabase
+  // Get user IDs that have explicitly opted OUT of the global leaderboard
+  // Design: Users appear by default, only hide those who explicitly set show_on_global_leaderboard: false
+  const { data: optedOutUsers, error: privacyError } = await supabase
+    .from("user_privacy_settings")
+    .select("user_id")
+    .eq("show_on_global_leaderboard", false);
+
+  if (privacyError) {
+    return ApiErrors.serverError(privacyError.message);
+  }
+
+  const optedOutUserIds = (optedOutUsers ?? []).map((u) => u.user_id);
+
+  // Get total count of users (excluding opted-out)
+  let countQuery = supabase
     .from("user_profiles")
     .select("*", { count: "exact", head: true });
+
+  if (optedOutUserIds.length > 0) {
+    countQuery = countQuery.not("user_id", "in", `(${optedOutUserIds.join(",")})`);
+  }
+
+  const { count: totalParticipants, error: countError } = await countQuery;
 
   if (countError) {
     return ApiErrors.serverError(countError.message);
   }
 
-  // Find current user's rank
+  // Find current user's rank (only if they haven't opted out)
   let myRank: number | null = null;
   let myValue: number | null = null;
 
@@ -77,7 +94,10 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     .eq("user_id", user.id)
     .single();
 
-  if (myProfile) {
+  // Check if current user has opted out of global leaderboard
+  const userOptedOut = optedOutUserIds.includes(user.id);
+
+  if (myProfile && !userOptedOut) {
     myValue =
       metric === "streak"
         ? myProfile.current_streak
@@ -85,23 +105,34 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
         ? myProfile.level
         : myProfile.xp_total;
 
-    // Count users with higher values to determine rank
-    // For ties, users who joined earlier rank higher
-    const { count: usersAhead } = await supabase
+    // Count users (excluding opted-out) with higher values to determine rank
+    let rankQuery = supabase
       .from("user_profiles")
       .select("*", { count: "exact", head: true })
       .gt(orderColumn, myValue);
 
+    if (optedOutUserIds.length > 0) {
+      rankQuery = rankQuery.not("user_id", "in", `(${optedOutUserIds.join(",")})`);
+    }
+
+    const { count: usersAhead } = await rankQuery;
+
     myRank = (usersAhead ?? 0) + 1;
   }
 
-  // Fetch all users with pagination
-  const { data: paginatedProfiles, error: profilesError } = await supabase
+  // Fetch all users with pagination, excluding opted-out users
+  let profilesQuery = supabase
     .from("user_profiles")
     .select("user_id, display_name, username, xp_total, level, current_streak, created_at")
     .order(orderColumn, { ascending: false })
     .order("created_at", { ascending: true }) // Tie-breaker for stable rankings
     .range(offset, offset + limit - 1);
+
+  if (optedOutUserIds.length > 0) {
+    profilesQuery = profilesQuery.not("user_id", "in", `(${optedOutUserIds.join(",")})`);
+  }
+
+  const { data: paginatedProfiles, error: profilesError } = await profilesQuery;
 
   if (profilesError) {
     return ApiErrors.serverError(profilesError.message);

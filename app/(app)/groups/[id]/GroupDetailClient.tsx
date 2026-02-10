@@ -270,6 +270,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   // Track if component is mounted to prevent state updates after unmount
   const mountedRef = useRef(true);
@@ -354,19 +355,22 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   };
 
   // Handle leave group
-  const handleLeave = async () => {
+  const handleLeaveClick = () => {
     if (!group) return;
     if (group.my_role === "owner") {
       alert("Owners must delete the group or transfer ownership first.");
       return;
     }
+    setShowLeaveModal(true);
+  };
 
-    const confirmed = confirm("Are you sure you want to leave this group?");
-    if (!confirmed) return;
+  const handleLeaveConfirm = async () => {
+    if (!group) return;
 
     setLeaving(true);
     const success = await leaveGroup(group.id);
     setLeaving(false);
+    setShowLeaveModal(false);
 
     if (success) {
       router.push("/groups");
@@ -482,7 +486,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
 
               {group.my_role !== "owner" && (
                 <button
-                  onClick={handleLeave}
+                  onClick={handleLeaveClick}
                   disabled={leaving}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm",
@@ -653,6 +657,80 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                   isCurrentUser={member.user_id === currentUserId}
                 />
               ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Leave Group Confirmation Modal */}
+      <AnimatePresence>
+        {showLeaveModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowLeaveModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+              className={cn(
+                "w-full max-w-sm p-6 rounded-2xl",
+                "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                "shadow-xl"
+              )}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-full bg-red-500/10">
+                  <LogOut size={20} className="text-red-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Leave Group?
+                </h3>
+              </div>
+
+              <p className="text-sm text-[var(--text-muted)] mb-6">
+                Are you sure you want to leave <strong className="text-[var(--text-secondary)]">{group?.name}</strong>?
+                You&apos;ll need a new invite to rejoin.
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowLeaveModal(false)}
+                  disabled={leaving}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl text-sm font-medium",
+                    "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors",
+                    "disabled:opacity-50"
+                  )}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLeaveConfirm}
+                  disabled={leaving}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium",
+                    "bg-red-500 text-white",
+                    "hover:bg-red-600 transition-colors",
+                    "disabled:opacity-50"
+                  )}
+                >
+                  {leaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Leaving...
+                    </>
+                  ) : (
+                    "Leave Group"
+                  )}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

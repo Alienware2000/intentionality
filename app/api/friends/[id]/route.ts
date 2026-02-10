@@ -103,17 +103,23 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
       message: "Friend request accepted",
     });
   } else {
-    // Reject = delete the friendship record
-    const { error: deleteError } = await supabase
+    // Reject = mark as rejected with timestamp (keeps audit trail)
+    const { data: rejected, error: rejectError } = await supabase
       .from("friendships")
-      .delete()
-      .eq("id", friendshipId);
+      .update({
+        status: "rejected" as FriendshipStatus,
+        responded_at: new Date().toISOString(),
+      })
+      .eq("id", friendshipId)
+      .select()
+      .single();
 
-    if (deleteError) {
-      return ApiErrors.serverError(deleteError.message);
+    if (rejectError) {
+      return ApiErrors.serverError(rejectError.message);
     }
 
     return successResponse({
+      friendship: rejected,
       message: "Friend request rejected",
     });
   }

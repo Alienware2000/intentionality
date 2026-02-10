@@ -45,6 +45,8 @@ export default function FriendRequestCard({
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [isRejected, setIsRejected] = useState(false);
+  const [undoTimeoutId, setUndoTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   const handleAccept = async () => {
     setIsAccepting(true);
@@ -63,10 +65,25 @@ export default function FriendRequestCard({
     const success = await onReject(request.id);
     setIsRejecting(false);
     if (success) {
-      setIsDone(true);
+      // Show rejected state with undo option for 5 seconds
+      setIsRejected(true);
+      const timeoutId = setTimeout(() => {
+        setIsDone(true);
+      }, 5000);
+      setUndoTimeoutId(timeoutId);
     } else {
       showToast({ message: "Failed to decline request", type: "error" });
     }
+  };
+
+  const handleUndo = () => {
+    // Clear the timeout and reset state
+    if (undoTimeoutId) {
+      clearTimeout(undoTimeoutId);
+      setUndoTimeoutId(null);
+    }
+    setIsRejected(false);
+    showToast({ message: "Rejection undone - you can respond again", type: "default" });
   };
 
   const isLoading = isAccepting || isRejecting;
@@ -91,6 +108,42 @@ export default function FriendRequestCard({
     return null; // Will be removed from list by parent
   }
 
+  // Show rejected state with undo option
+  if (isRejected) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 10, height: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <GlowCard glowColor="none" className="relative overflow-hidden bg-[var(--bg-elevated)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-red-500/10">
+                <X size={16} className="text-red-500" />
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                Request from <span className="font-medium text-[var(--text-secondary)]">{request.from_display_name || "Anonymous"}</span> declined
+              </p>
+            </div>
+            <button
+              onClick={handleUndo}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium",
+                "bg-[var(--bg-card)] text-[var(--text-secondary)]",
+                "hover:bg-[var(--bg-hover)] transition-colors",
+                "border border-[var(--border-subtle)]"
+              )}
+            >
+              Undo
+            </button>
+          </div>
+        </GlowCard>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
@@ -103,13 +156,6 @@ export default function FriendRequestCard({
       }}
     >
       <GlowCard glowColor="primary" className="relative overflow-hidden">
-        {/* Loading overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-[var(--bg-card)]/80 backdrop-blur-sm flex items-center justify-center z-10">
-            <Loader2 size={24} className="animate-spin text-[var(--accent-primary)]" />
-          </div>
-        )}
-
         <div className="flex items-center gap-3">
           {/* Avatar */}
           <div className="p-2.5 rounded-full bg-[var(--accent-primary)]/10 shrink-0">
@@ -138,7 +184,7 @@ export default function FriendRequestCard({
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons with inline loading */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleAccept}
@@ -151,7 +197,11 @@ export default function FriendRequestCard({
               )}
               aria-label="Accept friend request"
             >
-              <Check size={18} />
+              {isAccepting ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Check size={18} />
+              )}
             </button>
             <button
               onClick={handleReject}
@@ -164,7 +214,11 @@ export default function FriendRequestCard({
               )}
               aria-label="Reject friend request"
             >
-              <X size={18} />
+              {isRejecting ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <X size={18} />
+              )}
             </button>
           </div>
         </div>

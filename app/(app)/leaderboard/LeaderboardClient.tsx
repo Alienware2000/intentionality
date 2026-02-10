@@ -273,10 +273,10 @@ function PrivacyNotice() {
       </div>
       <div className="flex-1">
         <p className="text-sm text-[var(--text-secondary)]">
-          Want to appear on the global leaderboard?
+          You appear on the global leaderboard by default
         </p>
         <p className="text-xs text-[var(--text-muted)]">
-          Enable it in your privacy settings to compete with everyone.
+          Want to hide your ranking? You can opt out in privacy settings.
         </p>
       </div>
       <Link
@@ -308,7 +308,7 @@ function EmptyState({ tab }: EmptyStateProps) {
     global: {
       icon: <Globe size={32} className="text-[var(--text-muted)]" />,
       title: "No global rankings yet",
-      message: "Be the first to opt-in and appear on the leaderboard!",
+      message: "No users on the leaderboard yet. Start earning XP to appear here!",
     },
     friends: {
       icon: <Users size={32} className="text-[var(--text-muted)]" />,
@@ -402,6 +402,10 @@ export default function LeaderboardClient() {
   const offsetRef = useRef(0);
   // Use a ref for synchronous loading guard (React state batching can't bypass this)
   const loadingRef = useRef(false);
+  // Track previous entry count to skip animation for already-visible items on "Load More"
+  const prevEntryCountRef = useRef(0);
+  // Ref for infinite scroll sentinel
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Note: SocialProvider handles groups fetching - no need to refresh on mount
 
@@ -471,16 +475,36 @@ export default function LeaderboardClient() {
     }
   }, [tab, metric, selectedGroupId]);
 
-  // Load more handler
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      loadLeaderboard(true);
-    }
-  }, [loadLeaderboard, loadingMore, hasMore]);
-
   useEffect(() => {
     loadLeaderboard(false);
   }, [tab, metric, selectedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update previous entry count ref after entries change (for "Load More" animation optimization)
+  useEffect(() => {
+    prevEntryCountRef.current = entries.length;
+  }, [entries.length]);
+
+  // Infinite scroll with Intersection Observer
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMore && !loading && !loadingMore) {
+          loadLeaderboard(true);
+        }
+      },
+      { rootMargin: "100px" }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loading, loadingMore, loadLeaderboard]);
 
   // Get user's value for current metric from entries
   const userEntry = entries.find((e) => e.is_current_user);
@@ -595,7 +619,7 @@ export default function LeaderboardClient() {
               return (
                 <motion.div
                   key={entry.user_id}
-                  initial="hidden"
+                  initial={index >= prevEntryCountRef.current ? "hidden" : false}
                   animate="visible"
                   variants={itemVariants}
                 >
@@ -612,32 +636,15 @@ export default function LeaderboardClient() {
           </motion.div>
         )}
 
-        {/* Load More Button */}
+        {/* Infinite scroll sentinel and loading indicator */}
         {!loading && hasMore && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
-                "hover:bg-[var(--bg-hover)] transition-colors",
-                "text-sm font-medium",
-                "disabled:opacity-50"
-              )}
-            >
-              {loadingMore ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <ChevronRight size={16} className="rotate-90" />
-                  Load More ({totalCount - entries.length} remaining)
-                </>
-              )}
-            </button>
+          <div ref={loadMoreRef} className="mt-4 flex justify-center">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <div className="w-4 h-4 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
+                Loading more...
+              </div>
+            )}
           </div>
         )}
       </GlowCard>

@@ -1477,7 +1477,7 @@ export type UserPrivacySettings = {
 // -----------------------------------------------------------------------------
 
 /** Friendship status */
-export type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
+export type FriendshipStatus = 'pending' | 'accepted' | 'rejected' | 'blocked';
 
 /**
  * Friendship record between two users.

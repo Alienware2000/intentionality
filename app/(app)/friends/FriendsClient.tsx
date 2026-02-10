@@ -155,49 +155,70 @@ function FriendCard({ friend, onNudge }: FriendCardProps) {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="hidden sm:flex items-center gap-4 text-sm">
-          <div className="text-center">
-            <p className="font-mono font-bold text-[var(--accent-primary)]">
-              {friend.level}
-            </p>
-            <p className="text-[10px] text-[var(--text-muted)] uppercase">Level</p>
+        {/* Stats - Condensed on mobile, full on desktop */}
+        <div className="flex items-center gap-2 sm:gap-4 text-sm">
+          {/* Mobile: condensed inline stats */}
+          <div className="flex sm:hidden items-center gap-2 text-xs text-[var(--text-muted)]">
+            <span className="font-mono font-bold text-[var(--accent-primary)]">
+              Lv.{friend.level}
+            </span>
+            {friend.current_streak > 0 && (
+              <span className="font-mono font-bold text-[var(--accent-streak)]">
+                {friend.current_streak}d
+              </span>
+            )}
           </div>
-          <div className="text-center">
-            <p className="font-mono font-bold text-[var(--accent-streak)]">
-              {friend.current_streak}
-            </p>
-            <p className="text-[10px] text-[var(--text-muted)] uppercase">Streak</p>
-          </div>
-          <div className="text-center">
-            <p className="font-mono font-bold text-[var(--text-primary)]">
-              {friend.xp_total.toLocaleString()}
-            </p>
-            <p className="text-[10px] text-[var(--text-muted)] uppercase">XP</p>
+          {/* Desktop: full stats */}
+          <div className="hidden sm:flex items-center gap-4">
+            <div className="text-center">
+              <p className="font-mono font-bold text-[var(--accent-primary)]">
+                {friend.level}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase">Level</p>
+            </div>
+            <div className="text-center">
+              <p className="font-mono font-bold text-[var(--accent-streak)]">
+                {friend.current_streak}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase">Streak</p>
+            </div>
+            <div className="text-center">
+              <p className="font-mono font-bold text-[var(--text-primary)]">
+                {friend.xp_total.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] uppercase">XP</p>
+            </div>
           </div>
         </div>
 
         {/* Nudge Button */}
-        <button
-          onClick={handleNudge}
-          disabled={nudging || nudged}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-            nudged
-              ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
-              : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
-            "disabled:opacity-50"
-          )}
-        >
-          {nudging ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : nudged ? (
-            <Check size={14} />
-          ) : (
-            <Heart size={14} />
-          )}
-          {nudged ? "Sent!" : "Nudge"}
-        </button>
+        <div className="relative group">
+          <button
+            onClick={handleNudge}
+            disabled={nudging || nudged}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+              nudged
+                ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+                : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+              "disabled:opacity-50"
+            )}
+          >
+            {nudging ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : nudged ? (
+              <Check size={14} />
+            ) : (
+              <Heart size={14} />
+            )}
+            {nudged ? "Sent!" : "Nudge"}
+          </button>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none shadow-lg z-10">
+            Send encouragement to help your friend stay on track
+            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--bg-elevated)]" />
+          </div>
+        </div>
       </GlowCard>
     </motion.div>
   );
