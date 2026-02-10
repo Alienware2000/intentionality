@@ -36,7 +36,9 @@ type CelebrationEventType =
   | "challenge-complete"
   | "daily-sweep"
   | "streak-milestone"
-  | "perfect-day";
+  | "perfect-day"
+  | "group-challenge-complete"
+  | "weekly-winner";
 
 type CelebrationEvent = {
   id: string;
@@ -44,6 +46,7 @@ type CelebrationEvent = {
   value?: number;
   message?: string;
   achievement?: AchievementWithProgress;
+  metadata?: Record<string, unknown>;
 };
 
 type CelebrationContextValue = {
@@ -55,6 +58,8 @@ type CelebrationContextValue = {
   showChallengeComplete: (challengeName: string, xp: number) => void;
   showDailySweep: () => void;
   showPerfectDay: () => void;
+  showGroupChallengeComplete: (challengeName: string, groupName: string, xp: number) => void;
+  showWeeklyWinner: (groupName: string, place: number, xpBonus: number) => void;
 };
 
 const CelebrationContext = createContext<CelebrationContextValue | null>(null);
@@ -450,6 +455,122 @@ function PerfectDayAnimation({ onComplete }: { onComplete: () => void }) {
 }
 
 // -----------------------------------------------------------------------------
+// Group Challenge Complete Animation
+// -----------------------------------------------------------------------------
+
+function GroupChallengeCompleteAnimation({
+  challengeName,
+  groupName,
+  xp,
+  onComplete,
+}: {
+  challengeName: string;
+  groupName: string;
+  xp: number;
+  onComplete: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -50, scale: 0.9 }}
+      transition={{ type: "spring", duration: 0.5 }}
+      onAnimationComplete={() => setTimeout(onComplete, 4000)}
+      className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-50"
+    >
+      <div className="flex items-center gap-3 px-6 py-4 rounded-lg bg-[var(--bg-card)] border border-[var(--accent-success)] shadow-lg shadow-[var(--accent-success)]/20">
+        <div className="p-2 rounded-full bg-[var(--accent-success)]/20">
+          <CheckCircle size={24} className="text-[var(--accent-success)]" />
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--accent-success)]">
+            Group Challenge Complete!
+          </p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            {challengeName}
+          </p>
+          <p className="text-xs text-[var(--text-muted)]">
+            {groupName} achieved this together
+          </p>
+          <p className="text-sm font-mono font-bold text-[var(--accent-success)] mt-1">
+            +{xp} XP for everyone!
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Weekly Winner Animation
+// -----------------------------------------------------------------------------
+
+function WeeklyWinnerAnimation({
+  groupName,
+  place,
+  xpBonus,
+  onComplete,
+}: {
+  groupName: string;
+  place: number;
+  xpBonus: number;
+  onComplete: () => void;
+}) {
+  const placeText = place === 1 ? "1st" : place === 2 ? "2nd" : "3rd";
+  const placeEmoji = place === 1 ? "🥇" : place === 2 ? "🥈" : "🥉";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop backdrop-blur-sm"
+      onClick={onComplete}
+    >
+      <motion.div
+        initial={{ scale: 0, rotate: -10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        exit={{ scale: 0, rotate: 10 }}
+        transition={{ type: "spring", duration: 0.6, bounce: 0.4 }}
+        className="flex flex-col items-center gap-4 p-8 max-w-sm mx-4"
+      >
+        <motion.div
+          animate={{
+            boxShadow: [
+              "0 0 20px var(--tier-gold-glow)",
+              "0 0 60px var(--tier-gold-glow)",
+              "0 0 20px var(--tier-gold-glow)",
+            ],
+          }}
+          transition={{ duration: 2, repeat: 3 }}
+          className="p-6 rounded-full bg-[var(--tier-gold-text)]/20"
+        >
+          <Trophy size={64} className="text-[var(--tier-gold-text)]" />
+        </motion.div>
+
+        <div className="text-center">
+          <p className="text-4xl mb-2">{placeEmoji}</p>
+          <p className="text-lg font-bold tracking-widest uppercase text-[var(--tier-gold-text)]">
+            {placeText} Place!
+          </p>
+          <p className="text-sm text-[var(--text-muted)] mt-2">
+            You won in <span className="font-medium text-[var(--text-primary)]">{groupName}</span>
+          </p>
+          <p className="text-xl font-mono font-bold text-[var(--tier-gold-text)] mt-3">
+            +{xpBonus} XP Bonus
+          </p>
+        </div>
+
+        <p className="text-sm text-[var(--text-muted)] mt-4">
+          Click anywhere to continue
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Provider Component
 // -----------------------------------------------------------------------------
 
@@ -511,6 +632,23 @@ export function CelebrationProvider({ children }: Props) {
     addEvent({ type: "perfect-day" });
   }, [addEvent]);
 
+  const showGroupChallengeComplete = useCallback((challengeName: string, groupName: string, xp: number) => {
+    addEvent({
+      type: "group-challenge-complete",
+      message: `${challengeName}|${groupName}`,
+      value: xp,
+    });
+  }, [addEvent]);
+
+  const showWeeklyWinner = useCallback((groupName: string, place: number, xpBonus: number) => {
+    addEvent({
+      type: "weekly-winner",
+      message: groupName,
+      value: xpBonus,
+      metadata: { place },
+    });
+  }, [addEvent]);
+
   return (
     <CelebrationContext.Provider
       value={{
@@ -522,6 +660,8 @@ export function CelebrationProvider({ children }: Props) {
         showChallengeComplete,
         showDailySweep,
         showPerfectDay,
+        showGroupChallengeComplete,
+        showWeeklyWinner,
       }}
     >
       {children}
@@ -612,6 +752,31 @@ export function CelebrationProvider({ children }: Props) {
                   onComplete={() => removeEvent(event.id)}
                 />
               );
+            case "group-challenge-complete": {
+              const [challengeName, groupName] = (event.message ?? "|").split("|");
+              return (
+                <GroupChallengeCompleteAnimation
+                  key={event.id}
+                  challengeName={challengeName}
+                  groupName={groupName}
+                  xp={event.value ?? 0}
+                  onComplete={() => removeEvent(event.id)}
+                />
+              );
+            }
+            case "weekly-winner": {
+              const place = (event.metadata?.place as number) ?? 1;
+              const xpBonus = event.value ?? 0;
+              return (
+                <WeeklyWinnerAnimation
+                  key={event.id}
+                  groupName={event.message ?? ""}
+                  place={place}
+                  xpBonus={xpBonus}
+                  onComplete={() => removeEvent(event.id)}
+                />
+              );
+            }
             default:
               return null;
           }

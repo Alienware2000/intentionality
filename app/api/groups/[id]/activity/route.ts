@@ -10,21 +10,8 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { getParamFromUrl } from "@/app/lib/api-utils";
 import type { ActivityFeedItemWithUser } from "@/app/lib/types";
-
-// -----------------------------------------------------------------------------
-// Helper: Extract group ID from request URL
-// -----------------------------------------------------------------------------
-
-function getGroupIdFromUrl(request: Request): string | null {
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  const groupsIndex = pathParts.findIndex((p) => p === "groups");
-  if (groupsIndex >= 0 && pathParts.length > groupsIndex + 1) {
-    return pathParts[groupsIndex + 1];
-  }
-  return null;
-}
 
 // -----------------------------------------------------------------------------
 // GET /api/groups/[id]/activity
@@ -52,7 +39,7 @@ function getGroupIdFromUrl(request: Request): string | null {
  * @throws {500} Database error
  */
 export const GET = withAuth(async ({ user, supabase, request }) => {
-  const groupId = getGroupIdFromUrl(request);
+  const groupId = getParamFromUrl(request, "groups");
 
   if (!groupId) {
     return ApiErrors.badRequest("Group ID is required");
@@ -60,7 +47,19 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
 
   const params = getSearchParams(request);
   const limit = parseIntParam(params.get("limit"), 50, 1, 100);
-  const cursor = params.get("cursor");
+  const cursorParam = params.get("cursor");
+
+  // Issue #18: Validate cursor format before using
+  // Cursor should be a valid ISO timestamp (from created_at)
+  let cursor: string | null = null;
+  if (cursorParam) {
+    // Check if it's a valid ISO date format
+    const cursorDate = new Date(cursorParam);
+    if (isNaN(cursorDate.getTime())) {
+      return ApiErrors.badRequest("Invalid cursor format. Expected ISO timestamp.");
+    }
+    cursor = cursorParam;
+  }
 
   // Verify user is a member of this group
   const { data: membership } = await supabase
@@ -111,6 +110,16 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Check if there are more results
   const hasMore = (activities?.length ?? 0) > limit;
   const resultActivities = hasMore ? activities?.slice(0, limit) : activities;
+
+  // Issue #13: If cursor points beyond available data, return with helpful metadata
+  if (cursor && (!activities || activities.length === 0)) {
+    return successResponse({
+      activities: [],
+      has_more: false,
+      next_cursor: null,
+      message: "No more activities after this cursor",
+    });
+  }
 
   // Get profiles for all activity users
   const activityUserIds = [...new Set(resultActivities?.map((a) => a.user_id) ?? [])];

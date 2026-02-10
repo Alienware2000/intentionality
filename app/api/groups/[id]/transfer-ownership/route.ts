@@ -9,6 +9,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { getParamFromUrl } from "@/app/lib/api-utils";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -17,21 +18,6 @@ import {
 type TransferOwnershipBody = {
   new_owner_id: string;
 };
-
-// -----------------------------------------------------------------------------
-// Helper: Extract group ID from request URL
-// -----------------------------------------------------------------------------
-
-function getGroupIdFromUrl(request: Request): string | null {
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  // URL is /api/groups/[id]/transfer-ownership
-  const groupsIndex = pathParts.findIndex((p) => p === "groups");
-  if (groupsIndex >= 0 && pathParts.length > groupsIndex + 1) {
-    return pathParts[groupsIndex + 1];
-  }
-  return null;
-}
 
 // -----------------------------------------------------------------------------
 // POST /api/groups/[id]/transfer-ownership
@@ -59,7 +45,7 @@ function getGroupIdFromUrl(request: Request): string | null {
  * @throws {500} Database error
  */
 export const POST = withAuth(async ({ user, supabase, request }) => {
-  const groupId = getGroupIdFromUrl(request);
+  const groupId = getParamFromUrl(request, "groups");
 
   if (!groupId) {
     return ApiErrors.badRequest("Group ID is required");
@@ -104,10 +90,12 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.notFound("New owner must be a member of the group");
   }
 
-  // Perform the ownership transfer in a transaction-like manner:
+  // Perform the ownership transfer with comprehensive rollback:
   // 1. Update the groups table to set the new owner
   // 2. Update the new owner's role to "owner"
   // 3. Update the current owner's role to "admin"
+  //
+  // If any step fails, we attempt to rollback previous steps to maintain consistency.
 
   const { error: updateGroupError } = await supabase
     .from("groups")
@@ -125,11 +113,15 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     .eq("id", newOwnerMembership.id);
 
   if (newOwnerRoleError) {
-    // Try to rollback the group owner change
-    await supabase
+    // Rollback: restore original group owner
+    const { error: rollbackError } = await supabase
       .from("groups")
       .update({ owner_id: user.id })
       .eq("id", groupId);
+
+    if (rollbackError) {
+      console.error("Critical: Failed to rollback group owner change:", rollbackError.message);
+    }
     return ApiErrors.serverError(newOwnerRoleError.message);
   }
 
@@ -141,8 +133,13 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     .eq("user_id", user.id);
 
   if (oldOwnerRoleError) {
-    // Log error but don't fail - the transfer was successful
-    console.error("Failed to update old owner role:", oldOwnerRoleError.message);
+    // This is less critical - the transfer was functionally successful
+    // but the old owner may have an incorrect role. Log and continue.
+    // A full rollback here could leave things in a worse state if it also fails.
+    console.error(
+      "[transfer-ownership] Warning: Transfer succeeded but failed to update old owner role:",
+      oldOwnerRoleError.message
+    );
   }
 
   // Record activity for ownership transfer

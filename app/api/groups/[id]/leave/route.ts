@@ -8,21 +8,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-
-// -----------------------------------------------------------------------------
-// Helper: Extract group ID from request URL
-// -----------------------------------------------------------------------------
-
-function getGroupIdFromUrl(request: Request): string | null {
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  // URL is /api/groups/[id]/leave
-  const groupsIndex = pathParts.findIndex((p) => p === "groups");
-  if (groupsIndex >= 0 && pathParts.length > groupsIndex + 1) {
-    return pathParts[groupsIndex + 1];
-  }
-  return null;
-}
+import { getParamFromUrl } from "@/app/lib/api-utils";
 
 // -----------------------------------------------------------------------------
 // DELETE /api/groups/[id]/leave
@@ -47,7 +33,7 @@ function getGroupIdFromUrl(request: Request): string | null {
  * @throws {500} Database error
  */
 export const DELETE = withAuth(async ({ user, supabase, request }) => {
-  const groupId = getGroupIdFromUrl(request);
+  const groupId = getParamFromUrl(request, "groups");
 
   if (!groupId) {
     return ApiErrors.badRequest("Group ID is required");
@@ -74,8 +60,37 @@ export const DELETE = withAuth(async ({ user, supabase, request }) => {
 
   // Get group info before leaving
   // Note: Supabase returns joined relations as arrays even for single items
+  // Add proper type guards before casting to prevent runtime errors
   const groupData = membership.group as unknown;
-  const group = Array.isArray(groupData) ? groupData[0] : groupData as { id: string; name: string } | null;
+  let group: { id: string; name: string } | null = null;
+
+  if (groupData) {
+    // Type helper for the expected shape
+    type GroupShape = { id: string; name: string };
+
+    if (Array.isArray(groupData) && groupData.length > 0) {
+      const firstItem = groupData[0] as Record<string, unknown>;
+      if (
+        typeof firstItem === "object" &&
+        firstItem !== null &&
+        typeof firstItem.id === "string" &&
+        typeof firstItem.name === "string"
+      ) {
+        group = { id: firstItem.id, name: firstItem.name };
+      }
+    } else if (
+      typeof groupData === "object" &&
+      !Array.isArray(groupData)
+    ) {
+      const item = groupData as Record<string, unknown>;
+      if (
+        typeof item.id === "string" &&
+        typeof item.name === "string"
+      ) {
+        group = { id: item.id, name: item.name } as GroupShape;
+      }
+    }
+  }
 
   // Delete the membership
   const { error: deleteError } = await supabase

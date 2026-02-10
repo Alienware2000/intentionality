@@ -10,21 +10,8 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { getParamFromUrl } from "@/app/lib/api-utils";
 import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
-
-// -----------------------------------------------------------------------------
-// Helper: Extract group ID from request URL
-// -----------------------------------------------------------------------------
-
-function getGroupIdFromUrl(request: Request): string | null {
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  const groupsIndex = pathParts.findIndex((p) => p === "groups");
-  if (groupsIndex >= 0 && pathParts.length > groupsIndex + 1) {
-    return pathParts[groupsIndex + 1];
-  }
-  return null;
-}
 
 // -----------------------------------------------------------------------------
 // GET /api/groups/[id]/leaderboard
@@ -53,7 +40,7 @@ function getGroupIdFromUrl(request: Request): string | null {
  * @throws {500} Database error
  */
 export const GET = withAuth(async ({ user, supabase, request }) => {
-  const groupId = getGroupIdFromUrl(request);
+  const groupId = getParamFromUrl(request, "groups");
 
   if (!groupId) {
     return ApiErrors.badRequest("Group ID is required");

@@ -1884,3 +1884,165 @@ export type SocialActions = {
   // Search
   searchUsers: (query: string) => Promise<UserSearchResult[]>;
 };
+
+// -----------------------------------------------------------------------------
+// SOCIAL ENHANCEMENTS TYPES
+// Weekly cycles, group challenges, and accountability features
+// -----------------------------------------------------------------------------
+
+/**
+ * Group weekly history record for archived results.
+ */
+export type GroupWeeklyHistory = {
+  id: Id;
+  group_id: Id;
+  week_start: ISODateString;
+  week_end: ISODateString;
+  first_place_user_id: string | null;
+  first_place_xp: number;
+  second_place_user_id: string | null;
+  second_place_xp: number | null;
+  third_place_user_id: string | null;
+  third_place_xp: number | null;
+  total_group_xp: number;
+  participant_count: number;
+  created_at: string;
+};
+
+/**
+ * Weekly history with user display names for podium.
+ */
+export type GroupWeeklyHistoryWithNames = GroupWeeklyHistory & {
+  first_place_name: string | null;
+  second_place_name: string | null;
+  third_place_name: string | null;
+};
+
+/**
+ * Group challenge template from database.
+ */
+export type GroupChallengeTemplate = {
+  id: Id;
+  name: string;
+  description: string | null;
+  challenge_type: 'tasks' | 'focus' | 'habits' | 'xp';
+  target_per_member: number;
+  xp_reward_per_member: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+/**
+ * Active weekly group challenge.
+ */
+export type GroupChallenge = {
+  id: Id;
+  group_id: Id;
+  week_start: ISODateString;
+  template_id: Id | null;
+  name: string;
+  description: string | null;
+  challenge_type: 'tasks' | 'focus' | 'habits' | 'xp';
+  target_value: number;
+  current_progress: number;
+  completed: boolean;
+  completed_at: string | null;
+  xp_reward_per_member: number;
+  created_at: string;
+};
+
+/**
+ * Group member streak status for accountability.
+ */
+export type GroupMemberStreakStatus = {
+  id: Id;
+  group_id: Id;
+  user_id: string;
+  last_productive_action: string | null;
+  is_at_risk: boolean;
+  last_nudged_at: string | null;
+  nudge_count_today: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * At-risk member with profile info for nudge display.
+ */
+export type AtRiskMember = {
+  user_id: string;
+  display_name: string | null;
+  level: number;
+  current_streak: number;
+  last_productive_action: string | null;
+  hours_inactive: number;
+  can_nudge: boolean;
+};
+
+/**
+ * Response from group history endpoint.
+ */
+export type GroupHistoryResponse = {
+  ok: true;
+  history: GroupWeeklyHistoryWithNames[];
+};
+
+/**
+ * Response from group challenge endpoint.
+ */
+export type GroupChallengeResponse = {
+  ok: true;
+  challenge: GroupChallenge | null;
+  progress_percentage: number;
+};
+
+/**
+ * Response from at-risk members endpoint.
+ */
+export type GroupAtRiskResponse = {
+  ok: true;
+  at_risk_members: AtRiskMember[];
+};
+
+/**
+ * Response from group nudge endpoint.
+ */
+export type GroupNudgeResponse = {
+  ok: true;
+  message: string;
+};
+
+/**
+ * Response from update activity status endpoint.
+ */
+export type UpdateActivityResponse = {
+  ok: true;
+  current_activity: string | null;
+};
+
+/**
+ * Weekly awards display data for podium.
+ */
+export type WeeklyAwards = {
+  week_start: ISODateString;
+  week_end: ISODateString;
+  first_place: {
+    user_id: string;
+    display_name: string | null;
+    xp: number;
+    xp_bonus: number;
+  } | null;
+  second_place: {
+    user_id: string;
+    display_name: string | null;
+    xp: number;
+    xp_bonus: number;
+  } | null;
+  third_place: {
+    user_id: string;
+    display_name: string | null;
+    xp: number;
+    xp_bonus: number;
+  } | null;
+  total_group_xp: number;
+};

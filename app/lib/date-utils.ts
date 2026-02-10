@@ -347,6 +347,86 @@ export function getWeekRangeFromISO(dateISO: ISODateString): { start: ISODateStr
 }
 
 // -----------------------------------------------------------------------------
+// UTC Week Utilities (for server-side cron jobs and API routes)
+// -----------------------------------------------------------------------------
+
+/**
+ * Get the Monday of the current week in UTC.
+ * Used for week-based features like group challenges and weekly history.
+ *
+ * IMPORTANT: This function uses UTC to ensure consistency across timezones.
+ * All server-side week calculations should use this function.
+ *
+ * @returns ISO date string (YYYY-MM-DD) for Monday of current week in UTC
+ *
+ * @example
+ * ```ts
+ * // If today is Thursday, Jan 23, 2026 (UTC)
+ * getWeekStartUTC(); // Returns "2026-01-20" (Monday)
+ * ```
+ */
+export function getWeekStartUTC(): string {
+  const now = new Date();
+  const day = now.getUTCDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+
+  // Calculate days to subtract to get to Monday
+  // If Sunday (0), go back 6 days; otherwise go back (day - 1) days
+  const daysToSubtract = day === 0 ? 6 : day - 1;
+
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() - daysToSubtract);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  return monday.toISOString().split("T")[0];
+}
+
+/**
+ * Get the date range for the previous week in UTC.
+ * Used for archiving weekly results on Monday.
+ *
+ * @returns Object with start (Monday) and end (Sunday) dates as ISO strings
+ *
+ * @example
+ * ```ts
+ * // If today is Monday, Jan 27, 2026
+ * getLastWeekRangeUTC();
+ * // Returns { start: "2026-01-20", end: "2026-01-26" }
+ * ```
+ */
+export function getLastWeekRangeUTC(): { start: string; end: string } {
+  const now = new Date();
+  const day = now.getUTCDay();
+
+  // Find this week's Monday
+  const daysToSubtract = day === 0 ? 6 : day - 1;
+  const thisMonday = new Date(now);
+  thisMonday.setUTCDate(now.getUTCDate() - daysToSubtract);
+  thisMonday.setUTCHours(0, 0, 0, 0);
+
+  // Last week's Monday is 7 days before
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setUTCDate(thisMonday.getUTCDate() - 7);
+
+  // Last week's Sunday is 6 days after last Monday
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
+
+  return {
+    start: lastMonday.toISOString().split("T")[0],
+    end: lastSunday.toISOString().split("T")[0],
+  };
+}
+
+/**
+ * Get today's date in UTC as ISO string.
+ *
+ * @returns ISO date string (YYYY-MM-DD) for today in UTC
+ */
+export function getTodayUTC(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// -----------------------------------------------------------------------------
 // Calendar Import Utilities
 // -----------------------------------------------------------------------------
 
