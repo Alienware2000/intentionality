@@ -386,7 +386,7 @@ function GroupSelector({ groups, selectedGroupId, onSelect }: GroupSelectorProps
 export default function LeaderboardClient() {
   const { groups, sendFriendRequest, sentRequests } = useSocial();
 
-  const [tab, setTab] = useState<LeaderboardTab>("friends");
+  const [tab, setTab] = useState<LeaderboardTab>("global");
   const [metric, setMetric] = useState<LeaderboardMetric>("xp");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
@@ -515,6 +515,12 @@ export default function LeaderboardClient() {
       {/* Tabs */}
       <div className="flex flex-wrap gap-2">
         <TabButton
+          active={tab === "global"}
+          onClick={() => setTab("global")}
+          icon={<Globe size={16} />}
+          label="Global"
+        />
+        <TabButton
           active={tab === "friends"}
           onClick={() => setTab("friends")}
           icon={<Users size={16} />}
@@ -526,12 +532,6 @@ export default function LeaderboardClient() {
           icon={<Trophy size={16} />}
           label="Groups"
           count={groups.length}
-        />
-        <TabButton
-          active={tab === "global"}
-          onClick={() => setTab("global")}
-          icon={<Globe size={16} />}
-          label="Global"
         />
       </div>
 
