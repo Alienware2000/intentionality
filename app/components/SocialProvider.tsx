@@ -20,6 +20,7 @@ import type {
   FriendWithProfile,
   FriendRequest,
   GroupWithMembership,
+  GroupInvitationWithDetails,
   NotificationWithSender,
   UserSearchResult,
   NudgeType,
@@ -60,11 +61,19 @@ type SocialContextState = {
   removeFriend: (friendshipId: Id) => Promise<boolean>;
   blockUser: (userId: string) => Promise<boolean>;
 
+  // Groups state
+  groupInvitations: GroupInvitationWithDetails[];
+  groupInvitationsLoading: boolean;
+
   // Groups actions
   refreshGroups: () => Promise<void>;
   createGroup: (name: string, description?: string) => Promise<Group | null>;
+  updateGroup: (groupId: Id, updates: { name?: string; description?: string | null }) => Promise<boolean>;
+  deleteGroup: (groupId: Id) => Promise<boolean>;
   joinGroup: (inviteCode: string) => Promise<boolean>;
   leaveGroup: (groupId: Id) => Promise<boolean>;
+  refreshGroupInvitations: () => Promise<void>;
+  respondToGroupInvitation: (invitationId: Id, accept: boolean) => Promise<boolean>;
 
   // Notifications actions
   refreshNotifications: () => Promise<void>;
@@ -119,6 +128,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
 
   // Groups state
   const [groups, setGroups] = useState<GroupWithMembership[]>([]);
+  const [groupInvitations, setGroupInvitations] = useState<GroupInvitationWithDetails[]>([]);
 
   // Notifications state
   const [notifications, setNotifications] = useState<NotificationWithSender[]>([]);
@@ -127,6 +137,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
   // Granular loading states
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(true);
+  const [groupInvitationsLoading, setGroupInvitationsLoading] = useState(true);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -371,6 +382,58 @@ export function SocialProvider({ children }: SocialProviderProps) {
     [refreshGroups]
   );
 
+  const updateGroup = useCallback(
+    async (
+      groupId: Id,
+      updates: { name?: string; description?: string | null }
+    ): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/groups/${groupId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          await refreshGroups();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    },
+    [refreshGroups]
+  );
+
+  const deleteGroup = useCallback(
+    async (groupId: Id): Promise<boolean> => {
+      // Optimistic update: remove group from state immediately
+      const previousGroups = groups;
+      setGroups((prev) => prev.filter((g) => g.id !== groupId));
+
+      try {
+        const res = await fetch(`/api/groups/${groupId}`, {
+          method: "DELETE",
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          return true;
+        }
+        // Revert on failure
+        setGroups(previousGroups);
+        return false;
+      } catch {
+        // Revert on error
+        setGroups(previousGroups);
+        return false;
+      }
+    },
+    [groups]
+  );
+
   const joinGroup = useCallback(async (inviteCode: string): Promise<boolean> => {
     try {
       const res = await fetch("/api/groups/join", {
@@ -406,6 +469,59 @@ export function SocialProvider({ children }: SocialProviderProps) {
       return false;
     }
   }, [refreshGroups]);
+
+  // ---------------------------------------------------------------------------
+  // Group Invitations Actions
+  // ---------------------------------------------------------------------------
+
+  const refreshGroupInvitations = useCallback(async () => {
+    try {
+      setGroupInvitationsLoading(true);
+      const res = await fetchWithRetry("/api/invitations");
+      const data = await res.json();
+
+      if (data.ok) {
+        setGroupInvitations(data.invitations ?? []);
+      }
+    } catch {
+      // Silently fail for invitations - not critical
+    } finally {
+      setGroupInvitationsLoading(false);
+    }
+  }, []);
+
+  const respondToGroupInvitation = useCallback(
+    async (invitationId: Id, accept: boolean): Promise<boolean> => {
+      // Optimistic update: remove from list immediately
+      const previousInvitations = groupInvitations;
+      setGroupInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
+
+      try {
+        const res = await fetch(`/api/invitations/${invitationId}/respond`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: accept ? "accept" : "decline" }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          // If accepted, refresh groups to show the new group
+          if (accept) {
+            await refreshGroups();
+          }
+          return true;
+        }
+        // Revert on failure
+        setGroupInvitations(previousInvitations);
+        return false;
+      } catch {
+        // Revert on error
+        setGroupInvitations(previousInvitations);
+        return false;
+      }
+    },
+    [groupInvitations, refreshGroups]
+  );
 
   // ---------------------------------------------------------------------------
   // Notifications Actions
@@ -521,8 +637,9 @@ export function SocialProvider({ children }: SocialProviderProps) {
     // If one fails or is slow, others still load successfully
     refreshFriends();
     refreshGroups();
+    refreshGroupInvitations();
     refreshNotifications();
-  }, [refreshFriends, refreshGroups, refreshNotifications]);
+  }, [refreshFriends, refreshGroups, refreshGroupInvitations, refreshNotifications]);
 
   // Store refreshNotifications in a ref to avoid interval recreation
   const refreshNotificationsRef = useRef(refreshNotifications);
@@ -550,6 +667,8 @@ export function SocialProvider({ children }: SocialProviderProps) {
       pendingRequests,
       sentRequests,
       groups,
+      groupInvitations,
+      groupInvitationsLoading,
       notifications,
       unreadNotificationCount,
       friendsLoading,
@@ -569,8 +688,12 @@ export function SocialProvider({ children }: SocialProviderProps) {
       // Groups actions
       refreshGroups,
       createGroup,
+      updateGroup,
+      deleteGroup,
       joinGroup,
       leaveGroup,
+      refreshGroupInvitations,
+      respondToGroupInvitation,
 
       // Notifications actions
       refreshNotifications,
@@ -587,6 +710,8 @@ export function SocialProvider({ children }: SocialProviderProps) {
       pendingRequests,
       sentRequests,
       groups,
+      groupInvitations,
+      groupInvitationsLoading,
       notifications,
       unreadNotificationCount,
       friendsLoading,
@@ -602,8 +727,12 @@ export function SocialProvider({ children }: SocialProviderProps) {
       blockUser,
       refreshGroups,
       createGroup,
+      updateGroup,
+      deleteGroup,
       joinGroup,
       leaveGroup,
+      refreshGroupInvitations,
+      respondToGroupInvitation,
       refreshNotifications,
       markNotificationRead,
       markAllNotificationsRead,

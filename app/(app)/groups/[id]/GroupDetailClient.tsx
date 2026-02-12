@@ -13,12 +13,12 @@ import {
   Trophy,
   Activity,
   Users,
-  Copy,
-  Check,
   Crown,
   Shield,
   LogOut,
   Loader2,
+  Settings,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -33,6 +33,9 @@ import {
   GroupChallengeCardSkeleton,
   AtRiskMembersPanel,
   CurrentActivityCompact,
+  GroupSettingsModal,
+  InviteMembersModal,
+  TransferOwnershipModal,
 } from "@/app/components/social";
 import GlowCard from "@/app/components/ui/GlowCard";
 import type {
@@ -293,9 +296,13 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  // Modal states for owner/admin features
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   // Track if component is mounted to prevent state updates after unmount
   const mountedRef = useRef(true);
@@ -430,15 +437,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     }
   }, [metric, loadLeaderboard, loading]);
 
-  // Handle copy invite code
-  const handleCopyInvite = () => {
-    if (group?.invite_code) {
-      navigator.clipboard.writeText(group.invite_code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   // Handle leave group
   const handleLeaveClick = () => {
     if (!group) return;
@@ -543,34 +541,42 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Invite button - visible to owners and admins */}
               {isOwnerOrAdmin && (
                 <button
-                  onClick={handleCopyInvite}
+                  onClick={() => setShowInviteModal(true)}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm",
                     "min-h-[44px] sm:min-h-0", // Touch target compliance
+                    "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                    "bg-[var(--accent-primary)] text-white",
+                    "hover:opacity-90 transition-opacity"
+                  )}
+                >
+                  <UserPlus size={14} />
+                  <span>Invite</span>
+                </button>
+              )}
+
+              {/* Settings button - visible only to owner */}
+              {group.my_role === "owner" && (
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  className={cn(
+                    "flex items-center justify-center p-2 rounded-lg",
+                    "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-2",
                     "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                     "bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)]",
                     "border border-[var(--border-subtle)]",
                     "transition-colors duration-150"
                   )}
+                  aria-label="Group settings"
                 >
-                  {copied ? (
-                    <>
-                      <Check size={14} className="text-[var(--accent-success)]" />
-                      <span className="text-[var(--accent-success)]">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} className="text-[var(--text-muted)]" />
-                      <span className="font-mono text-[var(--text-secondary)]">
-                        {group.invite_code}
-                      </span>
-                    </>
-                  )}
+                  <Settings size={16} className="text-[var(--text-muted)]" />
                 </button>
               )}
 
+              {/* Leave button - visible to non-owners */}
               {group.my_role !== "owner" && (
                 <button
                   onClick={handleLeaveClick}
@@ -855,6 +861,61 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Group Settings Modal - Owner only */}
+      {group && (
+        <GroupSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          group={{
+            id: group.id,
+            name: group.name,
+            description: group.description,
+          }}
+          onDeleted={() => router.push("/groups")}
+          onTransferOwnership={() => {
+            setShowSettingsModal(false);
+            setShowTransferModal(true);
+          }}
+        />
+      )}
+
+      {/* Invite Members Modal - Owner/Admin */}
+      {group && (
+        <InviteMembersModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          group={{
+            id: group.id,
+            name: group.name,
+            invite_code: group.invite_code,
+          }}
+          memberUserIds={members.map((m) => m.user_id)}
+        />
+      )}
+
+      {/* Transfer Ownership Modal - Owner only */}
+      {group && currentUserId && (
+        <TransferOwnershipModal
+          isOpen={showTransferModal}
+          onClose={() => setShowTransferModal(false)}
+          group={{
+            id: group.id,
+            name: group.name,
+          }}
+          members={members.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            level: m.level,
+            role: m.role,
+          }))}
+          currentUserId={currentUserId}
+          onTransferred={() => {
+            // Reload group data after transfer
+            loadGroup();
+          }}
+        />
+      )}
     </div>
   );
 }

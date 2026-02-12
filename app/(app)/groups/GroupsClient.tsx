@@ -20,8 +20,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { useSocial } from "@/app/components/SocialProvider";
-import { GroupCard, GroupCardSkeleton } from "@/app/components/social";
+import {
+  GroupCard,
+  GroupCardSkeleton,
+  GroupInvitationCard,
+  GroupInvitationCardSkeleton,
+} from "@/app/components/social";
 import GlowCard from "@/app/components/ui/GlowCard";
+import { useToast } from "@/app/components/Toast";
 
 // -----------------------------------------------------------------------------
 // Animation Variants
@@ -437,7 +443,16 @@ function GroupsStatsCard({
 
 export default function GroupsClient() {
   const router = useRouter();
-  const { groups, createGroup, joinGroup, groupsLoading } = useSocial();
+  const {
+    groups,
+    groupInvitations,
+    groupInvitationsLoading,
+    createGroup,
+    joinGroup,
+    groupsLoading,
+    respondToGroupInvitation,
+  } = useSocial();
+  const { showToast } = useToast();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -464,6 +479,28 @@ export default function GroupsClient() {
     router.push(`/groups/${groupId}`);
   };
 
+  // Handle accept invitation
+  const handleAcceptInvitation = async (invitationId: string) => {
+    const success = await respondToGroupInvitation(invitationId, true);
+    if (success) {
+      showToast({ message: "Joined group!", type: "success" });
+    } else {
+      showToast({ message: "Failed to join group", type: "error" });
+    }
+    return success;
+  };
+
+  // Handle decline invitation
+  const handleDeclineInvitation = async (invitationId: string) => {
+    const success = await respondToGroupInvitation(invitationId, false);
+    if (success) {
+      showToast({ message: "Invitation declined", type: "success" });
+    } else {
+      showToast({ message: "Failed to decline invitation", type: "error" });
+    }
+    return success;
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Card */}
@@ -472,6 +509,45 @@ export default function GroupsClient() {
         totalMembers={totalMembers}
         totalXp={totalXp}
       />
+
+      {/* Pending Invitations Section */}
+      {(groupInvitationsLoading || groupInvitations.length > 0) && (
+        <div className="space-y-4">
+          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+            Pending Invitations
+          </h2>
+          <AnimatePresence mode="popLayout">
+            {groupInvitationsLoading ? (
+              <motion.div
+                key="invitations-loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
+              >
+                <GroupInvitationCardSkeleton />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="invitations-list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-3"
+              >
+                {groupInvitations.map((invitation, index) => (
+                  <GroupInvitationCard
+                    key={invitation.id}
+                    invitation={invitation}
+                    onAccept={handleAcceptInvitation}
+                    onDecline={handleDeclineInvitation}
+                    index={index}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Header with Actions */}
       <div className="flex items-center justify-between flex-wrap gap-4">

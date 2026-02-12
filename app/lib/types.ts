@@ -1584,6 +1584,36 @@ export type GroupWithMembership = Group & {
   joined_at: string;
 };
 
+/**
+ * Group invitation status.
+ */
+export type GroupInvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired';
+
+/**
+ * Group invitation record.
+ */
+export type GroupInvitation = {
+  id: Id;
+  group_id: Id;
+  invited_user_id: string;
+  invited_by: string;
+  status: GroupInvitationStatus;
+  created_at: string;
+  responded_at: string | null;
+  expires_at: string | null;
+};
+
+/**
+ * Group invitation with group and inviter details.
+ * Used for displaying pending invitations to a user.
+ */
+export type GroupInvitationWithDetails = GroupInvitation & {
+  group_name: string;
+  group_description: string | null;
+  group_member_count: number;
+  inviter_display_name: string | null;
+};
+
 // -----------------------------------------------------------------------------
 // LEADERBOARDS
 // -----------------------------------------------------------------------------
