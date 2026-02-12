@@ -32,25 +32,6 @@ export function getParamFromUrl(request: Request, segmentName: string): string |
 }
 
 /**
- * Validates that a string doesn't exceed a maximum length.
- *
- * @param value - The string to validate
- * @param maxLength - Maximum allowed length
- * @param fieldName - Name of the field for error messages
- * @returns Error message if validation fails, null if valid
- */
-export function validateMaxLength(
-  value: string | undefined | null,
-  maxLength: number,
-  fieldName: string
-): string | null {
-  if (value && value.length > maxLength) {
-    return `${fieldName} must be ${maxLength} characters or less`;
-  }
-  return null;
-}
-
-/**
  * Validates that a string is a valid UUID v4 format.
  *
  * @param id - The string to validate
