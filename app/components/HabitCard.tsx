@@ -14,6 +14,7 @@ import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import { isActiveDay } from "@/app/lib/date-utils";
 import { prefersReducedMotion } from "@/app/lib/anime-utils";
+import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import type { HabitWithStatus, ISODateString, HabitFrequency } from "@/app/lib/types";
 import AnimatedCheckbox from "./ui/AnimatedCheckbox";
 
@@ -212,7 +213,7 @@ function HabitCard({
         </motion.div>
       )}
 
-      {/* XP badge */}
+      {/* XP badge - all habits earn flat 15 XP */}
       <motion.div
         className={cn(
           "text-xs font-mono px-2.5 py-1 rounded-lg",
@@ -225,7 +226,7 @@ function HabitCard({
         transition={{ duration: 0.3 }}
       >
         {isCompleted && "+"}
-        {habit.xp_value} XP
+        {FLAT_TASK_XP} XP
       </motion.div>
     </motion.div>
   );

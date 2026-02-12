@@ -9,7 +9,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, X, SkipForward, Check, Zap, Coffee } from "lucide-react";
 import { useFocus } from "./FocusProvider";
-import { getFocusTotalXp, getFocusMilestoneBonus } from "@/app/lib/gamification";
+import { getFocusTotalXp, getFocusMilestoneBonus, getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
 import { formatCountdown } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
 
@@ -31,10 +31,23 @@ export default function FocusTimer() {
     return null;
   }
 
-  const xpToEarn = getFocusTotalXp(session.work_duration);
-  const milestoneBonus = getFocusMilestoneBonus(session.work_duration);
   const isBreak = mode === "break";
   const isCompleted = mode === "completed";
+
+  // Calculate elapsed work time from timeRemaining (which updates every second)
+  // This avoids calling Date.now() during render while still showing accurate XP
+  const totalWorkSeconds = session.work_duration * 60;
+  const elapsedSeconds = isBreak || isCompleted
+    ? totalWorkSeconds // During break/completed, full work time elapsed
+    : totalWorkSeconds - timeRemaining;
+  const actualMinutes = Math.min(elapsedSeconds / 60, session.work_duration);
+  const completionRatio = actualMinutes / session.work_duration;
+
+  // Show potential full XP during session, actual pro-rated XP on completion
+  const fullXp = getFocusTotalXp(session.work_duration);
+  const actualXp = getProRatedFocusXp(actualMinutes, session.work_duration);
+  const milestoneBonus = getFocusMilestoneBonus(actualMinutes);
+  const belowThreshold = completionRatio < MIN_FOCUS_COMPLETION_RATIO;
 
   // Calculate progress percentage
   const totalSeconds = isBreak
@@ -120,17 +133,25 @@ export default function FocusTimer() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6, type: "spring" }}
           >
-            <Zap size={24} className="text-[var(--accent-highlight)]" />
-            <span className="text-3xl font-mono font-bold text-[var(--accent-highlight)]">
-              +{xpToEarn} XP
+            <Zap size={24} className={belowThreshold ? "text-[var(--text-muted)]" : "text-[var(--accent-highlight)]"} />
+            <span className={`text-3xl font-mono font-bold ${belowThreshold ? "text-[var(--text-muted)]" : "text-[var(--accent-highlight)]"}`}>
+              +{actualXp} XP
             </span>
           </motion.div>
           <p className="text-xs text-[var(--text-muted)] mb-6">
-            {session.work_duration} min focus
-            {milestoneBonus > 0 && (
-              <span className="text-[var(--accent-highlight)]">
-                {" "}• +{milestoneBonus} bonus!
+            {belowThreshold ? (
+              <span className="text-[var(--accent-warning)]">
+                Complete at least 50% to earn XP
               </span>
+            ) : (
+              <>
+                {Math.round(actualMinutes)} min of {session.work_duration} min
+                {milestoneBonus > 0 && (
+                  <span className="text-[var(--accent-highlight)]">
+                    {" "}• +{milestoneBonus} bonus!
+                  </span>
+                )}
+              </>
             )}
           </p>
 
@@ -263,7 +284,7 @@ export default function FocusTimer() {
           {!isBreak && (
             <span className="flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-lg bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)]">
               <Zap size={12} />
-              +{xpToEarn} XP
+              +{fullXp} XP
             </span>
           )}
         </div>

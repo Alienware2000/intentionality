@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Id, Quest, Task, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
+import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import { useProfile } from "@/app/components/ProfileProvider";
 import { useOnboarding } from "@/app/components/OnboardingProvider";
 import OnboardingQuestCard from "@/app/components/OnboardingQuestCard";
@@ -448,10 +449,9 @@ export default function QuestsClient() {
             const completed = questTasks.filter((t) => t.completed).length;
             const total = questTasks.length;
             const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-            const totalXp = questTasks.reduce((sum, t) => sum + (t.xp_value ?? 10), 0);
-            const earnedXp = questTasks
-              .filter((t) => t.completed)
-              .reduce((sum, t) => sum + (t.xp_value ?? 10), 0);
+            // All tasks earn flat XP now (anti-XP-farming)
+            const totalXp = total * FLAT_TASK_XP;
+            const earnedXp = completed * FLAT_TASK_XP;
             const isExpanded = expandedQuestId === quest.id;
             const isAddingToThisQuest = addingTaskToQuest === quest.id;
 
@@ -695,7 +695,7 @@ export default function QuestsClient() {
                                     animate={task.completed ? { scale: [1, 1.1, 1] } : {}}
                                     transition={{ duration: 0.3 }}
                                   >
-                                    {task.completed ? "+" : ""}{task.xp_value} XP
+                                    {task.completed ? "+" : ""}{FLAT_TASK_XP} XP
                                   </motion.span>
 
                                   {/* Three-dot menu for tasks */}

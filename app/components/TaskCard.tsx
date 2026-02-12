@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Pencil, Trash2, Calendar, Clock, Target } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import type { Task } from "@/app/lib/types";
+import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import PriorityPill from "./ui/PriorityPill";
 import AnimatedCheckbox from "./ui/AnimatedCheckbox";
 
@@ -156,7 +157,7 @@ export default function TaskCard({
       {/* Priority pill */}
       <PriorityPill priority={task.priority} />
 
-      {/* XP badge */}
+      {/* XP badge - all tasks earn flat 15 XP */}
       <motion.div
         className={cn(
           "text-xs font-mono px-2.5 py-1 rounded-lg",
@@ -169,7 +170,7 @@ export default function TaskCard({
         transition={{ duration: 0.3 }}
       >
         {isCompleted && "+"}
-        {task.xp_value} XP
+        {FLAT_TASK_XP} XP
       </motion.div>
     </motion.div>
   );

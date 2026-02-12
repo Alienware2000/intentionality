@@ -26,6 +26,7 @@ import {
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
 import { formatTime, toISODateString } from "@/app/lib/date-utils";
+import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
@@ -1020,7 +1021,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
         "text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
         isCompleted ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
       )}>
-        +{task.xp_value}
+        +{FLAT_TASK_XP}
       </span>
     </motion.div>
   );
@@ -1157,7 +1158,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
         "text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
         isCompleted ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
       )}>
-        +{task.xp_value}
+        +{FLAT_TASK_XP}
       </span>
     </motion.div>
   );

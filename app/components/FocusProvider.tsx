@@ -18,7 +18,7 @@ import type { FocusSession } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
 import { useCelebration } from "./CelebrationOverlay";
-import { getFocusTotalXp } from "@/app/lib/gamification";
+import { getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
 
 type FocusMode = "work" | "break" | "completed" | "idle";
 
@@ -244,11 +244,17 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const completeSession = useCallback(async () => {
     if (!state.session) return;
 
-    // 1. Calculate expected XP BEFORE clearing session
-    const expectedXp = getFocusTotalXp(state.session.work_duration);
+    // 1. Calculate actual elapsed work time for pro-rated XP
+    const startedAt = new Date(state.session.started_at).getTime();
+    const elapsedMs = Date.now() - startedAt;
+    const actualMinutes = Math.min(elapsedMs / 60000, state.session.work_duration);
+    const completionRatio = actualMinutes / state.session.work_duration;
+
+    // 2. Calculate pro-rated XP (matches server-side calculation)
+    const expectedXp = getProRatedFocusXp(actualMinutes, state.session.work_duration);
     const sessionId = state.session.id;
 
-    // 2. OPTIMISTIC UPDATE - Immediately clear session and show success
+    // 3. OPTIMISTIC UPDATE - Immediately clear session and show success
     targetEndTimeRef.current = null;
     setState({
       session: null,
@@ -258,10 +264,12 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       error: null,
     });
 
-    // 3. Trigger XP animation IMMEDIATELY (doesn't wait for API)
-    showXpGain(expectedXp);
+    // 4. Trigger XP animation IMMEDIATELY (only if above threshold)
+    if (completionRatio >= MIN_FOCUS_COMPLETION_RATIO && expectedXp > 0) {
+      showXpGain(expectedXp);
+    }
 
-    // 4. Fire API call in background (don't block on it)
+    // 5. Fire API call in background (don't block on it)
     fetchApi<{ ok: true; newLevel?: number }>("/api/focus/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -39,10 +39,10 @@ import type {
   AICreateHabitPayload,
   AICreateQuestPayload,
   AINavigatePayload,
-  Priority,
   AISuggestionType,
   AIInteractionSource,
 } from './types';
+import { XP_VALUES } from './gamification';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -328,10 +328,9 @@ async function executeCreateTask(
     }
   }
 
-  // Determine XP value based on priority
-  const xpValues: Record<Priority, number> = { low: 5, medium: 10, high: 25 };
+  // Use flat XP value (all priorities earn same XP to prevent gaming)
   const priority = payload.priority || 'medium';
-  const xpValue = xpValues[priority];
+  const xpValue = XP_VALUES[priority];
 
   // Create the task
   const { data: task, error } = await supabase
@@ -531,7 +530,6 @@ async function executeCreateHabit(
     };
   }
 
-  const xpValues: Record<Priority, number> = { low: 5, medium: 10, high: 25 };
   const priority = payload.priority || 'medium';
 
   const { data: habit, error } = await supabase
@@ -540,7 +538,7 @@ async function executeCreateHabit(
       user_id: userId,
       title: payload.title.trim(),
       priority,
-      xp_value: xpValues[priority],
+      xp_value: XP_VALUES[priority],
       current_streak: 0,
       longest_streak: 0,
     })

@@ -196,12 +196,9 @@ export function XpTooltip({ className }: { className?: string }) {
       position="top"
       content={
         <div className="space-y-1">
-          <p className="font-medium text-[var(--text-primary)]">XP by Priority</p>
-          <div className="space-y-0.5">
-            <p><span className="text-[var(--priority-high)]">High:</span> 25 XP</p>
-            <p><span className="text-[var(--priority-medium)]">Medium:</span> 10 XP</p>
-            <p><span className="text-[var(--priority-low)]">Low:</span> 5 XP</p>
-          </div>
+          <p className="font-medium text-[var(--text-primary)]">Task XP</p>
+          <p>All tasks earn <span className="text-[var(--accent-highlight)] font-medium">15 XP</span> when completed.</p>
+          <p className="text-[var(--text-muted)] text-xs">Priority helps you organize, but doesn&apos;t affect XP.</p>
         </div>
       }
     />

@@ -6,12 +6,19 @@
 import type { LevelTitle, Priority, StreakMultiplier } from "./types";
 
 /**
+ * Flat XP value for all tasks and habits.
+ * Anti-XP-farming: All priorities earn the same XP to prevent gaming.
+ */
+export const FLAT_TASK_XP = 15;
+
+/**
  * XP values for each priority level.
+ * All priorities now award the same flat XP to prevent gaming the system.
  */
 export const XP_VALUES: Record<Priority, number> = {
-  low: 5,
-  medium: 10,
-  high: 25,
+  low: FLAT_TASK_XP,
+  medium: FLAT_TASK_XP,
+  high: FLAT_TASK_XP,
 };
 
 /**
@@ -314,4 +321,42 @@ export function getNextFocusMilestone(minutes: number) {
  */
 export function getFocusTotalXp(minutes: number): number {
   return getFocusXp(minutes) + getFocusMilestoneBonus(minutes);
+}
+
+/**
+ * Minimum completion ratio required to earn any focus XP.
+ * Prevents micro-gaming where users start sessions and immediately skip.
+ */
+export const MIN_FOCUS_COMPLETION_RATIO = 0.5;
+
+/**
+ * Calculate pro-rated XP for a focus session based on actual time worked.
+ * Anti-XP-farming: Users only earn XP proportional to actual work done.
+ *
+ * @param actualMinutes - Actual minutes worked (server-calculated from timestamps)
+ * @param plannedMinutes - Originally planned session duration
+ * @returns Pro-rated XP amount, or 0 if below minimum threshold
+ *
+ * Examples:
+ * - 25 min planned, 25 min actual → 15 XP (100%)
+ * - 25 min planned, 12.5 min actual → 7-8 XP (50%)
+ * - 25 min planned, 5 min actual → 0 XP (below 50% threshold)
+ */
+export function getProRatedFocusXp(actualMinutes: number, plannedMinutes: number): number {
+  if (plannedMinutes <= 0) return 0;
+
+  const completionRatio = Math.min(actualMinutes / plannedMinutes, 1);
+
+  // No XP for sessions below minimum threshold
+  if (completionRatio < MIN_FOCUS_COMPLETION_RATIO) {
+    return 0;
+  }
+
+  // Calculate base XP for actual time worked
+  const baseXp = getFocusXp(actualMinutes);
+
+  // Only award milestone bonus if actual time reached the threshold
+  const milestoneBonus = getFocusMilestoneBonus(actualMinutes);
+
+  return baseXp + milestoneBonus;
 }

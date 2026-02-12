@@ -4,10 +4,10 @@
 // Awards XP when completing, deducts when uncompleting.
 //
 // XP TRANSPARENCY:
-// - xpGained = base task XP only (no hidden multipliers)
+// - xpGained = flat 15 XP for all tasks (anti-XP-farming)
 // - challengeXp = XP from any challenges completed (celebrated separately)
 // - achievementXp = XP from any achievements unlocked (celebrated separately)
-// - last_xp_awarded stores only base XP for accurate deduction
+// - last_xp_awarded stores base XP for accurate deduction
 // =============================================================================
 
 import { NextResponse } from "next/server";
@@ -37,11 +37,11 @@ type ToggleTaskBody = {
  * POST /api/tasks/toggle
  *
  * Toggles the completed status of a task.
- * When completing: awards base XP (no hidden multipliers), checks challenges/achievements.
+ * When completing: awards flat 15 XP (anti-XP-farming), checks challenges/achievements.
  * When uncompleting: deducts exactly the base XP that was awarded.
  *
  * XP Transparency:
- * - xpGained: Base task XP only (5/10/25 for low/medium/high)
+ * - xpGained: Flat 15 XP for all tasks (priorities no longer affect XP)
  * - challengeXp: Separate XP from any completed challenges
  * - achievementXp: Separate XP from any unlocked achievements
  *
@@ -96,17 +96,18 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(updateError.message);
   }
 
-  const xpAmount = existing.xp_value ?? 10;
+  const xpAmount = existing.xp_value ?? 15;
+  // Track high priority for challenge/achievement checks (not for XP bonus)
   const isHighPriority = existing.priority === "high";
 
   if (isCompleting) {
-    // Use gamification v2 system to award XP
+    // Use gamification v2 system to award XP (flat XP, priority only for challenges)
     const result = await awardXp({
       supabase,
       userId: user.id,
       baseXp: xpAmount,
       actionType: "task",
-      isHighPriority,
+      isHighPriority, // Used for challenge tracking, not XP calculation
       completionHour,
     });
 

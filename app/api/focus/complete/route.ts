@@ -3,9 +3,14 @@
 // Completes an active focus session and awards XP.
 //
 // XP TRANSPARENCY:
-// - xpGained = base focus XP only (0.6/min + milestone bonuses, no hidden multipliers)
+// - xpGained = pro-rated focus XP based on actual work time (anti-XP-farming)
 // - challengeXp = XP from any challenges completed (celebrated separately)
 // - achievementXp = XP from any achievements unlocked (celebrated separately)
+//
+// ANTI-XP-FARMING:
+// - XP is calculated server-side from started_at timestamp (anti-tampering)
+// - Users must complete at least 50% of planned session to earn XP
+// - XP is pro-rated based on actual time worked, not planned duration
 // =============================================================================
 
 import {
@@ -14,7 +19,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
-import { getFocusTotalXp } from "@/app/lib/gamification";
+import { getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
 import { awardXp } from "@/app/lib/gamification-actions";
 import { markOnboardingStepComplete } from "@/app/lib/onboarding";
 
@@ -78,17 +83,26 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.badRequest("Invalid session duration");
   }
 
-  // Calculate base XP based on work duration (includes milestone bonus)
-  const baseXp = getFocusTotalXp(session.work_duration);
-  const isLongSession = session.work_duration >= 60;
+  // ANTI-XP-FARMING: Calculate actual elapsed time server-side from timestamps
+  const startedAt = new Date(session.started_at).getTime();
+  const completedAt = Date.now();
+  const elapsedMs = completedAt - startedAt;
+  // Cap at planned duration (can't earn more than planned)
+  const actualMinutes = Math.min(elapsedMs / 60000, session.work_duration);
 
-  // Update the session status
+  // Calculate pro-rated XP based on actual time worked
+  const baseXp = getProRatedFocusXp(actualMinutes, session.work_duration);
+  const completionRatio = actualMinutes / session.work_duration;
+  const isLongSession = actualMinutes >= 60;
+
+  // Update the session status with actual work time
   const { error: updateError } = await supabase
     .from("focus_sessions")
     .update({
       status: "completed",
       completed_at: new Date().toISOString(),
       xp_awarded: baseXp,
+      actual_work_minutes: Math.round(actualMinutes),
     })
     .eq("id", sessionId);
 
@@ -96,17 +110,17 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(updateError.message);
   }
 
-  // Use gamification v2 system to award XP
+  // Use gamification v2 system to award XP (skip if below threshold)
   const result = await awardXp({
     supabase,
     userId: user.id,
     baseXp,
     actionType: "focus",
-    focusMinutes: session.work_duration,
+    focusMinutes: Math.round(actualMinutes),
     isLongFocusSession: isLongSession,
   });
 
-  // Also update focus-specific stats in profile
+  // Also update focus-specific stats in profile (use actual minutes worked)
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("total_focus_minutes, focus_sessions_completed")
@@ -117,7 +131,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     await supabase
       .from("user_profiles")
       .update({
-        total_focus_minutes: (profile.total_focus_minutes ?? 0) + session.work_duration,
+        total_focus_minutes: (profile.total_focus_minutes ?? 0) + Math.round(actualMinutes),
         focus_sessions_completed: (profile.focus_sessions_completed ?? 0) + 1,
       })
       .eq("user_id", user.id);
@@ -128,7 +142,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
 
   // XP TRANSPARENCY: Return separate XP values for clear celebration
   return successResponse({
-    // Base focus XP (no hidden multipliers)
+    // Pro-rated focus XP based on actual work time
     xpGained: result.actionTotalXp,
     // Challenge XP (celebrated with toast)
     challengeXp: result.bonusXp.challengeXp ?? 0,
@@ -138,7 +152,11 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
     xpBreakdown: result.xpBreakdown,
     newLevel: result.leveledUp ? result.newLevel : undefined,
     newXpTotal: result.newXpTotal,
-    focusMinutesAdded: session.work_duration,
+    // Focus session details
+    plannedMinutes: session.work_duration,
+    actualMinutes: Math.round(actualMinutes),
+    completionRatio: Math.round(completionRatio * 100),
+    belowThreshold: completionRatio < MIN_FOCUS_COMPLETION_RATIO,
     newStreak: result.newStreak,
     achievementsUnlocked: result.achievementsUnlocked,
     challengesCompleted: result.challengesCompleted,

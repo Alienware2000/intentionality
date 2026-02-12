@@ -68,13 +68,9 @@ export const PRIORITY_LABELS_FULL: Record<Priority, string> = {
 
 /**
  * Re-export XP_VALUES from gamification for convenient access.
- * XP values awarded for each priority level on task/habit completion.
- *
- * - Low: 5 XP
- * - Medium: 10 XP
- * - High: 25 XP
+ * All tasks and habits now earn flat 15 XP (anti-XP-farming).
  */
-export { XP_VALUES } from "./gamification";
+export { XP_VALUES, FLAT_TASK_XP } from "./gamification";
 
 // -----------------------------------------------------------------------------
 // UI Constants
