@@ -6,7 +6,7 @@
 // Mobile-first: bottom sheet on mobile, centered on desktop.
 // =============================================================================
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -48,6 +48,7 @@ type GroupSettingsModalProps = {
 
 /**
  * GroupSettingsModal allows group owners to edit settings or delete the group.
+ * Uses a key-based remount pattern to reset form state when switching groups.
  *
  * @example
  * <GroupSettingsModal
@@ -58,7 +59,13 @@ type GroupSettingsModalProps = {
  *   onTransferOwnership={() => setShowTransfer(true)}
  * />
  */
-export default function GroupSettingsModal({
+export default function GroupSettingsModal(props: GroupSettingsModalProps) {
+  // Key-based remount: when group.id changes, the inner component remounts
+  // This resets all form state without needing useEffect
+  return <GroupSettingsModalInner key={props.group.id} {...props} />;
+}
+
+function GroupSettingsModalInner({
   isOpen,
   onClose,
   group,
@@ -68,7 +75,7 @@ export default function GroupSettingsModal({
   const { updateGroup, deleteGroup } = useSocial();
   const { showToast } = useToast();
 
-  // Form state
+  // Form state - initialized from props, resets on remount via key
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description || "");
 
@@ -76,12 +83,6 @@ export default function GroupSettingsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // Sync form when group changes
-  useEffect(() => {
-    setName(group.name);
-    setDescription(group.description || "");
-  }, [group.name, group.description]);
 
   // Check if form has changes
   const hasChanges =

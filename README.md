@@ -12,18 +12,6 @@ Turn your tasks into adventures, earn XP, and build focus habits.
 
 ---
 
-## Screenshots
-
-<!-- TODO: Add screenshots of key screens -->
-
-Recommended screens to capture:
-- Dashboard (Command Center)
-- Focus Timer in action
-- Analytics page with XP chart
-- Quest/Task management
-
----
-
 ## Features
 
 - **Quest-Based Tasks** — Organize work under meaningful goals
