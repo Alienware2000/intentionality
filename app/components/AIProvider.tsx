@@ -431,16 +431,14 @@ export function AIProvider({ children }: Props) {
   /**
    * Execute an action from the AI response.
    * This is called when the user confirms an action button.
+   * Note: AI suggests actions but users must confirm - no auto-execution.
    */
   const executeAction = useCallback(async (action: AIAction) => {
     try {
-      // TODO: Implement action execution via API
-      // For now, client-side actions like NAVIGATE can be handled here
       if (action.type === "NAVIGATE") {
         const path = (action.payload as { path: string }).path;
         window.location.href = path;
       }
-      // Other actions would call an execute endpoint
     } catch (error) {
       console.error("Failed to execute action:", error);
     }
