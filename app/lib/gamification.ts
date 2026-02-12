@@ -3,7 +3,7 @@
 // XP, level, and streak calculation functions.
 // =============================================================================
 
-import type { LevelTitle, Priority, StreakMultiplier, XpBreakdown } from "./types";
+import type { LevelTitle, Priority, StreakMultiplier } from "./types";
 
 /**
  * XP values for each priority level.
