@@ -196,68 +196,6 @@ export function getStreakMultiplier(streakDays: number): StreakMultiplier {
 }
 
 /**
- * Check if a streak milestone was just reached.
- * @deprecated No longer used - streak milestones don't award hidden XP (XP transparency redesign).
- * Kept for reference, may be removed in future.
- */
-export function getNewStreakMilestone(
-  oldStreak: number,
-  newStreak: number
-): { days: number; xpReward: number; badge: string } | null {
-  for (const milestone of STREAK_MILESTONES) {
-    if (oldStreak < milestone.days && newStreak >= milestone.days) {
-      return milestone;
-    }
-  }
-  return null;
-}
-
-/**
- * Calculate total XP with multipliers and bonuses.
- * @deprecated No longer used - XP is now awarded directly without hidden multipliers (XP transparency redesign).
- * Base XP = Total XP. No streak multipliers, no permanent bonuses.
- * Kept for reference, may be removed in future.
- */
-export function calculateXpWithBonuses(
-  baseXp: number,
-  streakDays: number,
-  permanentXpBonus: number = 1.00
-): XpBreakdown {
-  const { multiplier } = getStreakMultiplier(streakDays);
-
-  // Apply streak multiplier to base XP
-  const afterStreakMultiplier = Math.floor(baseXp * multiplier);
-  const streakBonus = afterStreakMultiplier - baseXp;
-
-  // Apply permanent bonus (from level perks)
-  const totalXp = Math.floor(afterStreakMultiplier * permanentXpBonus);
-  const permanentBonus = totalXp - afterStreakMultiplier;
-
-  return {
-    baseXp,
-    streakMultiplier: multiplier,
-    streakBonus,
-    permanentBonus,
-    totalXp,
-  };
-}
-
-/**
- * Get the permanent XP bonus multiplier based on level.
- * @deprecated No longer used - permanent XP bonuses removed (XP transparency redesign).
- * Kept for reference, may be removed in future.
- */
-export function getPermanentXpBonus(level: number): number {
-  let bonus = 1.00;
-  for (const perk of LEVEL_PERKS) {
-    if (level >= perk.level && perk.xpBonus) {
-      bonus = 1.00 + perk.xpBonus;
-    }
-  }
-  return bonus;
-}
-
-/**
  * Check if user earned streak freeze this week (7-day streak).
  */
 export function earnedStreakFreeze(

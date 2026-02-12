@@ -13,27 +13,6 @@ import type {
 import { getLocalDateString } from "./gamification";
 
 /**
- * Daily sweep bonus XP when all 3 daily challenges are completed.
- * @deprecated No longer awarded - removed as part of XP transparency redesign.
- * XP is now awarded per individual challenge completion, not as a hidden sweep bonus.
- */
-export const DAILY_SWEEP_BONUS = 25;
-
-/**
- * Perfect day bonus XP (all habits + 3+ tasks).
- * @deprecated No longer awarded - removed as part of XP transparency redesign.
- * Was a hidden bonus that users didn't see - now removed for fairness.
- */
-export const PERFECT_DAY_BONUS = 50;
-
-/**
- * First action of the day bonus XP.
- * @deprecated No longer awarded - removed as part of XP transparency redesign.
- * Was a hidden bonus that users didn't see - now removed for fairness.
- */
-export const FIRST_ACTION_BONUS = 5;
-
-/**
  * Get the Monday of the current week.
  */
 export function getWeekStartDate(date: Date = new Date()): string {
@@ -434,66 +413,3 @@ export async function getThisWeeksChallenge(
   return generateWeeklyChallenge(supabase, userId, weekStart);
 }
 
-/**
- * Check if this is the first action of the day.
- * @deprecated No longer used - first action bonus removed (XP transparency redesign).
- * Kept for reference, may be removed in future.
- */
-export async function isFirstActionOfDay(
-  supabase: SupabaseClient,
-  userId: string,
-  date: string = getLocalDateString()
-): Promise<boolean> {
-  const { data: activity } = await supabase
-    .from("user_activity_log")
-    .select("tasks_completed, habits_completed, focus_minutes")
-    .eq("user_id", userId)
-    .eq("activity_date", date)
-    .single();
-
-  if (!activity) return true;
-
-  const totalActions =
-    (activity.tasks_completed ?? 0) +
-    (activity.habits_completed ?? 0) +
-    (activity.focus_minutes > 0 ? 1 : 0);
-
-  return totalActions === 0;
-}
-
-/**
- * Check for perfect day (all habits + 3+ tasks).
- * @deprecated No longer used - perfect day bonus removed (XP transparency redesign).
- * Kept for reference, may be removed in future.
- */
-export async function checkPerfectDay(
-  supabase: SupabaseClient,
-  userId: string,
-  date: string = getLocalDateString()
-): Promise<boolean> {
-  // Count total habits
-  const { count: totalHabits } = await supabase
-    .from("habits")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  if (!totalHabits || totalHabits === 0) return false;
-
-  // Count completed habits today
-  const { count: completedHabits } = await supabase
-    .from("habit_completions")
-    .select("*", { count: "exact", head: true })
-    .eq("completed_date", date);
-
-  if (completedHabits !== totalHabits) return false;
-
-  // Count tasks completed today
-  const { data: activity } = await supabase
-    .from("user_activity_log")
-    .select("tasks_completed")
-    .eq("user_id", userId)
-    .eq("activity_date", date)
-    .single();
-
-  return (activity?.tasks_completed ?? 0) >= 3;
-}
