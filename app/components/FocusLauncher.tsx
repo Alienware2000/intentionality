@@ -162,13 +162,16 @@ export default function FocusLauncher() {
         </div>
 
         <div className="flex items-center gap-3">
-          <motion.span
-            className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-lg bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)]"
-            whileHover={{ scale: 1.05 }}
-          >
-            <Zap size={12} />
-            +{xpPreview} XP
-          </motion.span>
+          <div className="flex flex-col items-end gap-0.5">
+            <motion.span
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-lg bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)]"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Zap size={12} />
+              +{xpPreview} XP
+            </motion.span>
+            <span className="text-[10px] text-[var(--text-muted)]">50% min to earn</span>
+          </div>
           <motion.div
             animate={{ rotate: showOptions ? 180 : 0 }}
             transition={{ duration: 0.2 }}
