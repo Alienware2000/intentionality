@@ -28,6 +28,7 @@ type FocusState = {
   isRunning: boolean;
   mode: FocusMode;
   error: string | null;
+  workEndedAt: number | null; // Timestamp when work phase ended (for accurate XP display)
 };
 
 type FocusContextType = FocusState & {
@@ -57,6 +58,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     isRunning: false,
     mode: "idle",
     error: null,
+    workEndedAt: null,
   });
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -81,6 +83,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           let mode: FocusMode;
           let remaining: number;
           let isRunning: boolean;
+          let workEndedAt: number | null = null;
 
           if (elapsedSeconds >= totalWorkSeconds + totalBreakSeconds) {
             // Both work and break have elapsed → completed mode
@@ -88,12 +91,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
             remaining = 0;
             isRunning = false;
             targetEndTimeRef.current = null;
+            // Calculate when work ended (startedAt + work duration)
+            workEndedAt = startedAt + totalWorkSeconds * 1000;
           } else if (elapsedSeconds >= totalWorkSeconds) {
             // Work done, in break period
             mode = "break";
             remaining = Math.max(0, totalWorkSeconds + totalBreakSeconds - elapsedSeconds);
             isRunning = remaining > 0;
             targetEndTimeRef.current = startedAt + (totalWorkSeconds + totalBreakSeconds) * 1000;
+            // Calculate when work ended (startedAt + work duration)
+            workEndedAt = startedAt + totalWorkSeconds * 1000;
           } else {
             // Still in work period
             mode = "work";
@@ -108,6 +115,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
             isRunning,
             mode,
             error: null,
+            workEndedAt,
           });
         }
       } catch {
@@ -135,6 +143,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           timeRemaining: breakSeconds,
           mode: "break",
           isRunning: breakSeconds > 0,
+          workEndedAt: Date.now(),
         };
       } else if (prev.mode === "break") {
         // Break finished, show completion screen
@@ -218,6 +227,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           isRunning: true,
           mode: "work",
           error: null,
+          workEndedAt: null,
         });
       } catch (e) {
         setState((prev) => ({ ...prev, error: getErrorMessage(e) }));
@@ -262,6 +272,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       isRunning: false,
       mode: "idle",
       error: null,
+      workEndedAt: null,
     });
 
     // 4. Trigger XP animation IMMEDIATELY (only if above threshold)
@@ -306,6 +317,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         isRunning: false,
         mode: "idle",
         error: null,
+        workEndedAt: null,
       });
     } catch (e) {
       setState((prev) => ({ ...prev, error: getErrorMessage(e) }));
@@ -321,6 +333,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       timeRemaining: breakSeconds,
       mode: "break",
       isRunning: breakSeconds > 0,
+      workEndedAt: Date.now(),
     }));
   }, [state.mode, state.session?.break_duration]);
 

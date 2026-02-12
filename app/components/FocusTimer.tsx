@@ -9,7 +9,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, X, SkipForward, Check, Zap, Coffee } from "lucide-react";
 import { useFocus } from "./FocusProvider";
-import { getFocusTotalXp, getFocusMilestoneBonus, getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
+import { getFocusMilestoneBonus, getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
 import { formatCountdown } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
 
@@ -19,6 +19,7 @@ export default function FocusTimer() {
     timeRemaining,
     isRunning,
     mode,
+    workEndedAt,
     pauseSession,
     resumeSession,
     completeSession,
@@ -34,17 +35,25 @@ export default function FocusTimer() {
   const isBreak = mode === "break";
   const isCompleted = mode === "completed";
 
-  // Calculate elapsed work time from timeRemaining (which updates every second)
-  // This avoids calling Date.now() during render while still showing accurate XP
+  // Calculate elapsed work time accurately
+  // Use workEndedAt timestamp when available (for break/completed modes after skip)
   const totalWorkSeconds = session.work_duration * 60;
-  const elapsedSeconds = isBreak || isCompleted
-    ? totalWorkSeconds // During break/completed, full work time elapsed
-    : totalWorkSeconds - timeRemaining;
-  const actualMinutes = Math.min(elapsedSeconds / 60, session.work_duration);
+  let elapsedSeconds: number;
+
+  if (isBreak || isCompleted) {
+    // Use stored work end time for accurate calculation
+    const startedAt = new Date(session.started_at).getTime();
+    const endedAt = workEndedAt ?? (startedAt + totalWorkSeconds * 1000);
+    elapsedSeconds = Math.min((endedAt - startedAt) / 1000, totalWorkSeconds);
+  } else {
+    // During work: derive from countdown
+    elapsedSeconds = totalWorkSeconds - timeRemaining;
+  }
+
+  const actualMinutes = elapsedSeconds / 60;
   const completionRatio = actualMinutes / session.work_duration;
 
-  // Show potential full XP during session, actual pro-rated XP on completion
-  const fullXp = getFocusTotalXp(session.work_duration);
+  // Pro-rated XP based on actual time spent
   const actualXp = getProRatedFocusXp(actualMinutes, session.work_duration);
   const milestoneBonus = getFocusMilestoneBonus(actualMinutes);
   const belowThreshold = completionRatio < MIN_FOCUS_COMPLETION_RATIO;
@@ -282,9 +291,19 @@ export default function FocusTimer() {
             </span>
           )}
           {!isBreak && (
-            <span className="flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-lg bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)]">
+            <span className={cn(
+              "flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-lg",
+              belowThreshold
+                ? "bg-[var(--bg-hover)] text-[var(--text-muted)]"
+                : "bg-[var(--accent-highlight)]/10 text-[var(--accent-highlight)]"
+            )}>
               <Zap size={12} />
-              +{fullXp} XP
+              +{actualXp} XP
+              {belowThreshold && (
+                <span className="ml-1 text-[10px] opacity-70">
+                  ({Math.round(completionRatio * 100)}% of 50%)
+                </span>
+              )}
             </span>
           )}
         </div>
