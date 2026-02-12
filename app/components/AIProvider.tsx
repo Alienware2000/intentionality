@@ -520,10 +520,9 @@ export function AIProvider({ children }: Props) {
   /**
    * Handle insight action (called from ProactiveInsight component).
    */
-  const handleInsightAction = useCallback((insight: AIInsight) => {
+  const handleInsightAction = useCallback((_insight: AIInsight) => {
     // Custom actions can be handled here if needed
     // Most actions (NAVIGATE, START_FOCUS) are handled by the component itself
-    console.log("Insight action:", insight.action_type, insight.action_payload);
   }, []);
 
   // -------------------------------------------------------------------------
