@@ -44,6 +44,9 @@ import type { DayOfWeek } from "@/app/lib/types";
 // View mode type for toggle
 type ViewMode = "list" | "calendar";
 
+// Priority sort weights: lower = higher priority
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
 // Duration presets for focus sessions (matches FocusLauncher)
 const DURATION_PRESETS = [
   { minutes: 5, label: "5m" },
@@ -389,6 +392,42 @@ export default function DayTimeline({
     onRefresh?.();
   }, [refresh, onRefresh]);
 
+  // Sort scheduled items: incomplete first, then by priority, then by time
+  const sortedScheduledItems = useMemo(() => {
+    return [...scheduledItems].sort((a, b) => {
+      const aCompleted = a.type === "task" ? a.data.completed : a.completed;
+      const bCompleted = b.type === "task" ? b.data.completed : b.completed;
+
+      // Incomplete first
+      if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+
+      // By priority (tasks only — blocks default to medium-level weight)
+      const aPriority = a.type === "task" ? (PRIORITY_ORDER[a.data.priority] ?? 1) : 1;
+      const bPriority = b.type === "task" ? (PRIORITY_ORDER[b.data.priority] ?? 1) : 1;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+
+      // Preserve chronological time order as tiebreaker
+      const aTime = a.type === "task" ? (a.data.scheduled_time ?? "") : (a.data.start_time ?? "");
+      const bTime = b.type === "task" ? (b.data.scheduled_time ?? "") : (b.data.start_time ?? "");
+      return aTime.localeCompare(bTime);
+    });
+  }, [scheduledItems]);
+
+  // Sort unscheduled tasks: incomplete first, then by priority
+  const sortedUnscheduledTasks = useMemo(() => {
+    return [...unscheduledTasks].sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      return (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1);
+    });
+  }, [unscheduledTasks]);
+
+  // Sort overdue tasks by priority (all incomplete by definition)
+  const sortedOverdueTasks = useMemo(() => {
+    return [...overdueTasks].sort((a, b) => {
+      return (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1);
+    });
+  }, [overdueTasks]);
+
   // Early return for loading state (after all hooks)
   if (loading) {
     return (
@@ -406,8 +445,8 @@ export default function DayTimeline({
     );
   }
 
-  const hasItems = scheduledItems.length > 0 || unscheduledTasks.length > 0;
-  const hasOverdue = showOverdue && overdueTasks.length > 0;
+  const hasItems = sortedScheduledItems.length > 0 || sortedUnscheduledTasks.length > 0;
+  const hasOverdue = showOverdue && sortedOverdueTasks.length > 0;
 
   return (
     <div className={cn("space-y-3", compact && "space-y-2")}>
@@ -502,7 +541,7 @@ export default function DayTimeline({
               Overdue
             </span>
           </div>
-          {overdueTasks.map((task) => (
+          {sortedOverdueTasks.map((task) => (
             <OverdueTaskItem
               key={task.id}
               task={task}
@@ -519,9 +558,9 @@ export default function DayTimeline({
       )}
 
       {/* Scheduled Items (timeline) */}
-      {scheduledItems.length > 0 && (
+      {sortedScheduledItems.length > 0 && (
         <div className="space-y-2">
-          {scheduledItems
+          {sortedScheduledItems
             .filter((item) => !hideBlocksInList || item.type === "task")
             .map((item) =>
               item.type === "task" ? (
@@ -551,14 +590,14 @@ export default function DayTimeline({
       )}
 
       {/* Unscheduled Tasks */}
-      {unscheduledTasks.length > 0 && (
+      {sortedUnscheduledTasks.length > 0 && (
         <div className="space-y-2">
-          {scheduledItems.length > 0 && !hideBlocksInList && (
+          {sortedScheduledItems.length > 0 && !hideBlocksInList && (
             <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] pt-2">
               Tasks
             </div>
           )}
-          {unscheduledTasks.map((task) => (
+          {sortedUnscheduledTasks.map((task) => (
             <UnscheduledTaskItem
               key={task.id}
               task={task}
