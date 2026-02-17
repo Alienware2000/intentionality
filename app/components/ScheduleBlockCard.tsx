@@ -76,7 +76,7 @@ export default function ScheduleBlockCard({
 
         {/* Actions - always visible on mobile, hover on desktop */}
         {(onEdit || onDelete) && (
-          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
             {onEdit && (
               <button
                 onClick={() => onEdit(block)}

@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Plus, MapPin, Clock, Trash2 } from "lucide-react";
+import { Check, Plus, MapPin, Clock, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { formatTime, getTodayISO, getDayOfWeek } from "@/app/lib/date-utils";
 import type { ISODateString, ScheduleBlock, DayOfWeek } from "@/app/lib/types";
@@ -522,26 +522,51 @@ const CalendarBlock = memo(function CalendarBlock({
       }}
       onClick={onEdit}
     >
-      {/* Delete button - shows on hover */}
-      {onDelete && !completed && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          aria-label="Delete block"
-          className={cn(
-            "absolute top-1 right-1 z-10",
-            "p-1 rounded",
-            "bg-[var(--bg-card)]/90 border border-[var(--border-subtle)]",
-            "text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]",
-            "opacity-0 group-hover/block:opacity-100",
-            "transition-all duration-150",
-            compact && "p-0.5 top-0.5 right-0.5"
+      {/* Action buttons - visible on touch, hover-reveal on mouse */}
+      {(onEdit || onDelete) && !completed && (
+        <div className={cn(
+          "absolute top-1 right-1 z-10 flex items-center gap-0.5",
+          "pointer-fine:opacity-0 pointer-fine:group-hover/block:opacity-100",
+          "transition-all duration-150",
+          compact && "top-0.5 right-0.5"
+        )}>
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              aria-label="Edit block"
+              className={cn(
+                "p-1 rounded",
+                "bg-[var(--bg-card)]/90 border border-[var(--border-subtle)]",
+                "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)]",
+                "transition-all duration-150",
+                compact && "p-0.5"
+              )}
+            >
+              <Pencil size={compact ? 10 : 12} />
+            </button>
           )}
-        >
-          <Trash2 size={compact ? 10 : 12} />
-        </button>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              aria-label="Delete block"
+              className={cn(
+                "p-1 rounded",
+                "bg-[var(--bg-card)]/90 border border-[var(--border-subtle)]",
+                "text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]",
+                "transition-all duration-150",
+                compact && "p-0.5"
+              )}
+            >
+              <Trash2 size={compact ? 10 : 12} />
+            </button>
+          )}
+        </div>
       )}
 
       <div className={cn(
@@ -838,6 +863,53 @@ export default function CalendarDayView({
     setHoverSlot(null);
   }, [hoverSlot, date, onAddBlock]);
 
+  // Handle touch on empty grid area - directly open add modal (skip ghost preview)
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!gridRef.current) return;
+
+      const touch = e.touches[0];
+      const rect = gridRef.current.getBoundingClientRect();
+      const scrollTop = gridRef.current.scrollTop;
+      const y = touch.clientY - rect.top + scrollTop;
+      const x = touch.clientX - rect.left;
+
+      // Ignore taps on the time label area
+      if (x < timeLabelWidth) return;
+
+      // Calculate minutes from position
+      const minutes =
+        startMinutesGrid +
+        (y / totalHeight) * (endMinutesGrid - startMinutesGrid);
+
+      // Snap to 30-minute intervals
+      const snappedStart = Math.round(minutes / 30) * 30;
+      const blockDuration = 60;
+      const snappedEnd = snappedStart + blockDuration;
+
+      // Check bounds
+      if (snappedStart < startMinutesGrid || snappedEnd > endMinutesGrid) return;
+
+      // Check if overlapping with existing block
+      const overlapsBlock = blocks.some((b) => {
+        const blockStart = parseTimeToMinutes(b.block.start_time);
+        const blockEnd = parseTimeToMinutes(b.block.end_time);
+        return doTimesOverlap(snappedStart, snappedEnd, blockStart, blockEnd);
+      });
+
+      if (overlapsBlock) return;
+
+      // Directly open the add modal with the calculated time
+      const dayOfWeek = getDayOfWeek(date);
+      onAddBlock({
+        start_time: minutesToTimeString(snappedStart),
+        end_time: minutesToTimeString(snappedEnd),
+        days_of_week: [dayOfWeek],
+      });
+    },
+    [blocks, startMinutesGrid, endMinutesGrid, totalHeight, timeLabelWidth, date, onAddBlock]
+  );
+
   // Calculate ghost block position in pixels
   const ghostTop = hoverSlot
     ? ((hoverSlot.startMinutes - startMinutesGrid) / 60) * hourHeight
@@ -857,12 +929,13 @@ export default function CalendarDayView({
       style={{ height: Math.min(totalHeight + 20, compact ? 400 : 500) }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
     >
       {/* Empty state hint - absolute so it doesn't affect layout/mouse positioning */}
       {blocks.length === 0 && (
         <div className="absolute top-2 left-0 right-0 flex justify-center pointer-events-none z-10">
           <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-elevated)] px-3 py-1 rounded-full border border-[var(--border-subtle)]">
-            Click any time slot to add a block
+            Tap any time slot to add a block
           </span>
         </div>
       )}

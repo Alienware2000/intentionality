@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* pointer-fine: targets devices with a fine pointer (mouse/trackpad).
+   Use for hover-reveal patterns: buttons stay visible on touch, hidden on mouse. */
+@custom-variant pointer-fine (@media (pointer: fine));
+
 /* =============================================================================
    INTENTIONALITY - PREMIUM DESIGN SYSTEM
    Iron Man HUD-inspired interface with user-selectable accent themes

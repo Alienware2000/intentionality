@@ -232,6 +232,10 @@ export default function DayTimeline({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<Id | null>(null);
 
+  // Edit/delete schedule block state
+  const [editingBlock, setEditingBlock] = useState<ScheduleBlock | null>(null);
+  const [deletingBlockId, setDeletingBlockId] = useState<Id | null>(null);
+
   async function handleAddTask() {
     const trimmed = title.trim();
     if (!trimmed || !questId) return;
@@ -336,6 +340,21 @@ export default function DayTimeline({
     } catch {
       setDeletingTaskId(null);
       // Silent fail - task remains
+    }
+  }
+
+  async function handleDeleteBlock(blockId: Id) {
+    try {
+      await fetchApi("/api/schedule", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockId }),
+      });
+      setDeletingBlockId(null);
+      await refresh();
+      onRefresh?.();
+    } catch {
+      setDeletingBlockId(null);
     }
   }
 
@@ -457,6 +476,8 @@ export default function DayTimeline({
               blocks={calendarBlocks}
               onToggleBlock={toggleScheduleBlock}
               onAddBlock={handleAddBlockFromCalendar}
+              onEditBlock={setEditingBlock}
+              onDeleteBlock={(id) => setDeletingBlockId(id)}
               compact={compact}
             />
           </motion.div>
@@ -520,6 +541,8 @@ export default function DayTimeline({
                   block={item.data}
                   completed={item.completed}
                   onToggle={toggleScheduleBlock}
+                  onEdit={setEditingBlock}
+                  onDelete={setDeletingBlockId}
                   compact={compact}
                 />
               )
@@ -718,6 +741,23 @@ export default function DayTimeline({
             message="Delete this task? You can undo this action for a few seconds after deletion."
             onConfirm={() => deletingTaskId && handleDeleteTask(deletingTaskId)}
             onCancel={() => setDeletingTaskId(null)}
+          />
+
+          {/* Edit Schedule Block Modal */}
+          <AddScheduleModal
+            block={editingBlock}
+            isOpen={editingBlock !== null}
+            onClose={() => setEditingBlock(null)}
+            onSaved={handleScheduleSaved}
+          />
+
+          {/* Delete Schedule Block Confirmation */}
+          <ConfirmModal
+            isOpen={deletingBlockId !== null}
+            title="Delete Schedule Block"
+            message="This will remove the recurring schedule block. This action cannot be undone."
+            onConfirm={() => deletingBlockId && handleDeleteBlock(deletingBlockId)}
+            onCancel={() => setDeletingBlockId(null)}
           />
           </motion.div>
         )}
@@ -965,7 +1005,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
       <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+      <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <button
@@ -1102,7 +1142,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
       <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+      <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <button
@@ -1168,11 +1208,15 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
   block,
   completed,
   onToggle,
+  onEdit,
+  onDelete,
   compact,
 }: {
   block: ScheduleBlock;
   completed: boolean;
   onToggle: (id: string) => void;
+  onEdit?: (block: ScheduleBlock) => void;
+  onDelete?: (blockId: string) => void;
   compact: boolean;
 }) {
   return (
@@ -1182,7 +1226,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       className={cn(
-        "rounded-xl border-l-[3px] border border-[var(--border-subtle)]",
+        "group rounded-xl border-l-[3px] border border-[var(--border-subtle)]",
         "hover-lift transition-all duration-200",
         completed && "opacity-60",
         compact ? "p-2" : "p-3"
@@ -1232,6 +1276,38 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
           <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
             <MapPin size={10} />
             <span className="truncate max-w-[100px]">{block.location}</span>
+          </div>
+        )}
+
+        {/* Action buttons - always visible on touch, hover on desktop */}
+        {(onEdit || onDelete) && (
+          <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(block);
+                }}
+                aria-label="Edit schedule block"
+                className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <Pencil size={compact ? 14 : 16} className="sm:hidden" />
+                <Pencil size={compact ? 12 : 14} className="hidden sm:block" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(block.id);
+                }}
+                aria-label="Delete schedule block"
+                className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+              >
+                <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
+                <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
+              </button>
+            )}
           </div>
         )}
 
@@ -1298,7 +1374,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
         <PriorityPill priority={task.priority} compact />
 
         {/* Action buttons - always visible on mobile, hover on desktop */}
-        <div className="relative flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+        <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
           {/* Focus button */}
           <button
             ref={focusButtonRef}

@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { ISODateString, Quest, ScheduleBlock, DayOfWeek, AchievementWithProgress } from "@/app/lib/types";
+import ConfirmModal from "./ConfirmModal";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { useProfile } from "./ProfileProvider";
@@ -41,6 +42,10 @@ export default function TodayClient({ date, onTaskAction }: Props) {
     end_time: string;
     days_of_week: DayOfWeek[];
   } | null>(null);
+
+  // Edit/delete block state for calendar view
+  const [editingBlock, setEditingBlock] = useState<ScheduleBlock | null>(null);
+  const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp, showStreakMilestone, showChallengeComplete, showAchievement } = useCelebration();
@@ -162,7 +167,7 @@ export default function TodayClient({ date, onTaskAction }: Props) {
     onTaskAction?.();
   }, [refreshTimeline, onTaskAction]);
 
-  // Handle delete block
+  // Handle delete block (actual API call)
   const handleDeleteBlock = useCallback(async (blockId: string) => {
     try {
       await fetchApi("/api/schedule", {
@@ -170,10 +175,11 @@ export default function TodayClient({ date, onTaskAction }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ blockId }),
       });
+      setDeletingBlockId(null);
       await refreshTimeline();
       onTaskAction?.();
     } catch {
-      // Silent fail - block stays
+      setDeletingBlockId(null);
     }
   }, [refreshTimeline, onTaskAction]);
 
@@ -250,7 +256,8 @@ export default function TodayClient({ date, onTaskAction }: Props) {
                 blocks={calendarBlocks}
                 onToggleBlock={toggleScheduleBlock}
                 onAddBlock={handleAddBlockFromCalendar}
-                onDeleteBlock={handleDeleteBlock}
+                onEditBlock={setEditingBlock}
+                onDeleteBlock={setDeletingBlockId}
                 compact={true}
               />
             </div>
@@ -264,6 +271,23 @@ export default function TodayClient({ date, onTaskAction }: Props) {
         onClose={handleScheduleModalClose}
         onSaved={handleScheduleSaved}
         defaultValues={scheduleDefaults}
+      />
+
+      {/* Edit Schedule Block Modal */}
+      <AddScheduleModal
+        block={editingBlock}
+        isOpen={editingBlock !== null}
+        onClose={() => setEditingBlock(null)}
+        onSaved={handleScheduleSaved}
+      />
+
+      {/* Delete Schedule Block Confirmation */}
+      <ConfirmModal
+        isOpen={deletingBlockId !== null}
+        title="Delete Schedule Block"
+        message="This will remove the recurring schedule block. This action cannot be undone."
+        onConfirm={() => deletingBlockId && handleDeleteBlock(deletingBlockId)}
+        onCancel={() => setDeletingBlockId(null)}
       />
     </>
   );
