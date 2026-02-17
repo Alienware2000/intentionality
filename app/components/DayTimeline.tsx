@@ -8,7 +8,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   Check,
   Clock,
@@ -559,14 +559,54 @@ export default function DayTimeline({
 
       {/* Scheduled Items (timeline) */}
       {sortedScheduledItems.length > 0 && (
-        <div className="space-y-2">
-          {sortedScheduledItems
-            .filter((item) => !hideBlocksInList || item.type === "task")
-            .map((item) =>
-              item.type === "task" ? (
-                <ScheduledTaskItem
-                  key={`task-${item.data.id}`}
-                  task={item.data}
+        <LayoutGroup id="scheduled-items">
+          <div className="space-y-2">
+            <AnimatePresence initial={false}>
+              {sortedScheduledItems
+                .filter((item) => !hideBlocksInList || item.type === "task")
+                .map((item) =>
+                  item.type === "task" ? (
+                    <ScheduledTaskItem
+                      key={`task-${item.data.id}`}
+                      task={item.data}
+                      onToggle={toggleTask}
+                      onEdit={setEditingTask}
+                      onDelete={setDeletingTaskId}
+                      onStartFocus={startSession}
+                      hasActiveSession={!!activeSession}
+                      compact={compact}
+                    />
+                  ) : (
+                    <ScheduleBlockItem
+                      key={`block-${item.data.id}`}
+                      block={item.data}
+                      completed={item.completed}
+                      onToggle={toggleScheduleBlock}
+                      onEdit={setEditingBlock}
+                      onDelete={setDeletingBlockId}
+                      compact={compact}
+                    />
+                  )
+                )}
+            </AnimatePresence>
+          </div>
+        </LayoutGroup>
+      )}
+
+      {/* Unscheduled Tasks */}
+      {sortedUnscheduledTasks.length > 0 && (
+        <LayoutGroup id="unscheduled-tasks">
+          <div className="space-y-2">
+            {sortedScheduledItems.length > 0 && !hideBlocksInList && (
+              <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] pt-2">
+                Tasks
+              </div>
+            )}
+            <AnimatePresence initial={false}>
+              {sortedUnscheduledTasks.map((task) => (
+                <UnscheduledTaskItem
+                  key={task.id}
+                  task={task}
                   onToggle={toggleTask}
                   onEdit={setEditingTask}
                   onDelete={setDeletingTaskId}
@@ -574,42 +614,10 @@ export default function DayTimeline({
                   hasActiveSession={!!activeSession}
                   compact={compact}
                 />
-              ) : (
-                <ScheduleBlockItem
-                  key={`block-${item.data.id}`}
-                  block={item.data}
-                  completed={item.completed}
-                  onToggle={toggleScheduleBlock}
-                  onEdit={setEditingBlock}
-                  onDelete={setDeletingBlockId}
-                  compact={compact}
-                />
-              )
-            )}
-        </div>
-      )}
-
-      {/* Unscheduled Tasks */}
-      {sortedUnscheduledTasks.length > 0 && (
-        <div className="space-y-2">
-          {sortedScheduledItems.length > 0 && !hideBlocksInList && (
-            <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] pt-2">
-              Tasks
-            </div>
-          )}
-          {sortedUnscheduledTasks.map((task) => (
-            <UnscheduledTaskItem
-              key={task.id}
-              task={task}
-              onToggle={toggleTask}
-              onEdit={setEditingTask}
-              onDelete={setDeletingTaskId}
-              onStartFocus={startSession}
-              hasActiveSession={!!activeSession}
-              compact={compact}
-            />
-          ))}
-        </div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </LayoutGroup>
       )}
 
       {/* Empty state */}
@@ -981,6 +989,8 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
   const focusDuration = task.default_work_duration ?? 25;
   const [showFocusPopover, setShowFocusPopover] = useState(false);
   const focusButtonRef = useRef<HTMLButtonElement>(null);
+  const hasMounted = useRef(false);
+  useEffect(() => { hasMounted.current = true; }, []);
 
   function handleStartFocus(duration: number) {
     onStartFocus({
@@ -993,9 +1003,10 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ layout: { type: "tween", duration: 0.18, ease: "easeOut" } }}
       className={cn(
         "group flex items-center gap-2 sm:gap-3 rounded-xl",
         "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
@@ -1127,6 +1138,8 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
   const focusDuration = task.default_work_duration ?? 25;
   const [showFocusPopover, setShowFocusPopover] = useState(false);
   const focusButtonRef = useRef<HTMLButtonElement>(null);
+  const hasMounted = useRef(false);
+  useEffect(() => { hasMounted.current = true; }, []);
 
   function handleStartFocus(duration: number) {
     onStartFocus({
@@ -1139,9 +1152,10 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ layout: { type: "tween", duration: 0.18, ease: "easeOut" } }}
       className={cn(
         "group flex items-center gap-2 sm:gap-3 rounded-xl",
         "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
@@ -1258,12 +1272,16 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
   onDelete?: (blockId: string) => void;
   compact: boolean;
 }) {
+  const hasMounted = useRef(false);
+  useEffect(() => { hasMounted.current = true; }, []);
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
+      transition={{ layout: { type: "tween", duration: 0.18, ease: "easeOut" } }}
       className={cn(
         "group rounded-xl border-l-[3px] border border-[var(--border-subtle)]",
         "hover-lift transition-all duration-200",
