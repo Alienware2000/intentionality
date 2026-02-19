@@ -93,9 +93,8 @@ export default function FocusLauncher() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "rounded-xl bg-[var(--bg-card)] glass-card",
-        "border border-[var(--border-subtle)]",
-        "overflow-hidden",
+        "rounded-xl glass-card-premium",
+        "relative overflow-hidden",
         "transition-all duration-200"
       )}
     >

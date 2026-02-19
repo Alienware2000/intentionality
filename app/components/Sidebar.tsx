@@ -224,7 +224,10 @@ export default function Sidebar() {
             <SidebarTooltip label={`Level ${profile.level} · ${profile.xp_total.toLocaleString()} XP`}>
               <Link href="/analytics" className="block">
                 <div className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200 hover:bg-[var(--bg-hover)]">
-                  <span className="text-xs font-mono font-bold text-[var(--text-primary)]">
+                  <span
+                    className="text-xs font-mono font-bold text-[var(--accent-primary)]"
+                    style={{ textShadow: "0 0 8px rgba(var(--accent-primary-rgb), 0.3)" }}
+                  >
                     L{profile.level}
                   </span>
                   {/* Mini XP progress bar - wider for better visibility */}
@@ -247,7 +250,8 @@ export default function Sidebar() {
                   <div className="flex items-baseline justify-between">
                     <div className="flex items-center gap-1.5">
                       <motion.span
-                        className="text-2xl font-mono font-bold text-[var(--text-primary)]"
+                        className="text-2xl font-mono font-bold text-[var(--accent-primary)]"
+                        style={{ textShadow: "0 0 15px rgba(var(--accent-primary-rgb), 0.35)" }}
                         initial={false}
                         animate={{ scale: 1 }}
                         whileHover={{ scale: 1.05 }}
@@ -256,7 +260,10 @@ export default function Sidebar() {
                       </motion.span>
                       <XpBarTooltip />
                     </div>
-                    <span className="text-xs font-mono text-[var(--text-muted)]">
+                    <span
+                      className="text-xs font-mono text-[var(--accent-highlight)]"
+                      style={{ textShadow: "0 0 8px rgba(var(--accent-highlight-rgb), 0.2)" }}
+                    >
                       {profile.xp_total.toLocaleString()} XP
                     </span>
                   </div>

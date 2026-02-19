@@ -327,8 +327,8 @@ function FriendsStatsCard({
             <p className="text-2xl font-mono font-bold text-[var(--text-primary)]">
               {friendCount}
             </p>
-            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
-              Friends
+            <p className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <span className="text-[var(--accent-info)]">●</span> Friends
             </p>
           </div>
         </div>
@@ -342,8 +342,8 @@ function FriendsStatsCard({
               <p className="text-2xl font-mono font-bold text-[var(--accent-streak)]">
                 {pendingCount}
               </p>
-              <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
-                Requests
+              <p className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] flex items-center gap-1.5">
+                <span className="text-[var(--accent-streak)]">●</span> Requests
               </p>
             </div>
           </div>

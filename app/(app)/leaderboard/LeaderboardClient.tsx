@@ -582,8 +582,8 @@ export default function LeaderboardClient() {
       <GlowCard glowColor="none" className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-subtle)]">
-          <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-            Rankings
+          <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
+            <span className="text-[var(--accent-highlight)]">●</span> Rankings
           </h3>
           <span className="text-xs text-[var(--text-muted)]">
             {loading ? "Loading..." : `${entries.length} of ${totalCount}`}

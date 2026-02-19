@@ -115,6 +115,13 @@ function StatCard({
     highlight: "text-[var(--accent-highlight)]",
   };
 
+  const shadowRgbMap = {
+    primary: "var(--accent-primary-rgb)",
+    success: "var(--accent-success-rgb)",
+    streak: "var(--accent-streak-rgb)",
+    highlight: "var(--accent-highlight-rgb)",
+  };
+
   const glowColor = accent ? accentColor : "none";
 
   // Spring scale animation variants
@@ -156,6 +163,7 @@ function StatCard({
                 "text-xl font-mono font-bold leading-tight rounded-md transition-colors",
                 accent ? textColorMap[accentColor] : "text-[var(--text-primary)]"
               )}
+              style={accent ? { textShadow: `0 0 12px rgba(${shadowRgbMap[accentColor]}, 0.3)` } : undefined}
             >
               {numericValue !== undefined ? (
                 <AnimatedNumber value={numericValue} />

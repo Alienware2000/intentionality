@@ -192,14 +192,14 @@ function SummaryStep({ summary }: { summary: DailySummary | null }) {
       <div className="grid grid-cols-2 gap-3">
         {/* Tasks Completed */}
         <motion.div
-          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--accent-success)]/5 border border-[var(--accent-success)]/20"
           initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.15 }}
         >
           <div className="flex items-center gap-1.5 mb-1">
             <CheckCircle size={16} className="text-[var(--accent-success)]" />
-            <span className="text-xl font-semibold text-[var(--text-primary)]">
+            <span className="text-xl font-mono font-bold text-[var(--accent-success)]">
               {summary.tasksCompleted}/{summary.tasksTotal}
             </span>
           </div>
@@ -208,14 +208,14 @@ function SummaryStep({ summary }: { summary: DailySummary | null }) {
 
         {/* Habits Completed */}
         <motion.div
-          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--accent-streak)]/5 border border-[var(--accent-streak)]/20"
           initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.2 }}
         >
           <div className="flex items-center gap-1.5 mb-1">
             <Flame size={16} className="text-[var(--accent-streak)]" />
-            <span className="text-xl font-semibold text-[var(--text-primary)]">
+            <span className="text-xl font-mono font-bold text-[var(--accent-streak)]">
               {summary.habitsCompleted}/{summary.habitsTotal}
             </span>
           </div>
@@ -224,14 +224,14 @@ function SummaryStep({ summary }: { summary: DailySummary | null }) {
 
         {/* XP Earned */}
         <motion.div
-          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--accent-highlight)]/5 border border-[var(--accent-highlight)]/20"
           initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.25 }}
         >
           <div className="flex items-center gap-1.5 mb-1">
             <Zap size={16} className="text-[var(--accent-highlight)]" />
-            <span className="text-xl font-semibold text-[var(--text-primary)]">
+            <span className="text-xl font-mono font-bold text-[var(--accent-highlight)]">
               {summary.xpEarned}
             </span>
           </div>
@@ -240,14 +240,14 @@ function SummaryStep({ summary }: { summary: DailySummary | null }) {
 
         {/* Focus Time */}
         <motion.div
-          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)]"
+          className="flex flex-col items-center justify-center p-4 rounded-lg bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20"
           initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={prefersReducedMotion ? noAnimation : { ...springConfig, delay: 0.3 }}
         >
           <div className="flex items-center gap-1.5 mb-1">
             <Timer size={16} className="text-[var(--accent-primary)]" />
-            <span className="text-xl font-semibold text-[var(--text-primary)]">
+            <span className="text-xl font-mono font-bold text-[var(--accent-primary)]">
               {summary.focusMinutes}
             </span>
             <span className="text-sm text-[var(--text-muted)]">min</span>

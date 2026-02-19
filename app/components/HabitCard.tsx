@@ -79,8 +79,7 @@ function HabitCard({
         "rounded-xl",
         "bg-[var(--bg-card)]",
         "border border-[var(--border-subtle)]",
-        "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
-        "hover-lift",
+        "hover-lift-glow",
         "transition-all duration-200",
         (isCompleted || !isActiveToday) && "opacity-60"
       )}

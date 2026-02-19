@@ -380,8 +380,7 @@ export default function QuestsClient() {
         animate={{ opacity: 1, y: 0 }}
         className={cn(
           "flex gap-2 p-4 rounded-xl",
-          "bg-[var(--bg-card)] glass-card",
-          "border border-[var(--border-subtle)]"
+          "glass-card-premium relative overflow-hidden"
         )}
       >
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 flex-shrink-0">
@@ -464,8 +463,7 @@ export default function QuestsClient() {
                   "rounded-xl",
                   "bg-[var(--bg-card)]",
                   "border border-[var(--border-subtle)]",
-                  "hover:border-[var(--border-default)]",
-                  "hover-lift transition-all duration-200"
+                  "hover-lift-glow transition-all duration-200"
                 )}
               >
                 {/* Quest Header - Clickable to expand */}
@@ -600,9 +598,12 @@ export default function QuestsClient() {
                         className={cn(
                           "h-full rounded-full",
                           percent === 100
-                            ? "bg-[var(--accent-success)]"
-                            : "bg-[var(--accent-primary)]"
+                            ? "bg-gradient-to-r from-[var(--accent-success)] to-[var(--accent-success)]/70"
+                            : "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-primary)]/70"
                         )}
+                        style={percent === 100 ? {
+                          boxShadow: "0 0 8px rgba(var(--accent-success-rgb), 0.4)"
+                        } : undefined}
                       />
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-2">

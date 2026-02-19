@@ -7,8 +7,9 @@
 // =============================================================================
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Target, Flame, Clock, Zap, TrendingUp, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -20,6 +21,8 @@ import {
   WeeklyChallengeCard,
   AchievementGrid,
 } from "@/app/components/gamification";
+import HabitsTabContent from "./HabitsTabContent";
+import HabitConsistencyCard from "./HabitConsistencyCard";
 import type { GamificationProfile, AchievementWithProgress } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -118,6 +121,13 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
     highlight: "bg-[var(--accent-highlight)]/10",
   };
 
+  const accentRgbMap = {
+    primary: "var(--accent-primary-rgb)",
+    success: "var(--accent-success-rgb)",
+    streak: "var(--accent-streak-rgb)",
+    highlight: "var(--accent-highlight-rgb)",
+  };
+
   // Animate numeric value with spring easing
   useEffect(() => {
     if (prefersReducedMotion() || !valueRef.current) return;
@@ -149,13 +159,10 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
   return (
     <motion.div
       variants={itemVariants}
-      whileHover={{ scale: 1.02, y: -3 }}
-      transition={{ type: "spring" as const, stiffness: 200, damping: 15 }}
       className={cn(
-        "rounded-xl glass-card",
+        "rounded-xl glass-card hover-lift-glow",
         "bg-[var(--bg-card)]",
         "border border-[var(--border-subtle)]",
-        "hover:border-[var(--border-default)]",
         "p-4 transition-all duration-200"
       )}
     >
@@ -167,6 +174,7 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
           <p
             ref={valueRef}
             className={cn("text-2xl font-mono font-bold mt-1 rounded", accentColors[accent])}
+            style={{ textShadow: `0 0 12px rgba(${accentRgbMap[accent]}, 0.3)` }}
           >
             {value}
           </p>
@@ -186,7 +194,18 @@ function StatCard({ label, value, subValue, icon, accent = "primary", delay = 0 
 // Component
 // -----------------------------------------------------------------------------
 
+const TABS = [
+  { key: "overview" as const, label: "Overview" },
+  { key: "habits" as const, label: "Habits" },
+];
+
 export default function AnalyticsClient() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"overview" | "habits">(
+    searchParams.get("tab") === "habits" ? "habits" : "overview"
+  );
+
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [profile, setProfile] = useState<GamificationProfile | null>(null);
   const [achievements, setAchievements] = useState<AchievementWithProgress[]>([]);
@@ -194,6 +213,11 @@ export default function AnalyticsClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState(30);
+
+  function handleTabChange(tab: "overview" | "habits") {
+    setActiveTab(tab);
+    router.replace(tab === "overview" ? "/analytics" : "/analytics?tab=habits", { scroll: false });
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -258,221 +282,280 @@ export default function AnalyticsClient() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Time Period Selector with slide indicator */}
+      {/* Tab Switcher */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 100, damping: 15 }}
         className={cn(
-          "flex items-center gap-2 p-3 rounded-xl",
+          "flex gap-1 p-1 rounded-xl w-fit",
           "bg-[var(--bg-card)] glass-card",
           "border border-[var(--border-subtle)]"
         )}
       >
-        <span className="text-sm text-[var(--text-muted)]">Period:</span>
-        <div className="relative flex gap-1">
-          {[7, 14, 30, 60, 90].map((d) => (
-            <motion.button
-              key={d}
-              onClick={() => setDays(d)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={cn(
+              "relative px-4 py-2 sm:py-1.5 text-sm font-medium rounded-lg transition-colors z-10",
+              "min-h-[44px] sm:min-h-0",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              activeTab === tab.key
+                ? "text-white"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            )}
+          >
+            {activeTab === tab.key && (
+              <motion.div
+                layoutId="tab-indicator"
+                className="absolute inset-0 bg-[var(--accent-primary)] rounded-lg -z-10"
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              />
+            )}
+            {tab.label}
+          </button>
+        ))}
+      </motion.div>
+
+      {/* Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === "overview" ? (
+          <motion.div
+            key="overview"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* Time Period Selector with slide indicator */}
+            <div
               className={cn(
-                "relative px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors z-10",
-                days === d
-                  ? "text-white"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                "flex items-center gap-2 p-3 rounded-xl",
+                "bg-[var(--bg-card)] glass-card",
+                "border border-[var(--border-subtle)]"
               )}
             >
-              {/* Active indicator with layout animation */}
-              {days === d && (
-                <motion.div
-                  layoutId="period-indicator"
-                  className="absolute inset-0 bg-[var(--accent-primary)] rounded-lg -z-10"
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 20,
-                  }}
-                />
+              <span className="text-sm text-[var(--text-muted)]">Period:</span>
+              <div className="relative flex gap-1">
+                {[7, 14, 30, 60, 90].map((d) => (
+                  <motion.button
+                    key={d}
+                    onClick={() => setDays(d)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={cn(
+                      "relative px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors z-10",
+                      days === d
+                        ? "text-white"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                    )}
+                  >
+                    {days === d && (
+                      <motion.div
+                        layoutId="period-indicator"
+                        className="absolute inset-0 bg-[var(--accent-primary)] rounded-lg -z-10"
+                        transition={{
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 20,
+                        }}
+                      />
+                    )}
+                    {d}d
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Overview Stats */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+            >
+              <StatCard
+                label="Total XP"
+                value={overview.xpTotal.toLocaleString()}
+                subValue={`Level ${overview.level}`}
+                icon={<Zap size={18} />}
+                accent="primary"
+                delay={0}
+              />
+              <StatCard
+                label="Current Streak"
+                value={`${overview.currentStreak} days`}
+                subValue={`Best: ${overview.longestStreak} days`}
+                icon={<Flame size={18} />}
+                accent="streak"
+                delay={1}
+              />
+              <StatCard
+                label="Tasks Completed"
+                value={overview.completedTasks}
+                subValue={`${overview.taskCompletionRate}% completion rate`}
+                icon={<Target size={18} />}
+                accent="success"
+                delay={2}
+              />
+              <StatCard
+                label="Focus Time"
+                value={formatMinutes(overview.totalFocusMinutes)}
+                subValue={`${overview.focusSessionsCompleted} sessions`}
+                icon={<Clock size={18} />}
+                accent="highlight"
+                delay={3}
+              />
+            </motion.div>
+
+            {/* Period Stats */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+            >
+              <StatCard
+                label={`XP Earned (${days}d)`}
+                value={`+${overview.xpEarnedInPeriod.toLocaleString()}`}
+                icon={<TrendingUp size={18} />}
+                accent="primary"
+                delay={0}
+              />
+              <StatCard
+                label="Habits Completed"
+                value={overview.habitCompletions}
+                subValue={`In last ${days} days`}
+                icon={<CheckCircle2 size={18} />}
+                accent="success"
+                delay={1}
+              />
+              <StatCard
+                label="Avg Daily XP"
+                value={Math.round(overview.xpEarnedInPeriod / days)}
+                subValue="XP per day"
+                icon={<Zap size={18} />}
+                accent="highlight"
+                delay={2}
+              />
+            </motion.div>
+
+            {/* Habit Consistency Card */}
+            <HabitConsistencyCard onViewFull={() => handleTabChange("habits")} />
+
+            {/* XP Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className={cn(
+                "rounded-xl glass-card hover-lift-glow",
+                "bg-[var(--bg-card)]",
+                "border border-[var(--border-subtle)]",
+                "p-4"
               )}
-              {d}d
-            </motion.button>
-          ))}
-        </div>
-      </motion.div>
+            >
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
+                <span className="text-[var(--accent-highlight)]">●</span> XP Over Time
+              </h3>
+              <XpChart data={xpHistory} />
+            </motion.div>
 
-      {/* Overview Stats */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-      >
-        <StatCard
-          label="Total XP"
-          value={overview.xpTotal.toLocaleString()}
-          subValue={`Level ${overview.level}`}
-          icon={<Zap size={18} />}
-          accent="primary"
-          delay={0}
-        />
-        <StatCard
-          label="Current Streak"
-          value={`${overview.currentStreak} days`}
-          subValue={`Best: ${overview.longestStreak} days`}
-          icon={<Flame size={18} />}
-          accent="streak"
-          delay={1}
-        />
-        <StatCard
-          label="Tasks Completed"
-          value={overview.completedTasks}
-          subValue={`${overview.taskCompletionRate}% completion rate`}
-          icon={<Target size={18} />}
-          accent="success"
-          delay={2}
-        />
-        <StatCard
-          label="Focus Time"
-          value={formatMinutes(overview.totalFocusMinutes)}
-          subValue={`${overview.focusSessionsCompleted} sessions`}
-          icon={<Clock size={18} />}
-          accent="highlight"
-          delay={3}
-        />
-      </motion.div>
+            {/* Activity Heatmap */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className={cn(
+                "rounded-xl glass-card hover-lift-glow",
+                "bg-[var(--bg-card)]",
+                "border border-[var(--border-subtle)]",
+                "p-4"
+              )}
+            >
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
+                <span className="text-[var(--accent-info)]">●</span> Activity Heatmap
+              </h3>
+              <ActivityHeatmap data={activityHeatmap} />
+            </motion.div>
 
-      {/* Period Stats */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
-      >
-        <StatCard
-          label={`XP Earned (${days}d)`}
-          value={`+${overview.xpEarnedInPeriod.toLocaleString()}`}
-          icon={<TrendingUp size={18} />}
-          accent="primary"
-          delay={0}
-        />
-        <StatCard
-          label="Habits Completed"
-          value={overview.habitCompletions}
-          subValue={`In last ${days} days`}
-          icon={<CheckCircle2 size={18} />}
-          accent="success"
-          delay={1}
-        />
-        <StatCard
-          label="Avg Daily XP"
-          value={Math.round(overview.xpEarnedInPeriod / days)}
-          subValue="XP per day"
-          icon={<Zap size={18} />}
-          accent="highlight"
-          delay={2}
-        />
-      </motion.div>
+            {/* Challenges Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className={cn(
+                  "rounded-xl glass-card hover-lift-glow",
+                  "bg-[var(--bg-card)]",
+                  "border border-[var(--border-subtle)]",
+                  "p-4"
+                )}
+              >
+                <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                  <span className="text-[var(--accent-primary)]">●</span> Daily Challenges
+                </h3>
+                {profile && (
+                  <DailyChallengesSection
+                    challenges={profile.dailyChallenges}
+                    onRefresh={loadData}
+                  />
+                )}
+              </motion.div>
 
-      {/* XP Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className={cn(
-          "rounded-xl glass-card",
-          "bg-[var(--bg-card)]",
-          "border border-[var(--border-subtle)]",
-          "p-4"
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className={cn(
+                  "rounded-xl glass-card hover-lift-glow",
+                  "bg-[var(--bg-card)]",
+                  "border border-[var(--border-subtle)]",
+                  "p-4"
+                )}
+              >
+                <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                  <span className="text-[var(--accent-primary)]">●</span> Weekly Challenge
+                </h3>
+                {profile && <WeeklyChallengeCard challenge={profile.weeklyChallenge} />}
+              </motion.div>
+            </div>
+
+            {/* Achievements - full width */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className={cn(
+                "rounded-xl glass-card hover-lift-glow",
+                "bg-[var(--bg-card)]",
+                "border border-[var(--border-subtle)]",
+                "p-4"
+              )}
+            >
+              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                <span className="text-[var(--accent-highlight)]">●</span> Achievements
+              </h3>
+              <AchievementGrid
+                achievements={achievements}
+                summary={achievementSummary ?? undefined}
+              />
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="habits"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <HabitsTabContent />
+          </motion.div>
         )}
-      >
-        <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
-          XP Over Time
-        </h3>
-        <XpChart data={xpHistory} />
-      </motion.div>
-
-      {/* Activity Heatmap */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className={cn(
-          "rounded-xl glass-card",
-          "bg-[var(--bg-card)]",
-          "border border-[var(--border-subtle)]",
-          "p-4"
-        )}
-      >
-        <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
-          Activity Heatmap
-        </h3>
-        <ActivityHeatmap data={activityHeatmap} />
-      </motion.div>
-
-      {/* Challenges Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className={cn(
-            "rounded-xl glass-card",
-            "bg-[var(--bg-card)]",
-            "border border-[var(--border-subtle)]",
-            "p-4"
-          )}
-        >
-          <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
-            Daily Challenges
-          </h3>
-          {profile && (
-            <DailyChallengesSection
-              challenges={profile.dailyChallenges}
-              onRefresh={loadData}
-            />
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className={cn(
-            "rounded-xl glass-card",
-            "bg-[var(--bg-card)]",
-            "border border-[var(--border-subtle)]",
-            "p-4"
-          )}
-        >
-          <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
-            Weekly Challenge
-          </h3>
-          {profile && <WeeklyChallengeCard challenge={profile.weeklyChallenge} />}
-        </motion.div>
-      </div>
-
-      {/* Achievements - full width */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className={cn(
-          "rounded-xl glass-card",
-          "bg-[var(--bg-card)]",
-          "border border-[var(--border-subtle)]",
-          "p-4"
-        )}
-      >
-        <h3 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3">
-          Achievements
-        </h3>
-        <AchievementGrid
-          achievements={achievements}
-          summary={achievementSummary ?? undefined}
-        />
-      </motion.div>
+      </AnimatePresence>
     </motion.div>
   );
 }

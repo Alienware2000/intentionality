@@ -6,7 +6,8 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Plus, ArrowUpRight } from "lucide-react";
 import type { ISODateString, Id, HabitWithStatus, Priority, HabitFrequency, DayOfWeek } from "@/app/lib/types";
 import { isActiveDay } from "@/app/lib/date-utils";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -245,9 +246,22 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
   return (
     <div className="space-y-3">
       {/* Section Header */}
-      <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-        Daily Habits
-      </h2>
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
+          <span className="text-[var(--accent-success)]">●</span> Daily Habits
+        </h2>
+        <Link
+          href="/analytics?tab=habits"
+          className={cn(
+            "text-xs text-[var(--text-muted)] hover:text-[var(--accent-primary)]",
+            "transition-colors flex items-center gap-1",
+            "min-h-[44px] sm:min-h-0",
+            "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+          )}
+        >
+          Track <ArrowUpRight size={12} />
+        </Link>
+      </div>
 
       {error && (
         <p className="text-sm text-[var(--accent-primary)]">Error: {error}</p>

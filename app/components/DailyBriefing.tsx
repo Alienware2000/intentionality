@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Sparkles,
   AlertTriangle,
@@ -140,6 +140,7 @@ type Props = {
 export default function DailyBriefing({ date }: Props) {
   const { profile } = useProfile();
   const { mode } = useFocus();
+  const prefersReducedMotionHook = useReducedMotion();
   const [recommendations, setRecommendations] = useState<DailyRecommendation[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false); // Start expanded by default
   const [hiddenForToday, setHiddenForToday] = useState(false);
@@ -302,7 +303,15 @@ export default function DailyBriefing({ date }: Props) {
   const highPriorityCount = recommendations.filter(r => r.priority === "high").length;
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+    <div className="rounded-xl glass-card-premium relative overflow-hidden">
+      {/* HUD Scan Line */}
+      <div className="absolute inset-x-0 top-0 h-full pointer-events-none overflow-hidden rounded-xl">
+        <div
+          className="hud-scan-line"
+          style={{ animation: prefersReducedMotionHook ? "none" : "hud-scan 2s linear 0.3s 1 forwards" }}
+        />
+      </div>
+
       {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"

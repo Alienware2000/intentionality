@@ -54,3 +54,4 @@ dev.db-journal
 # Favicon preview (temporary)
 public/favicon-preview/
 
+img*

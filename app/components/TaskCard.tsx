@@ -47,8 +47,7 @@ export default function TaskCard({
         "rounded-xl",
         "bg-[var(--bg-card)] glass-card",
         "border border-[var(--border-subtle)]",
-        "hover:bg-[var(--bg-hover)] hover:border-[var(--border-default)]",
-        "hover-lift",
+        "hover-lift-glow",
         "transition-all duration-200",
         isCompleted && "opacity-60",
         className

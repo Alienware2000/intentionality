@@ -119,6 +119,7 @@
   /* Heatmap & Skeleton */
   --heatmap-empty: #27272a;
   --skeleton-bg: #27272a;
+  --habit-missed: rgba(249, 115, 22, 0.25);
 
   /* Achievement Tiers */
   --tier-bronze-text: #f59e0b;
@@ -163,6 +164,7 @@
   /* Adjusted for darker base */
   --heatmap-empty: #18181b;
   --skeleton-bg: #18181b;
+  --habit-missed: rgba(249, 115, 22, 0.30);
   --backdrop-color: rgba(9, 9, 11, 0.90);
   --backdrop-heavy: rgba(9, 9, 11, 0.95);
 
@@ -221,6 +223,7 @@
   /* Heatmap & Skeleton - warm cream tones */
   --heatmap-empty: #e4e0d8;
   --skeleton-bg: #e4e0d8;
+  --habit-missed: rgba(201, 74, 20, 0.18);
 
   /* Achievement Tiers - warm tones for cream background */
   --tier-bronze-text: #9a5e0d;

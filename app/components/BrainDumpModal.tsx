@@ -282,8 +282,7 @@ export default function BrainDumpModal({ isOpen, onClose, onCapture }: Props) {
               "bottom-0 left-0 right-0 sm:bottom-auto sm:left-1/2 sm:top-[15%] sm:-translate-x-1/2",
               "w-full sm:w-full max-w-lg p-4 sm:p-6",
               "rounded-t-2xl sm:rounded-xl",
-              "bg-[var(--bg-card)] glass-card",
-              "border border-[var(--border-default)]",
+              "glass-card-premium",
               "shadow-2xl shadow-black/50",
               "max-h-[80vh] sm:max-h-[85vh] overflow-y-auto"
             )}

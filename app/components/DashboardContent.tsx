@@ -144,8 +144,8 @@ export default function DashboardContent({ date }: Props) {
 
       {/* Stats Section */}
       <motion.section variants={sectionVariants}>
-        <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3 ">
-          Overview
+        <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+          <span className="text-[var(--accent-primary)]">●</span> Overview
         </h2>
         <DashboardStats date={date} refreshTrigger={statsTrigger} />
       </motion.section>
@@ -168,8 +168,8 @@ export default function DashboardContent({ date }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Focus Session */}
         <motion.section ref={focusRef} variants={sectionVariants}>
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-3 ">
-            Focus
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+            <span className="text-[var(--accent-highlight)]">●</span> Focus
           </h2>
           <FocusLauncher />
         </motion.section>
@@ -186,8 +186,8 @@ export default function DashboardContent({ date }: Props) {
       {/* Today's Tasks & Schedule Section */}
       <motion.section ref={tasksRef} variants={sectionVariants}>
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-            Today
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
+            <span className="text-[var(--accent-info)]">●</span> Today
           </h2>
           <span className="text-xs font-mono text-[var(--text-muted)]">{date}</span>
         </div>

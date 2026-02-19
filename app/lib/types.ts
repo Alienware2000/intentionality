@@ -196,6 +196,33 @@ export type HabitToggleResponse = {
 };
 
 // =============================================================================
+// HABIT HISTORY / ANALYTICS TYPES
+// =============================================================================
+
+/**
+ * Monthly stats for habit tracking visualization.
+ */
+export type HabitMonthlyStats = {
+  totalScheduled: number;
+  totalCompleted: number;
+  consistencyRate: number; // 0-100
+  perfectDays: number;
+  todayDone: number;
+  todayTotal: number;
+};
+
+/**
+ * Response from the habit history API.
+ * Returns all habits, their completions for a month, and computed stats.
+ */
+export type HabitHistoryResponse = {
+  ok: true;
+  habits: Habit[];
+  completions: Record<Id, ISODateString[]>;
+  stats: HabitMonthlyStats;
+};
+
+// =============================================================================
 // SCHEDULE TYPES
 // =============================================================================
 

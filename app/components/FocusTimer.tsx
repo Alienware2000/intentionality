@@ -209,8 +209,7 @@ export default function FocusTimer() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        "rounded-xl p-6 glass-card",
-        "border",
+        "rounded-xl p-6 glass-card-premium relative overflow-hidden",
         isBreak
           ? "border-[var(--accent-success)]/30 bg-[var(--accent-success)]/5"
           : "border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5",
@@ -247,14 +246,31 @@ export default function FocusTimer() {
 
           {/* Center content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span
-              className={cn(
-                "text-4xl font-mono font-bold",
-                isBreak ? "text-[var(--accent-success)]" : "text-[var(--text-primary)]"
-              )}
-            >
-              {formatCountdown(timeRemaining)}
-            </span>
+            <div className={cn(
+              "rounded-lg bg-[var(--bg-base)]/80 px-5 py-2",
+              isBreak
+                ? "border border-[var(--accent-success)]/20"
+                : "border border-[var(--accent-primary)]/20"
+            )}
+            style={{
+              boxShadow: isBreak
+                ? "0 0 15px rgba(var(--accent-success-rgb), 0.15), inset 0 0 15px rgba(var(--accent-success-rgb), 0.05)"
+                : "0 0 15px rgba(var(--accent-primary-rgb), 0.15), inset 0 0 15px rgba(var(--accent-primary-rgb), 0.05)"
+            }}>
+              <span
+                className={cn(
+                  "text-4xl font-mono font-bold",
+                  isBreak ? "text-[var(--accent-success)]" : "text-[var(--text-primary)]"
+                )}
+                style={{
+                  textShadow: isBreak
+                    ? "0 0 20px rgba(var(--accent-success-rgb), 0.35)"
+                    : "0 0 20px rgba(var(--accent-primary-rgb), 0.35)"
+                }}
+              >
+                {formatCountdown(timeRemaining)}
+              </span>
+            </div>
             <span className="text-xs text-[var(--text-muted)] uppercase tracking-wide mt-1 flex items-center gap-1">
               {isBreak ? (
                 <>
