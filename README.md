@@ -10,7 +10,7 @@
 Quest-based productivity for students who want to get things done.
 Turn your tasks into adventures, earn XP, and build focus habits.
 
----
+--- 
 
 ## Features
 
