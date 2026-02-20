@@ -133,7 +133,7 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex fixed inset-y-0 left-0 z-40 h-screen",
+        "hidden md:flex fixed inset-y-0 left-0 z-40",
         "border-r border-[var(--border-subtle)] bg-[var(--bg-base)] text-white flex-col glass-card",
         isCollapsed ? "w-16" : "w-64",
         animationsEnabled && "transition-[width] duration-200 ease-out"
