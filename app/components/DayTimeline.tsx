@@ -6,15 +6,28 @@
 // Used by both Today and Week views for consistent display.
 // =============================================================================
 
-import { useState, useMemo, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, memo, cloneElement, isValidElement } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import {
+  useFloating,
+  useClick,
+  useDismiss,
+  useRole,
+  useInteractions,
+  FloatingPortal,
+  FloatingFocusManager,
+  offset,
+  flip,
+  shift,
+  autoUpdate,
+} from "@floating-ui/react";
 import {
   Check,
   Clock,
   MapPin,
   AlertCircle,
-  ArrowRight,
+  CalendarClock,
   Zap,
   Plus,
   Pencil,
@@ -25,7 +38,8 @@ import {
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
-import { formatTime, toISODateString } from "@/app/lib/date-utils";
+import { formatTime, toISODateString, getTodayISO } from "@/app/lib/date-utils";
+import TaskReschedulePopover from "./TaskReschedulePopover";
 import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -274,17 +288,36 @@ export default function DayTimeline({
     }
   }
 
-  async function handleMoveToday(taskId: Id) {
+  async function handleReschedule(taskId: Id, newDate: string) {
     try {
       await fetchApi("/api/tasks/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, dueDate: date }),
+        body: JSON.stringify({ taskId, dueDate: newDate }),
       });
+      showToast({ message: "Task rescheduled", type: "default" });
       await refresh();
       onRefresh?.();
     } catch {
-      // Silent fail - task stays in place
+      showToast({ message: "Failed to reschedule task", type: "default" });
+    }
+  }
+
+  async function handleMoveAllOverdueToToday() {
+    if (sortedOverdueTasks.length === 0) return;
+    const taskIds = sortedOverdueTasks.map((t) => t.id);
+    const today = getTodayISO();
+    try {
+      await fetchApi("/api/tasks/move-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskIds, dueDate: today }),
+      });
+      showToast({ message: `Moved ${taskIds.length} task${taskIds.length === 1 ? "" : "s"} to today`, type: "default" });
+      await refresh();
+      onRefresh?.();
+    } catch {
+      showToast({ message: "Failed to move tasks", type: "default" });
     }
   }
 
@@ -540,13 +573,28 @@ export default function DayTimeline({
             <span className="text-xs font-bold tracking-widest uppercase">
               Overdue
             </span>
+            <span className="text-xs font-mono text-[var(--text-muted)]">
+              ({sortedOverdueTasks.length})
+            </span>
+            <div className="flex-1" />
+            <button
+              onClick={handleMoveAllOverdueToToday}
+              className={cn(
+                "text-xs font-medium px-2.5 py-1.5 rounded-md",
+                "text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10",
+                "transition-colors",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+              )}
+            >
+              Move all to today
+            </button>
           </div>
           {sortedOverdueTasks.map((task) => (
             <OverdueTaskItem
               key={task.id}
               task={task}
               onToggle={toggleTask}
-              onMoveToday={handleMoveToday}
+              onReschedule={handleReschedule}
               onEdit={setEditingTask}
               onDelete={setDeletingTaskId}
               onStartFocus={startSession}
@@ -570,6 +618,7 @@ export default function DayTimeline({
                       key={`task-${item.data.id}`}
                       task={item.data}
                       onToggle={toggleTask}
+                      onReschedule={handleReschedule}
                       onEdit={setEditingTask}
                       onDelete={setDeletingTaskId}
                       onStartFocus={startSession}
@@ -608,6 +657,7 @@ export default function DayTimeline({
                   key={task.id}
                   task={task}
                   onToggle={toggleTask}
+                  onReschedule={handleReschedule}
                   onEdit={setEditingTask}
                   onDelete={setDeletingTaskId}
                   onStartFocus={startSession}
@@ -827,108 +877,104 @@ export default function DayTimeline({
 
 /**
  * Popover for selecting focus session duration before starting.
- * Wrapper component that handles AnimatePresence.
+ * Uses Floating UI for collision-aware positioning and portal rendering.
+ * Wraps its trigger element (children).
  */
 function TaskFocusPopover({
-  isOpen,
-  onClose,
   onStart,
   defaultDuration,
   hasActiveSession,
-  anchorRef,
+  children,
 }: {
-  isOpen: boolean;
-  onClose: () => void;
   onStart: (duration: number) => void;
   defaultDuration: number;
   hasActiveSession: boolean;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  children: React.ReactElement;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: "top",
+    strategy: "fixed",
+    transform: false,
+    middleware: [
+      offset(8),
+      flip({ padding: 8 }),
+      shift({ padding: 8 }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const click = useClick(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context);
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
+
+  const animateY = context.placement?.startsWith("top") ? 4 : -4;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <TaskFocusPopoverContent
-          onClose={onClose}
-          onStart={onStart}
-          defaultDuration={defaultDuration}
-          hasActiveSession={hasActiveSession}
-          anchorRef={anchorRef}
-        />
-      )}
-    </AnimatePresence>
+    <>
+      {isValidElement(children) &&
+        cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+          ref: refs.setReference,
+          ...getReferenceProps(children.props as Record<string, unknown>),
+        })}
+
+      <AnimatePresence>
+        {isOpen && (
+          <FloatingPortal>
+            <FloatingFocusManager context={context} modal={false}>
+              <motion.div
+                ref={refs.setFloating}
+                style={floatingStyles}
+                {...getFloatingProps()}
+                initial={{ opacity: 0, scale: 0.95, y: animateY }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: animateY }}
+                transition={{ duration: 0.15 }}
+                className={cn(
+                  "z-50 p-3 rounded-lg",
+                  "w-[min(12rem,calc(100vw-1rem))]",
+                  "bg-[var(--bg-card)] border border-[var(--border-default)]",
+                  "shadow-lg"
+                )}
+              >
+                <TaskFocusPopoverContent
+                  onStart={(duration) => {
+                    onStart(duration);
+                    setIsOpen(false);
+                  }}
+                  defaultDuration={defaultDuration}
+                  hasActiveSession={hasActiveSession}
+                />
+              </motion.div>
+            </FloatingFocusManager>
+          </FloatingPortal>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
 /**
- * Inner content of the focus popover - mounts fresh each time popover opens,
- * so state naturally resets to defaults.
+ * Inner content of the focus popover — pure UI, no positioning logic.
  */
 function TaskFocusPopoverContent({
-  onClose,
   onStart,
   defaultDuration,
   hasActiveSession,
-  anchorRef,
 }: {
-  onClose: () => void;
   onStart: (duration: number) => void;
   defaultDuration: number;
   hasActiveSession: boolean;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
 }) {
-  const popoverRef = useRef<HTMLDivElement>(null);
   const [selectedDuration, setSelectedDuration] = useState(defaultDuration);
 
-  // Handle click outside and escape
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    }
-
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose, anchorRef]);
-
-  function handleStart() {
-    onStart(selectedDuration);
-    onClose();
-  }
-
   return (
-    <motion.div
-      ref={popoverRef}
-      initial={{ opacity: 0, scale: 0.95, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 4 }}
-      transition={{ duration: 0.15 }}
-      className={cn(
-        "absolute z-50 p-3 rounded-lg",
-        // Smaller width on mobile to prevent overflow
-        "w-40 sm:w-48",
-        "bg-[var(--bg-card)] border border-[var(--border-default)]",
-        "shadow-lg",
-        "bottom-full mb-1",
-        // Left-align on mobile to prevent overflow, right-align on desktop
-        "left-0 sm:left-auto sm:right-0"
-      )}
-    >
+    <>
       <div className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-2">
         Start Focus
       </div>
@@ -953,7 +999,7 @@ function TaskFocusPopoverContent({
 
       {/* Start button */}
       <button
-        onClick={handleStart}
+        onClick={() => onStart(selectedDuration)}
         disabled={hasActiveSession}
         className={cn(
           "w-full py-2 text-sm font-medium rounded",
@@ -964,13 +1010,14 @@ function TaskFocusPopoverContent({
       >
         Start
       </button>
-    </motion.div>
+    </>
   );
 }
 
 const ScheduledTaskItem = memo(function ScheduledTaskItem({
   task,
   onToggle,
+  onReschedule,
   onEdit,
   onDelete,
   onStartFocus,
@@ -979,6 +1026,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
 }: {
   task: Task;
   onToggle: (id: string) => void;
+  onReschedule: (taskId: string, newDate: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
@@ -987,8 +1035,6 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
 }) {
   const isCompleted = task.completed;
   const focusDuration = task.default_work_duration ?? 25;
-  const [showFocusPopover, setShowFocusPopover] = useState(false);
-  const focusButtonRef = useRef<HTMLButtonElement>(null);
   const hasMounted = useRef(false);
   useEffect(() => { hasMounted.current = true; }, []);
 
@@ -1022,7 +1068,6 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
         aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          // Larger touch targets on mobile (44px min)
           compact ? "w-10 h-10 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
@@ -1055,23 +1100,42 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
       <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
-          <button
-            ref={focusButtonRef}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowFocusPopover(!showFocusPopover);
-            }}
-            disabled={hasActiveSession}
-            aria-label="Start focus session"
-            title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-            className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <TaskFocusPopover
+            onStart={handleStartFocus}
+            defaultDuration={focusDuration}
+            hasActiveSession={hasActiveSession}
           >
-            <Play size={compact ? 14 : 16} className="sm:hidden" />
-            <Play size={compact ? 12 : 14} className="hidden sm:block" />
-          </button>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              disabled={hasActiveSession}
+              aria-label="Start focus session"
+              title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
+              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Play size={compact ? 14 : 16} className="sm:hidden" />
+              <Play size={compact ? 12 : 14} className="hidden sm:block" />
+            </button>
+          </TaskFocusPopover>
+        )}
+        {/* Reschedule button - only show for incomplete tasks */}
+        {!isCompleted && (
+          <TaskReschedulePopover
+            onReschedule={(newDate) => onReschedule(task.id, newDate)}
+            hideToday={task.due_date === getTodayISO()}
+          >
+            <button
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Reschedule task"
+              title="Reschedule task"
+              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <CalendarClock size={compact ? 14 : 16} className="sm:hidden" />
+              <CalendarClock size={compact ? 12 : 14} className="hidden sm:block" />
+            </button>
+          </TaskReschedulePopover>
         )}
         <button
           onClick={(e) => {
@@ -1095,16 +1159,6 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
           <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
-
-        {/* Focus duration popover */}
-        <TaskFocusPopover
-          isOpen={showFocusPopover}
-          onClose={() => setShowFocusPopover(false)}
-          onStart={handleStartFocus}
-          defaultDuration={focusDuration}
-          hasActiveSession={hasActiveSession}
-          anchorRef={focusButtonRef}
-        />
       </div>
 
       <span className={cn(
@@ -1120,6 +1174,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
 const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
   task,
   onToggle,
+  onReschedule,
   onEdit,
   onDelete,
   onStartFocus,
@@ -1128,6 +1183,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
 }: {
   task: Task;
   onToggle: (id: string) => void;
+  onReschedule: (taskId: string, newDate: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
@@ -1136,8 +1192,6 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
 }) {
   const isCompleted = task.completed;
   const focusDuration = task.default_work_duration ?? 25;
-  const [showFocusPopover, setShowFocusPopover] = useState(false);
-  const focusButtonRef = useRef<HTMLButtonElement>(null);
   const hasMounted = useRef(false);
   useEffect(() => { hasMounted.current = true; }, []);
 
@@ -1171,7 +1225,6 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
         aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          // Larger touch targets on mobile (44px min)
           compact ? "w-10 h-10 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
@@ -1195,23 +1248,42 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
       <PriorityPill priority={task.priority} compact />
 
       {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
-          <button
-            ref={focusButtonRef}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowFocusPopover(!showFocusPopover);
-            }}
-            disabled={hasActiveSession}
-            aria-label="Start focus session"
-            title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-            className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <TaskFocusPopover
+            onStart={handleStartFocus}
+            defaultDuration={focusDuration}
+            hasActiveSession={hasActiveSession}
           >
-            <Play size={compact ? 14 : 16} className="sm:hidden" />
-            <Play size={compact ? 12 : 14} className="hidden sm:block" />
-          </button>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              disabled={hasActiveSession}
+              aria-label="Start focus session"
+              title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
+              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Play size={compact ? 14 : 16} className="sm:hidden" />
+              <Play size={compact ? 12 : 14} className="hidden sm:block" />
+            </button>
+          </TaskFocusPopover>
+        )}
+        {/* Reschedule button - only show for incomplete tasks */}
+        {!isCompleted && (
+          <TaskReschedulePopover
+            onReschedule={(newDate) => onReschedule(task.id, newDate)}
+            hideToday={task.due_date === getTodayISO()}
+          >
+            <button
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Reschedule task"
+              title="Reschedule task"
+              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <CalendarClock size={compact ? 14 : 16} className="sm:hidden" />
+              <CalendarClock size={compact ? 12 : 14} className="hidden sm:block" />
+            </button>
+          </TaskReschedulePopover>
         )}
         <button
           onClick={(e) => {
@@ -1235,16 +1307,6 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
           <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
         </button>
-
-        {/* Focus duration popover */}
-        <TaskFocusPopover
-          isOpen={showFocusPopover}
-          onClose={() => setShowFocusPopover(false)}
-          onStart={handleStartFocus}
-          defaultDuration={focusDuration}
-          hasActiveSession={hasActiveSession}
-          anchorRef={focusButtonRef}
-        />
       </div>
 
       <span className={cn(
@@ -1385,7 +1447,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
 const OverdueTaskItem = memo(function OverdueTaskItem({
   task,
   onToggle,
-  onMoveToday,
+  onReschedule,
   onEdit,
   onDelete,
   onStartFocus,
@@ -1394,7 +1456,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
 }: {
   task: Task;
   onToggle: (id: string) => void;
-  onMoveToday: (id: string) => void;
+  onReschedule: (taskId: string, newDate: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStartFocus: (options?: { workDuration?: number; taskId?: string; title?: string }) => Promise<void>;
@@ -1402,8 +1464,6 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
   compact: boolean;
 }) {
   const focusDuration = task.default_work_duration ?? 25;
-  const [showFocusPopover, setShowFocusPopover] = useState(false);
-  const focusButtonRef = useRef<HTMLButtonElement>(null);
 
   function handleStartFocus(duration: number) {
     onStartFocus({
@@ -1431,22 +1491,24 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
         <PriorityPill priority={task.priority} compact />
 
         {/* Action buttons - always visible on mobile, hover on desktop */}
-        <div className="relative flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
           {/* Focus button */}
-          <button
-            ref={focusButtonRef}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowFocusPopover(!showFocusPopover);
-            }}
-            disabled={hasActiveSession}
-            aria-label="Start focus session"
-            title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-            className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <TaskFocusPopover
+            onStart={handleStartFocus}
+            defaultDuration={focusDuration}
+            hasActiveSession={hasActiveSession}
           >
-            <Play size={compact ? 14 : 16} className="sm:hidden" />
-            <Play size={compact ? 12 : 14} className="hidden sm:block" />
-          </button>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              disabled={hasActiveSession}
+              aria-label="Start focus session"
+              title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
+              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Play size={compact ? 14 : 16} className="sm:hidden" />
+              <Play size={compact ? 12 : 14} className="hidden sm:block" />
+            </button>
+          </TaskFocusPopover>
           <button
             onClick={() => onEdit(task)}
             aria-label="Edit task"
@@ -1463,16 +1525,6 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
             <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
             <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
           </button>
-
-          {/* Focus duration popover */}
-          <TaskFocusPopover
-            isOpen={showFocusPopover}
-            onClose={() => setShowFocusPopover(false)}
-            onStart={handleStartFocus}
-            defaultDuration={focusDuration}
-            hasActiveSession={hasActiveSession}
-            anchorRef={focusButtonRef}
-          />
         </div>
 
         <span className="text-xs font-mono text-[var(--text-muted)]">
@@ -1487,26 +1539,27 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
           className={cn(
             "rounded border border-[var(--border-default)]",
             "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
-            // 44px min height on mobile
             "px-4 py-3 text-sm sm:px-2.5 sm:py-1 sm:text-xs"
           )}
         >
           Done
         </button>
-        <button
-          onClick={() => onMoveToday(task.id)}
-          aria-label="Move task to today"
-          className={cn(
-            "flex items-center gap-1 rounded border border-[var(--border-default)]",
-            "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
-            // 44px min height on mobile
-            "px-4 py-3 text-sm sm:px-2.5 sm:py-1 sm:text-xs"
-          )}
+        <TaskReschedulePopover
+          onReschedule={(newDate) => onReschedule(task.id, newDate)}
         >
-          <span>Move to today</span>
-          <ArrowRight size={12} className="sm:hidden" />
-          <ArrowRight size={10} className="hidden sm:block" />
-        </button>
+          <button
+            aria-label="Reschedule task"
+            className={cn(
+              "flex items-center gap-1 rounded border border-[var(--border-default)]",
+              "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
+              "px-4 py-3 text-sm sm:px-2.5 sm:py-1 sm:text-xs"
+            )}
+          >
+            <CalendarClock size={12} className="sm:hidden" />
+            <CalendarClock size={10} className="hidden sm:block" />
+            <span>Reschedule</span>
+          </button>
+        </TaskReschedulePopover>
       </div>
     </div>
   );

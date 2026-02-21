@@ -87,6 +87,37 @@ export function addDaysISO(dateISO: ISODateString, daysToAdd: number): ISODateSt
 }
 
 /**
+ * Get tomorrow's date in ISO format (YYYY-MM-DD).
+ */
+export function getTomorrowISO(): ISODateString {
+  return addDaysISO(getTodayISO(), 1);
+}
+
+/**
+ * Get next Monday's date in ISO format (YYYY-MM-DD).
+ * If today is Monday, returns next Monday (+7 days).
+ */
+export function getNextMondayISO(): ISODateString {
+  const today = getTodayISO();
+  const dayOfWeek = getDayOfWeek(today); // 1=Mon, 7=Sun
+  // Days until next Monday: if Mon(1) => +7, Tue(2) => +6, ..., Sun(7) => +1
+  const daysUntilMonday = dayOfWeek === 1 ? 7 : (8 - dayOfWeek);
+  return addDaysISO(today, daysUntilMonday);
+}
+
+/**
+ * Get this Saturday's date in ISO format (YYYY-MM-DD).
+ * If today is Saturday, returns next Saturday (+7 days).
+ */
+export function getThisSaturdayISO(): ISODateString {
+  const today = getTodayISO();
+  const dayOfWeek = getDayOfWeek(today); // 1=Mon, 7=Sun
+  // Days until Saturday(6): Mon(1) => +5, Tue(2) => +4, ..., Sat(6) => +7, Sun(7) => +6
+  const daysUntilSaturday = dayOfWeek <= 5 ? (6 - dayOfWeek) : (6 - dayOfWeek + 7);
+  return addDaysISO(today, daysUntilSaturday);
+}
+
+/**
  * Format an ISO date (YYYY-MM-DD) into a human-friendly label.
  * Example: "2025-12-23" → "Monday, Dec 23"
  */
