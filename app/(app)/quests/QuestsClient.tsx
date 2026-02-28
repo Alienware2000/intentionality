@@ -344,11 +344,20 @@ export default function QuestsClient() {
     return () => document.removeEventListener("click", handleClick);
   }, [openQuestMenu, openTaskMenu]);
 
+  const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
   const tasksByQuest = useMemo(() => {
     const map: Record<string, Task[]> = {};
     for (const task of tasks) {
       if (!map[task.quest_id]) map[task.quest_id] = [];
       map[task.quest_id].push(task);
+    }
+    // Sort each quest's tasks: incomplete first, then by priority
+    for (const questId of Object.keys(map)) {
+      map[questId].sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        return (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1);
+      });
     }
     return map;
   }, [tasks]);
