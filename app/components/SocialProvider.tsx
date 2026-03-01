@@ -19,6 +19,7 @@ import { fetchWithRetry } from "@/app/lib/fetch-with-retry";
 import type {
   FriendWithProfile,
   FriendRequest,
+  FriendDailyProgress,
   GroupWithMembership,
   GroupInvitationWithDetails,
   NotificationWithSender,
@@ -42,6 +43,10 @@ type SocialContextState = {
   // Groups state
   groups: GroupWithMembership[];
 
+  // Daily progress state
+  dailyProgress: Record<string, FriendDailyProgress>;
+  dailyProgressLoading: boolean;
+
   // Notifications state
   notifications: NotificationWithSender[];
   unreadNotificationCount: number;
@@ -52,6 +57,9 @@ type SocialContextState = {
   notificationsLoading: boolean;
   isLoading: boolean; // Combined: true if any resource is still loading
   error: string | null;
+
+  // Daily progress actions
+  refreshDailyProgress: () => Promise<void>;
 
   // Friends actions
   refreshFriends: () => Promise<void>;
@@ -126,6 +134,10 @@ export function SocialProvider({ children }: SocialProviderProps) {
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendWithProfile[]>([]);
 
+  // Daily progress state
+  const [dailyProgress, setDailyProgress] = useState<Record<string, FriendDailyProgress>>({});
+  const [dailyProgressLoading, setDailyProgressLoading] = useState(true);
+
   // Groups state
   const [groups, setGroups] = useState<GroupWithMembership[]>([]);
   const [groupInvitations, setGroupInvitations] = useState<GroupInvitationWithDetails[]>([]);
@@ -170,6 +182,26 @@ export function SocialProvider({ children }: SocialProviderProps) {
       setError(message);
     } finally {
       setFriendsLoading(false);
+    }
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Daily Progress Actions
+  // ---------------------------------------------------------------------------
+
+  const refreshDailyProgress = useCallback(async () => {
+    try {
+      setDailyProgressLoading(true);
+      const res = await fetchWithRetry("/api/friends/daily-progress");
+      const data = await res.json();
+
+      if (data.ok) {
+        setDailyProgress(data.progress ?? {});
+      }
+    } catch {
+      // Silently fail - not critical
+    } finally {
+      setDailyProgressLoading(false);
     }
   }, []);
 
@@ -636,23 +668,36 @@ export function SocialProvider({ children }: SocialProviderProps) {
     // Load each resource independently - no coupling between them
     // If one fails or is slow, others still load successfully
     refreshFriends();
+    refreshDailyProgress();
     refreshGroups();
     refreshGroupInvitations();
     refreshNotifications();
-  }, [refreshFriends, refreshGroups, refreshGroupInvitations, refreshNotifications]);
+  }, [refreshFriends, refreshDailyProgress, refreshGroups, refreshGroupInvitations, refreshNotifications]);
 
-  // Store refreshNotifications in a ref to avoid interval recreation
+  // Store refs to avoid interval recreation
   const refreshNotificationsRef = useRef(refreshNotifications);
   useEffect(() => {
     refreshNotificationsRef.current = refreshNotifications;
   }, [refreshNotifications]);
 
+  const refreshDailyProgressRef = useRef(refreshDailyProgress);
+  useEffect(() => {
+    refreshDailyProgressRef.current = refreshDailyProgress;
+  }, [refreshDailyProgress]);
+
   // Poll notifications every 60 seconds for real-time feel
-  // Using a ref to avoid recreating the interval when dependencies change
   useEffect(() => {
     const interval = setInterval(() => {
       refreshNotificationsRef.current();
     }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll daily progress every 5 minutes for fresh friend activity
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshDailyProgressRef.current();
+    }, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -666,6 +711,8 @@ export function SocialProvider({ children }: SocialProviderProps) {
       friends,
       pendingRequests,
       sentRequests,
+      dailyProgress,
+      dailyProgressLoading,
       groups,
       groupInvitations,
       groupInvitationsLoading,
@@ -676,6 +723,9 @@ export function SocialProvider({ children }: SocialProviderProps) {
       notificationsLoading,
       isLoading,
       error,
+
+      // Daily progress actions
+      refreshDailyProgress,
 
       // Friends actions
       refreshFriends,
@@ -709,6 +759,8 @@ export function SocialProvider({ children }: SocialProviderProps) {
       friends,
       pendingRequests,
       sentRequests,
+      dailyProgress,
+      dailyProgressLoading,
       groups,
       groupInvitations,
       groupInvitationsLoading,
@@ -719,6 +771,7 @@ export function SocialProvider({ children }: SocialProviderProps) {
       notificationsLoading,
       isLoading,
       error,
+      refreshDailyProgress,
       refreshFriends,
       sendFriendRequest,
       acceptFriendRequest,

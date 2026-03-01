@@ -1,22 +1,28 @@
 "use client";
 
 // =============================================================================
-// FRIENDS CLIENT COMPONENT
-// Interactive friends management with tabs, friend requests, and search.
+// FRIENDS CLIENT COMPONENT (SOCIAL HUB)
+// Unified social page with tabs for friends, requests, sent, and groups.
 // Features smooth animations and responsive design.
 // =============================================================================
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   UserPlus,
+  UsersRound,
   Clock,
   Bell,
   Send,
   Heart,
   Loader2,
   Check,
+  CheckCircle2,
+  Flame,
+  Timer,
+  HandMetal,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { formatRelativeTime } from "@/app/lib/format-time";
@@ -27,13 +33,14 @@ import {
   AddFriendModal,
 } from "@/app/components/social";
 import GlowCard from "@/app/components/ui/GlowCard";
-import type { FriendWithProfile } from "@/app/lib/types";
+import GroupsTabContent from "./GroupsTabContent";
+import type { FriendWithProfile, FriendDailyProgress } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-type FriendsTab = "friends" | "requests" | "sent";
+type SocialTab = "friends" | "requests" | "sent" | "groups";
 
 // Animation variants
 const containerVariants = {
@@ -74,6 +81,10 @@ function TabButton({ active, onClick, icon, label, count, alert }: TabButtonProp
       whileTap={{ scale: 0.98 }}
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all relative",
+        "min-h-[44px] sm:min-h-0",
+        "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+        "active:scale-[0.97]",
+        "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
         active
           ? "bg-[var(--accent-primary)] text-white shadow-lg shadow-[var(--accent-primary)]/20"
           : "bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)]"
@@ -97,128 +108,217 @@ function TabButton({ active, onClick, icon, label, count, alert }: TabButtonProp
 }
 
 // -----------------------------------------------------------------------------
-// Friend Card Component (extended UserCard)
+// Active Status Helper
+// -----------------------------------------------------------------------------
+
+function getActiveStatus(progress?: FriendDailyProgress): { text: string; color: string } {
+  if (!progress) return { text: "", color: "" };
+  if (!progress.is_active_today) return { text: "Not active today", color: "text-[var(--text-muted)]" };
+
+  if (!progress.last_active) return { text: "Active today", color: "text-[var(--accent-success)]" };
+
+  const now = Date.now();
+  const lastActive = new Date(progress.last_active).getTime();
+  const diffMinutes = Math.floor((now - lastActive) / 60000);
+
+  if (diffMinutes < 15) return { text: "Active now", color: "text-[var(--accent-success)]" };
+  if (diffMinutes < 60) return { text: `Active ${diffMinutes}m ago`, color: "text-[var(--accent-success)]" };
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return { text: `Active ${diffHours}h ago`, color: "text-[var(--text-muted)]" };
+
+  return { text: "Not active today", color: "text-[var(--text-muted)]" };
+}
+
+// -----------------------------------------------------------------------------
+// Friend Card Component (with Daily Progress)
 // -----------------------------------------------------------------------------
 
 type FriendCardProps = {
   friend: FriendWithProfile;
+  progress?: FriendDailyProgress;
   onNudge: (friendId: string) => Promise<boolean>;
+  onHighFive: (friendId: string) => Promise<boolean>;
 };
 
-function FriendCard({ friend, onNudge }: FriendCardProps) {
+function FriendCard({ friend, progress, onNudge, onHighFive }: FriendCardProps) {
   const [nudging, setNudging] = useState(false);
   const [nudged, setNudged] = useState(false);
+  const [highFiving, setHighFiving] = useState(false);
+  const [highFived, setHighFived] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hfTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
-  // Cleanup timeout on unmount to prevent memory leak
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (hfTimeoutRef.current) clearTimeout(hfTimeoutRef.current);
     };
   }, []);
 
-  const handleNudge = async () => {
+  const handleNudge = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setNudging(true);
     const success = await onNudge(friend.user_id);
     setNudging(false);
     if (success) {
       setNudged(true);
-      // Reset the "Sent!" state after 3 seconds so user can nudge again later
       timeoutRef.current = setTimeout(() => setNudged(false), 3000);
     }
   };
+
+  const handleHighFive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHighFiving(true);
+    const success = await onHighFive(friend.user_id);
+    setHighFiving(false);
+    if (success) {
+      setHighFived(true);
+      hfTimeoutRef.current = setTimeout(() => setHighFived(false), 3000);
+    }
+  };
+
+  const activeStatus = getActiveStatus(progress);
+  const hasNotableProgress = progress && (
+    progress.tasks_completed >= 5 ||
+    progress.focus_minutes >= 60 ||
+    (friend.current_streak > 0 && friend.current_streak % 7 === 0)
+  );
 
   return (
     <motion.div variants={itemVariants}>
       <GlowCard
         glowColor="none"
         hoverLift
-        className="flex items-center gap-4"
+        className="cursor-pointer"
+        onClick={() => router.push(`/friends/${friend.user_id}`)}
       >
-        {/* Avatar & Name */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="p-2.5 rounded-full bg-[var(--accent-primary)]/10 shrink-0">
+        {/* Top Row: Avatar, Name, Level/Streak, Actions */}
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          <div className="relative p-2.5 rounded-full bg-[var(--accent-primary)]/10 shrink-0">
             <Users size={20} className="text-[var(--accent-primary)]" />
+            {/* Active indicator dot */}
+            {progress?.is_active_today && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--accent-success)] border-2 border-[var(--bg-card)]" />
+            )}
           </div>
+
+          {/* Name & Status */}
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-[var(--text-primary)] truncate">
-              {friend.display_name || "Anonymous"}
-            </p>
-            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-[var(--text-primary)] truncate">
+                {friend.display_name || "Anonymous"}
+              </p>
+              <span className="hidden sm:inline font-mono text-xs font-bold text-[var(--accent-primary)]">
+                Lv.{friend.level}
+              </span>
+              {friend.current_streak > 0 && (
+                <span className="hidden sm:inline font-mono text-xs font-bold text-[var(--accent-streak)]">
+                  {friend.current_streak}d streak
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
               {friend.username && (
                 <span className="text-[var(--accent-primary)]">@{friend.username}</span>
               )}
-              <span>{friend.title}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats - Condensed on mobile, full on desktop */}
-        <div className="flex items-center gap-2 sm:gap-4 text-sm">
-          {/* Mobile: condensed inline stats */}
-          <div className="flex sm:hidden items-center gap-2 text-xs text-[var(--text-muted)]">
-            <span className="font-mono font-bold text-[var(--accent-primary)]">
-              Lv.{friend.level}
-            </span>
-            {friend.current_streak > 0 && (
-              <span className="font-mono font-bold text-[var(--accent-streak)]">
-                {friend.current_streak}d
+              {/* Mobile: inline level */}
+              <span className="sm:hidden font-mono font-bold text-[var(--accent-primary)]">
+                Lv.{friend.level}
               </span>
-            )}
+              {friend.current_streak > 0 && (
+                <span className="sm:hidden font-mono font-bold text-[var(--accent-streak)]">
+                  {friend.current_streak}d
+                </span>
+              )}
+              {activeStatus.text && (
+                <span className={activeStatus.color}>{activeStatus.text}</span>
+              )}
+            </div>
           </div>
-          {/* Desktop: full stats */}
-          <div className="hidden sm:flex items-center gap-4">
-            <div className="text-center">
-              <p className="font-mono font-bold text-[var(--accent-primary)]">
-                {friend.level}
-              </p>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase">Level</p>
-            </div>
-            <div className="text-center">
-              <p className="font-mono font-bold text-[var(--accent-streak)]">
-                {friend.current_streak}
-              </p>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase">Streak</p>
-            </div>
-            <div className="text-center">
-              <p className="font-mono font-bold text-[var(--text-primary)]">
-                {friend.xp_total.toLocaleString()}
-              </p>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase">XP</p>
-            </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* High-five button — shown when friend has notable progress */}
+            {hasNotableProgress && (
+              <button
+                onClick={handleHighFive}
+                disabled={highFiving || highFived}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-all",
+                  "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                  "active:scale-[0.97]",
+                  "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
+                  highFived
+                    ? "bg-[var(--accent-streak)]/10 text-[var(--accent-streak)]"
+                    : "bg-[var(--accent-streak)]/5 text-[var(--accent-streak)] hover:bg-[var(--accent-streak)]/15",
+                  "disabled:opacity-50"
+                )}
+                title="Send a high five!"
+              >
+                {highFiving ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : highFived ? (
+                  <Check size={14} />
+                ) : (
+                  <HandMetal size={14} />
+                )}
+              </button>
+            )}
+
+            {/* Nudge Button */}
+            <button
+              onClick={handleNudge}
+              disabled={nudging || nudged}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+                "active:scale-[0.97]",
+                "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]",
+                nudged
+                  ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+                  : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+                "disabled:opacity-50"
+              )}
+            >
+              {nudging ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : nudged ? (
+                <Check size={14} />
+              ) : (
+                <Heart size={14} />
+              )}
+              <span className="hidden sm:inline">{nudged ? "Sent!" : "Nudge"}</span>
+            </button>
           </div>
         </div>
 
-        {/* Nudge Button */}
-        <div className="relative group">
-          <button
-            onClick={handleNudge}
-            disabled={nudging || nudged}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-              nudged
-                ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
-                : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
-              "disabled:opacity-50"
+        {/* Bottom Row: Today's Progress */}
+        {progress && progress.is_active_today && (
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-elevated)] text-xs">
+              <CheckCircle2 size={13} className="text-[var(--accent-success)]" />
+              <span className="font-mono font-bold text-[var(--text-primary)]">{progress.tasks_completed}</span>
+              <span className="text-[var(--text-muted)]">tasks</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-elevated)] text-xs">
+              <Flame size={13} className="text-[var(--accent-streak)]" />
+              <span className="font-mono font-bold text-[var(--text-primary)]">{progress.habits_completed}</span>
+              <span className="text-[var(--text-muted)]">habits</span>
+            </div>
+            {progress.focus_minutes > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-elevated)] text-xs">
+                <Timer size={13} className="text-[var(--accent-info)]" />
+                <span className="font-mono font-bold text-[var(--text-primary)]">{progress.focus_minutes}m</span>
+                <span className="text-[var(--text-muted)]">focus</span>
+              </div>
             )}
-          >
-            {nudging ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : nudged ? (
-              <Check size={14} />
-            ) : (
-              <Heart size={14} />
-            )}
-            {nudged ? "Sent!" : "Nudge"}
-          </button>
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none shadow-lg z-10">
-            Send encouragement to help your friend stay on track
-            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--bg-elevated)]" />
           </div>
-        </div>
+        )}
       </GlowCard>
     </motion.div>
   );
@@ -236,12 +336,9 @@ function SentRequestCard({ request }: SentRequestCardProps) {
   return (
     <motion.div variants={itemVariants}>
       <GlowCard glowColor="none" className="flex items-center gap-3">
-        {/* Avatar */}
         <div className="p-2.5 rounded-full bg-[var(--bg-elevated)] shrink-0">
           <Send size={18} className="text-[var(--text-muted)]" />
         </div>
-
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="font-medium text-[var(--text-primary)] truncate">
             {request.display_name || "Anonymous"}
@@ -257,8 +354,6 @@ function SentRequestCard({ request }: SentRequestCardProps) {
             <span>· Sent {formatRelativeTime(request.requested_at)}</span>
           </div>
         </div>
-
-        {/* Status */}
         <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg-elevated)] text-xs text-[var(--text-muted)]">
           <Clock size={12} />
           Pending
@@ -313,11 +408,9 @@ function FriendsStatsCard({
 }) {
   return (
     <GlowCard glowColor="primary" className="relative overflow-hidden">
-      {/* Background pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)] rounded-full blur-3xl" />
       </div>
-
       <div className="relative flex items-center gap-6">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-[var(--accent-primary)]/10">
@@ -332,7 +425,6 @@ function FriendsStatsCard({
             </p>
           </div>
         </div>
-
         {pendingCount > 0 && (
           <div className="flex items-center gap-3 pl-6 border-l border-[var(--border-subtle)]">
             <div className="p-3 rounded-xl bg-[var(--accent-streak)]/10">
@@ -358,25 +450,54 @@ function FriendsStatsCard({
 // -----------------------------------------------------------------------------
 
 export default function FriendsClient() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const {
     friends,
     pendingRequests,
     sentRequests,
+    dailyProgress,
     acceptFriendRequest,
     rejectFriendRequest,
     sendNudge,
     friendsLoading,
   } = useSocial();
 
-  const [tab, setTab] = useState<FriendsTab>("friends");
+  // Initialize tab from URL param, default to "friends"
+  const initialTab = (searchParams.get("tab") as SocialTab) || "friends";
+  const [tab, setTab] = useState<SocialTab>(
+    ["friends", "requests", "sent", "groups"].includes(initialTab) ? initialTab : "friends"
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Note: SocialProvider handles initial data fetching - no need to refresh on mount
+  // Sync tab changes to URL
+  const handleTabChange = useCallback(
+    (newTab: SocialTab) => {
+      setTab(newTab);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newTab === "friends") {
+        params.delete("tab");
+      } else {
+        params.set("tab", newTab);
+      }
+      const query = params.toString();
+      router.replace(`/friends${query ? `?${query}` : ""}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   // Handle nudge
   const handleNudge = useCallback(
     async (friendId: string) => {
       return await sendNudge(friendId);
+    },
+    [sendNudge]
+  );
+
+  // Handle high five (kudos)
+  const handleHighFive = useCallback(
+    async (friendId: string) => {
+      return await sendNudge(friendId, undefined, "high_five");
     },
     [sendNudge]
   );
@@ -401,8 +522,10 @@ export default function FriendsClient() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Card */}
-      <FriendsStatsCard friendCount={friends.length} pendingCount={pendingCount} />
+      {/* Stats Card - only show on friends-related tabs */}
+      {tab !== "groups" && (
+        <FriendsStatsCard friendCount={friends.length} pendingCount={pendingCount} />
+      )}
 
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
@@ -410,14 +533,14 @@ export default function FriendsClient() {
         <div className="flex flex-wrap gap-2">
           <TabButton
             active={tab === "friends"}
-            onClick={() => setTab("friends")}
+            onClick={() => handleTabChange("friends")}
             icon={<Users size={16} />}
             label="Friends"
             count={friends.length}
           />
           <TabButton
             active={tab === "requests"}
-            onClick={() => setTab("requests")}
+            onClick={() => handleTabChange("requests")}
             icon={<Bell size={16} />}
             label="Requests"
             count={pendingCount}
@@ -425,33 +548,55 @@ export default function FriendsClient() {
           />
           <TabButton
             active={tab === "sent"}
-            onClick={() => setTab("sent")}
+            onClick={() => handleTabChange("sent")}
             icon={<Send size={16} />}
             label="Sent"
             count={sentRequests.length}
           />
+          <TabButton
+            active={tab === "groups"}
+            onClick={() => handleTabChange("groups")}
+            icon={<UsersRound size={16} />}
+            label="Groups"
+          />
         </div>
 
-        {/* Add Friend Button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsAddModalOpen(true)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-xl",
-            "bg-[var(--accent-primary)] text-white",
-            "shadow-lg shadow-[var(--accent-primary)]/20",
-            "hover:opacity-90 transition-opacity"
-          )}
-        >
-          <UserPlus size={16} />
-          <span className="hidden sm:inline font-medium">Add Friend</span>
-        </motion.button>
+        {/* Add Friend Button - only show on non-groups tabs */}
+        {tab !== "groups" && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsAddModalOpen(true)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl",
+              "bg-[var(--accent-primary)] text-white",
+              "shadow-lg shadow-[var(--accent-primary)]/20",
+              "hover:opacity-90 transition-opacity",
+              "min-h-[44px] sm:min-h-0",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "active:scale-[0.97]",
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+            )}
+          >
+            <UserPlus size={16} />
+            <span className="hidden sm:inline font-medium">Add Friend</span>
+          </motion.button>
+        )}
       </div>
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {friendsLoading ? (
+        {tab === "groups" ? (
+          <motion.div
+            key="groups"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <GroupsTabContent />
+          </motion.div>
+        ) : friendsLoading ? (
           <motion.div
             key="loading"
             initial={{ opacity: 0 }}
@@ -490,7 +635,9 @@ export default function FriendsClient() {
                       <FriendCard
                         key={friend.user_id}
                         friend={friend}
+                        progress={dailyProgress[friend.user_id]}
                         onNudge={handleNudge}
+                        onHighFive={handleHighFive}
                       />
                     ))}
                   </motion.div>
