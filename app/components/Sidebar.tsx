@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, Sparkles, Trophy, Users, UsersRound, Palette, ChevronLeft, ChevronRight, Crown } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Target, Inbox, Settings, BarChart3, Sun, Moon, HelpCircle, BookOpen, Sparkles, Trophy, Users, Palette, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import anime from "animejs";
 import { cn } from "@/app/lib/cn";
 import XpBar from "./XpBar";
@@ -41,8 +41,7 @@ const navItems = [
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   // Social features
   { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
-  { label: "Friends", href: "/friends", icon: Users },
-  { label: "Groups", href: "/groups", icon: UsersRound },
+  { label: "Social", href: "/friends", icon: Users },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

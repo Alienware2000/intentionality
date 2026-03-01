@@ -27,7 +27,6 @@ import {
   Sparkles,
   Trophy,
   Users,
-  UsersRound,
   Crown,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
@@ -242,8 +241,7 @@ export default function MobileNav() {
                   { href: "/inbox", icon: Inbox, label: "Thoughts" },
                   { href: "/review", icon: BookOpen, label: "Review" },
                   { href: "/leaderboard", icon: Trophy, label: "Leaderboard" },
-                  { href: "/friends", icon: Users, label: "Friends" },
-                  { href: "/groups", icon: UsersRound, label: "Groups" },
+                  { href: "/friends", icon: Users, label: "Social" },
                   { href: "/settings", icon: Settings, label: "Settings" },
                 ].map((item) => (
                   <motion.div

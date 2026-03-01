@@ -1,23 +1,11 @@
 // =============================================================================
-// GROUPS PAGE
-// Accountability groups management page for viewing and creating groups.
+// GROUPS PAGE — REDIRECT
+// Groups are now accessible via the Social page (/friends?tab=groups).
+// This redirect preserves bookmarks and old links.
 // =============================================================================
 
-import GroupsClient from "./GroupsClient";
+import { redirect } from "next/navigation";
 
 export default async function GroupsPage() {
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-sm font-bold tracking-widest uppercase text-[var(--text-primary)]">
-          Groups
-        </h1>
-        <p className="text-[var(--text-secondary)] text-sm mt-3">
-          Join accountability groups and compete together.
-        </p>
-      </header>
-
-      <GroupsClient />
-    </div>
-  );
+  redirect("/friends?tab=groups");
 }

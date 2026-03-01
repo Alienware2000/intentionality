@@ -178,17 +178,6 @@ export default function GroupCard({
           )}
         </div>
 
-        {/* Weekly contribution */}
-        {group.my_weekly_xp > 0 && (
-          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-            <p className="text-xs text-[var(--text-muted)]">
-              Your contribution this week:{" "}
-              <span className="font-mono text-[var(--accent-primary)]">
-                +{group.my_weekly_xp} XP
-              </span>
-            </p>
-          </div>
-        )}
       </GlowCard>
     </motion.div>
   );
