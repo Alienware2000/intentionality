@@ -46,6 +46,8 @@ const itemVariants = {
 type QuestsResponse = { ok: true; quests: Quest[] };
 type TasksResponse = { ok: true; tasks: Task[] };
 
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
 export default function QuestsClient() {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -343,8 +345,6 @@ export default function QuestsClient() {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [openQuestMenu, openTaskMenu]);
-
-  const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
   const tasksByQuest = useMemo(() => {
     const map: Record<string, Task[]> = {};

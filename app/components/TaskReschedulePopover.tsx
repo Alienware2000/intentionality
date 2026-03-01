@@ -85,11 +85,13 @@ export default function TaskReschedulePopover({
   return (
     <>
       {/* Trigger — clone child to attach ref + interaction props */}
+      {/* eslint-disable react-hooks/refs -- Floating UI requires ref callbacks via cloneElement */}
       {isValidElement(children) &&
         cloneElement(children as React.ReactElement<Record<string, unknown>>, {
           ref: refs.setReference,
           ...getReferenceProps(children.props as Record<string, unknown>),
         })}
+      {/* eslint-enable react-hooks/refs */}
 
       {/* Popover */}
       <AnimatePresence>
@@ -97,6 +99,7 @@ export default function TaskReschedulePopover({
           <FloatingPortal>
             <FloatingFocusManager context={context} modal={false}>
               <motion.div
+                // eslint-disable-next-line react-hooks/refs -- Floating UI ref callback
                 ref={refs.setFloating}
                 style={floatingStyles}
                 {...getFloatingProps()}

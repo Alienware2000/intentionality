@@ -917,17 +917,20 @@ function TaskFocusPopover({
 
   return (
     <>
+      {/* eslint-disable react-hooks/refs -- Floating UI requires ref callbacks via cloneElement */}
       {isValidElement(children) &&
         cloneElement(children as React.ReactElement<Record<string, unknown>>, {
           ref: refs.setReference,
           ...getReferenceProps(children.props as Record<string, unknown>),
         })}
+      {/* eslint-enable react-hooks/refs */}
 
       <AnimatePresence>
         {isOpen && (
           <FloatingPortal>
             <FloatingFocusManager context={context} modal={false}>
               <motion.div
+                // eslint-disable-next-line react-hooks/refs -- Floating UI ref callback
                 ref={refs.setFloating}
                 style={floatingStyles}
                 {...getFloatingProps()}
@@ -1049,6 +1052,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
   return (
     <motion.div
       layout
+      // eslint-disable-next-line react-hooks/refs -- standard animation pattern: skip initial animation on re-renders
       initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -1206,6 +1210,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
   return (
     <motion.div
       layout
+      // eslint-disable-next-line react-hooks/refs -- standard animation pattern: skip initial animation on re-renders
       initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -1340,6 +1345,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
   return (
     <motion.div
       layout
+      // eslint-disable-next-line react-hooks/refs -- standard animation pattern: skip initial animation on re-renders
       initial={hasMounted.current ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}

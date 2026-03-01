@@ -50,7 +50,6 @@ export const GET = withAuth(async ({ user, supabase }) => {
       id,
       group_id,
       role,
-      weekly_xp,
       joined_at,
       groups (
         id,
@@ -96,7 +95,6 @@ export const GET = withAuth(async ({ user, supabase }) => {
       return {
         ...group,
         my_role: m.role as GroupMemberRole,
-        my_weekly_xp: m.weekly_xp,
         joined_at: m.joined_at,
       };
     });

@@ -27,8 +27,6 @@ import {
   updateDailyChallengeProgress,
   updateWeeklyChallengeProgress,
 } from "./challenges";
-import { getWeekStartUTC } from "./date-utils";
-
 /**
  * Group challenge completion result.
  */
@@ -252,7 +250,7 @@ export async function awardXp(options: AwardXpOptions): Promise<XpAwardResult> {
   });
 
   // Update group weekly XP and challenge progress
-  await updateGroupProgress(supabase, userId, actionTotalXp, actionType, incrementValue);
+  await updateGroupProgress(supabase, userId, actionTotalXp);
 
   // Check if user earned a streak freeze
   const { data: freezeData } = await supabase
@@ -388,42 +386,32 @@ function createEmptyResult(baseXp: number): XpAwardResult {
 
 // =============================================================================
 // GROUP PROGRESS TRACKING
-// Updates group weekly XP and challenge progress when user earns XP.
+// Updates group total XP and clears at-risk status when user earns XP.
 // =============================================================================
 
 /**
  * Update group progress when a user earns XP.
- * - Updates weekly_xp for all groups the user is in
- * - Updates group challenge progress
+ * - Updates total_xp for all groups the user is in
  * - Clears at-risk status since user was productive
  */
 async function updateGroupProgress(
   supabase: SupabaseClient,
   userId: string,
-  xpEarned: number,
-  actionType: GamificationActionType,
-  incrementValue: number
+  xpEarned: number
 ): Promise<void> {
   try {
     // Get all groups the user is a member of
     const { data: memberships } = await supabase
       .from("group_members")
-      .select("group_id, weekly_xp")
+      .select("group_id")
       .eq("user_id", userId);
 
     if (!memberships || memberships.length === 0) {
       return;
     }
 
-    // Update weekly XP for each group membership
+    // Update group's total_xp for each membership
     for (const membership of memberships) {
-      await supabase
-        .from("group_members")
-        .update({ weekly_xp: (membership.weekly_xp || 0) + xpEarned })
-        .eq("user_id", userId)
-        .eq("group_id", membership.group_id);
-
-      // Also update group's total_xp
       const { data: group } = await supabase
         .from("groups")
         .select("total_xp")
@@ -440,74 +428,6 @@ async function updateGroupProgress(
 
     // Record productive action (clears at-risk status) using SQL function
     await supabase.rpc("record_productive_action", { p_user_id: userId });
-
-    // Map action type to challenge type
-    const challengeType =
-      actionType === "task"
-        ? "tasks"
-        : actionType === "habit"
-        ? "habits"
-        : actionType === "focus"
-        ? "focus"
-        : "xp";
-
-    // Get current week start for challenge lookup
-    const weekStart = getWeekStartUTC();
-
-    const groupIds = memberships.map((m) => m.group_id);
-
-    // Update group challenges
-    for (const groupId of groupIds) {
-      // Update challenge for action type
-      const { data: actionChallenge } = await supabase
-        .from("group_challenges")
-        .select("id, current_progress, target_value, completed")
-        .eq("group_id", groupId)
-        .eq("week_start", weekStart)
-        .eq("challenge_type", challengeType)
-        .eq("completed", false)
-        .single();
-
-      if (actionChallenge) {
-        const newProgress = actionChallenge.current_progress + incrementValue;
-        const isNowCompleted = newProgress >= actionChallenge.target_value;
-
-        await supabase
-          .from("group_challenges")
-          .update({
-            current_progress: newProgress,
-            completed: isNowCompleted,
-            completed_at: isNowCompleted ? new Date().toISOString() : null,
-          })
-          .eq("id", actionChallenge.id);
-      }
-
-      // Also update XP-type challenges if different
-      if (challengeType !== "xp") {
-        const { data: xpChallenge } = await supabase
-          .from("group_challenges")
-          .select("id, current_progress, target_value, completed")
-          .eq("group_id", groupId)
-          .eq("week_start", weekStart)
-          .eq("challenge_type", "xp")
-          .eq("completed", false)
-          .single();
-
-        if (xpChallenge) {
-          const newProgress = xpChallenge.current_progress + xpEarned;
-          const isNowCompleted = newProgress >= xpChallenge.target_value;
-
-          await supabase
-            .from("group_challenges")
-            .update({
-              current_progress: newProgress,
-              completed: isNowCompleted,
-              completed_at: isNowCompleted ? new Date().toISOString() : null,
-            })
-            .eq("id", xpChallenge.id);
-        }
-      }
-    }
   } catch (error) {
     // Group features may not be set up yet - log error but continue
     // This prevents group feature failures from blocking main XP flow

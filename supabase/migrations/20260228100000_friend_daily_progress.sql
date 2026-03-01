@@ -1,0 +1,5 @@
+-- =============================================================================
+-- FRIEND DAILY PROGRESS
+-- Function removed: daily progress is handled by application-level queries
+-- via service role client in /api/friends/daily-progress.
+-- =============================================================================

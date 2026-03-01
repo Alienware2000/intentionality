@@ -28,20 +28,9 @@ export { default as NotificationItem } from "./NotificationItem";
 export { default as NotificationCenter } from "./NotificationCenter";
 export { default as NotificationBell } from "./NotificationBell";
 
-// Social enhancements - weekly awards, challenges, accountability
-export {
-  default as WeeklyAwardsDisplay,
-  WeeklyAwardsDisplaySkeleton,
-} from "./WeeklyAwardsDisplay";
-export {
-  default as GroupChallengeCard,
-  GroupChallengeCardSkeleton,
-} from "./GroupChallengeCard";
-export {
-  default as AtRiskMembersPanel,
-  AtRiskMembersPanelSkeleton,
-} from "./AtRiskMembersPanel";
+// Current activity badge (still used in member rows)
 export {
   default as CurrentActivityBadge,
   CurrentActivityCompact,
 } from "./CurrentActivityBadge";
+

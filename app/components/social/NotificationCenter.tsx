@@ -8,6 +8,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, CheckCheck, X } from "lucide-react";
 import { useRef, useEffect } from "react";
+import Link from "next/link";
 import { cn } from "@/app/lib/cn";
 import NotificationItem from "./NotificationItem";
 import type { NotificationWithSender } from "@/app/lib/types";
@@ -170,7 +171,7 @@ export default function NotificationCenter({
           {/* Footer - show if there are more notifications */}
           {notifications.length > 20 && (
             <div className="px-4 py-2 border-t border-[var(--border-subtle)] text-center">
-              <a
+              <Link
                 href="/friends"
                 className={cn(
                   "text-xs text-[var(--accent-primary)]",
@@ -178,7 +179,7 @@ export default function NotificationCenter({
                 )}
               >
                 View all {notifications.length} notifications
-              </a>
+              </Link>
             </div>
           )}
         </motion.div>

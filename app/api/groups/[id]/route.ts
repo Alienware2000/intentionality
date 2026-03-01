@@ -88,13 +88,12 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       group_id,
       user_id,
       role,
-      weekly_xp,
       joined_at,
       current_activity,
       current_activity_updated_at
     `)
     .eq("group_id", groupId)
-    .order("weekly_xp", { ascending: false });
+    .order("joined_at", { ascending: true });
 
   if (membersError) {
     return ApiErrors.serverError(membersError.message);

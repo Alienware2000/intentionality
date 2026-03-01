@@ -1585,7 +1585,6 @@ export type GroupMember = {
   group_id: Id;
   user_id: string;
   role: GroupMemberRole;
-  weekly_xp: number;
   joined_at: string;
 };
 
@@ -1607,7 +1606,6 @@ export type GroupMemberWithProfile = GroupMember & {
  */
 export type GroupWithMembership = Group & {
   my_role: GroupMemberRole;
-  my_weekly_xp: number;
   joined_at: string;
 };
 
@@ -1775,7 +1773,20 @@ export type NotificationWithSender = SocialNotification & {
 // -----------------------------------------------------------------------------
 
 /** Nudge types for different encouragement contexts */
-export type NudgeType = 'encouragement' | 'streak_reminder' | 'challenge' | 'celebration';
+export type NudgeType = 'encouragement' | 'streak_reminder' | 'challenge' | 'celebration' | 'high_five';
+
+// -----------------------------------------------------------------------------
+// Friend Daily Progress
+// -----------------------------------------------------------------------------
+
+/** Daily productivity stats for a friend, shown on friend cards */
+export type FriendDailyProgress = {
+  tasks_completed: number;
+  habits_completed: number;
+  focus_minutes: number;
+  is_active_today: boolean;
+  last_active: string | null;
+};
 
 /**
  * Nudge between friends.
@@ -1975,38 +1986,6 @@ export type GroupWeeklyHistoryWithNames = GroupWeeklyHistory & {
   third_place_name: string | null;
 };
 
-/**
- * Group challenge template from database.
- */
-export type GroupChallengeTemplate = {
-  id: Id;
-  name: string;
-  description: string | null;
-  challenge_type: 'tasks' | 'focus' | 'habits' | 'xp';
-  target_per_member: number;
-  xp_reward_per_member: number;
-  is_active: boolean;
-  created_at: string;
-};
-
-/**
- * Active weekly group challenge.
- */
-export type GroupChallenge = {
-  id: Id;
-  group_id: Id;
-  week_start: ISODateString;
-  template_id: Id | null;
-  name: string;
-  description: string | null;
-  challenge_type: 'tasks' | 'focus' | 'habits' | 'xp';
-  target_value: number;
-  current_progress: number;
-  completed: boolean;
-  completed_at: string | null;
-  xp_reward_per_member: number;
-  created_at: string;
-};
 
 /**
  * Group member streak status for accountability.
@@ -2023,18 +2002,6 @@ export type GroupMemberStreakStatus = {
   updated_at: string;
 };
 
-/**
- * At-risk member with profile info for nudge display.
- */
-export type AtRiskMember = {
-  user_id: string;
-  display_name: string | null;
-  level: number;
-  current_streak: number;
-  last_productive_action: string | null;
-  hours_inactive: number;
-  can_nudge: boolean;
-};
 
 /**
  * Response from group history endpoint.
@@ -2044,22 +2011,6 @@ export type GroupHistoryResponse = {
   history: GroupWeeklyHistoryWithNames[];
 };
 
-/**
- * Response from group challenge endpoint.
- */
-export type GroupChallengeResponse = {
-  ok: true;
-  challenge: GroupChallenge | null;
-  progress_percentage: number;
-};
-
-/**
- * Response from at-risk members endpoint.
- */
-export type GroupAtRiskResponse = {
-  ok: true;
-  at_risk_members: AtRiskMember[];
-};
 
 /**
  * Response from group nudge endpoint.
@@ -2077,29 +2028,3 @@ export type UpdateActivityResponse = {
   current_activity: string | null;
 };
 
-/**
- * Weekly awards display data for podium.
- */
-export type WeeklyAwards = {
-  week_start: ISODateString;
-  week_end: ISODateString;
-  first_place: {
-    user_id: string;
-    display_name: string | null;
-    xp: number;
-    xp_bonus: number;
-  } | null;
-  second_place: {
-    user_id: string;
-    display_name: string | null;
-    xp: number;
-    xp_bonus: number;
-  } | null;
-  third_place: {
-    user_id: string;
-    display_name: string | null;
-    xp: number;
-    xp_bonus: number;
-  } | null;
-  total_group_xp: number;
-};

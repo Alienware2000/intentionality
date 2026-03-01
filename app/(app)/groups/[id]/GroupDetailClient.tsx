@@ -3,6 +3,7 @@
 // =============================================================================
 // GROUP DETAIL CLIENT COMPONENT
 // Shows group details with tabs for leaderboard, activity, and members.
+// Shows group details with tabs for leaderboard, activity, and members.
 // =============================================================================
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -28,10 +29,6 @@ import {
   RankingRowSkeleton,
   ActivityFeedItem,
   NoActivityMessage,
-  WeeklyAwardsDisplay,
-  GroupChallengeCard,
-  GroupChallengeCardSkeleton,
-  AtRiskMembersPanel,
   CurrentActivityCompact,
   GroupSettingsModal,
   InviteMembersModal,
@@ -43,9 +40,6 @@ import type {
   LeaderboardMetric,
   ActivityFeedItemWithUser,
   GroupMemberRole,
-  WeeklyAwards,
-  GroupChallenge,
-  AtRiskMember,
 } from "@/app/lib/types";
 
 // -----------------------------------------------------------------------------
@@ -66,7 +60,6 @@ type GroupDetail = {
   total_xp: number;
   created_at: string;
   my_role: GroupMemberRole;
-  my_weekly_xp: number;
 };
 
 type GroupMember = {
@@ -76,7 +69,6 @@ type GroupMember = {
   current_streak: number;
   xp_total: number;
   role: GroupMemberRole;
-  weekly_xp: number;
   joined_at: string;
   current_activity?: string | null;
   current_activity_updated_at?: string | null;
@@ -119,7 +111,7 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
       whileTap={{ scale: 0.98 }}
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
-        "min-h-[44px] sm:min-h-0", // Touch target compliance
+        "min-h-[44px] sm:min-h-0",
         "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
         active
           ? "bg-[var(--accent-primary)] text-white shadow-lg shadow-[var(--accent-primary)]/20"
@@ -137,13 +129,12 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
 // -----------------------------------------------------------------------------
 
 type MetricFilterProps = {
-  metric: LeaderboardMetric | "weekly_xp";
-  onChange: (metric: LeaderboardMetric | "weekly_xp") => void;
+  metric: LeaderboardMetric;
+  onChange: (metric: LeaderboardMetric) => void;
 };
 
 function MetricFilter({ metric, onChange }: MetricFilterProps) {
   const metrics = [
-    { value: "weekly_xp" as const, label: "This Week" },
     { value: "xp" as const, label: "Total XP" },
     { value: "streak" as const, label: "Streak" },
     { value: "level" as const, label: "Level" },
@@ -157,7 +148,7 @@ function MetricFilter({ metric, onChange }: MetricFilterProps) {
           onClick={() => onChange(m.value)}
           className={cn(
             "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-            "min-h-[44px] sm:min-h-0", // Touch target compliance
+            "min-h-[44px] sm:min-h-0",
             "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
             metric === m.value
               ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm"
@@ -172,7 +163,7 @@ function MetricFilter({ metric, onChange }: MetricFilterProps) {
 }
 
 // -----------------------------------------------------------------------------
-// Member Row Component
+// Member Row Component (simplified — replaced weekly XP with total XP)
 // -----------------------------------------------------------------------------
 
 type MemberRowProps = {
@@ -181,7 +172,6 @@ type MemberRowProps = {
 };
 
 function MemberRow({ member, isCurrentUser }: MemberRowProps) {
-  // Format relative time
   const formatJoinDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
@@ -254,12 +244,12 @@ function MemberRow({ member, isCurrentUser }: MemberRowProps) {
           )}
         </div>
 
-        {/* Weekly XP */}
+        {/* Total XP */}
         <div className="text-right shrink-0">
           <p className="font-mono font-bold text-[var(--accent-primary)]">
-            +{member.weekly_xp}
+            {member.xp_total.toLocaleString()}
           </p>
-          <p className="text-xs text-[var(--text-muted)] uppercase">This Week</p>
+          <p className="text-xs text-[var(--text-muted)] uppercase">XP</p>
         </div>
       </div>
     </motion.div>
@@ -279,20 +269,13 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   const { leaveGroup } = useSocial();
 
   const [tab, setTab] = useState<GroupDetailTab>("leaderboard");
-  const [metric, setMetric] = useState<LeaderboardMetric | "weekly_xp">("weekly_xp");
+  const [metric, setMetric] = useState<LeaderboardMetric>("xp");
 
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [activity, setActivity] = useState<ActivityFeedItemWithUser[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  // Social enhancements state
-  const [awards, setAwards] = useState<WeeklyAwards | null>(null);
-  const [challenge, setChallenge] = useState<GroupChallenge | null>(null);
-  const [challengeProgress, setChallengeProgress] = useState(0);
-  const [challengeLoading, setChallengeLoading] = useState(true);
-  const [atRiskMembers, setAtRiskMembers] = useState<AtRiskMember[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -304,7 +287,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
 
-  // Track if component is mounted to prevent state updates after unmount
   const mountedRef = useRef(true);
 
   // Load group data
@@ -349,47 +331,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     }
   }, [groupId]);
 
-  // Load weekly awards
-  const loadAwards = useCallback(async () => {
-    try {
-      const data = await fetchApi<{ awards: WeeklyAwards | null }>(
-        `/api/groups/${groupId}/awards`
-      );
-      setAwards(data.awards);
-    } catch (e) {
-      console.error("Failed to load awards:", e);
-    }
-  }, [groupId]);
-
-  // Load current challenge
-  const loadChallenge = useCallback(async () => {
-    setChallengeLoading(true);
-    try {
-      const data = await fetchApi<{ challenge: GroupChallenge | null; progress_percentage: number }>(
-        `/api/groups/${groupId}/challenge`
-      );
-      setChallenge(data.challenge);
-      setChallengeProgress(data.progress_percentage);
-    } catch (e) {
-      console.error("Failed to load challenge:", e);
-    } finally {
-      setChallengeLoading(false);
-    }
-  }, [groupId]);
-
-  // Load at-risk members
-  const loadAtRisk = useCallback(async () => {
-    try {
-      const data = await fetchApi<{ at_risk_members: AtRiskMember[] }>(
-        `/api/groups/${groupId}/at-risk`
-      );
-      setAtRiskMembers(data.at_risk_members);
-    } catch (e) {
-      console.error("Failed to load at-risk members:", e);
-    }
-  }, [groupId]);
-
-  // Initial load with cleanup to prevent memory leaks
+  // Initial load
   useEffect(() => {
     mountedRef.current = true;
 
@@ -397,13 +339,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
       setLoading(true);
       await loadGroup();
       if (!mountedRef.current) return;
-      await Promise.all([
-        loadLeaderboard(),
-        loadActivity(),
-        loadAwards(),
-        loadChallenge(),
-        loadAtRisk(),
-      ]);
+      await Promise.all([loadLeaderboard(), loadActivity()]);
       if (!mountedRef.current) return;
       setLoading(false);
     };
@@ -412,21 +348,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     return () => {
       mountedRef.current = false;
     };
-  }, [loadGroup, loadLeaderboard, loadActivity, loadAwards, loadChallenge, loadAtRisk]);
-
-  // Poll at-risk members every 60 seconds to show updated accountability data
-  // Issue #7: At-risk data was stale after initial load
-  useEffect(() => {
-    if (loading) return;
-
-    const intervalId = setInterval(() => {
-      if (mountedRef.current) {
-        void loadAtRisk();
-      }
-    }, 60000); // 60 seconds
-
-    return () => clearInterval(intervalId);
-  }, [loading, loadAtRisk]);
+  }, [loadGroup, loadLeaderboard, loadActivity]);
 
   // Reload leaderboard when metric changes
   useEffect(() => {
@@ -456,7 +378,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     setShowLeaveModal(false);
 
     if (success) {
-      router.push("/groups");
+      router.push("/friends?tab=groups");
     }
   };
 
@@ -466,7 +388,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
         <div className="text-center py-12">
           <p className="text-red-500 font-medium">{error}</p>
           <button
-            onClick={() => router.push("/groups")}
+            onClick={() => router.push("/friends?tab=groups")}
             className="mt-4 text-sm text-[var(--accent-primary)] hover:underline"
           >
             Back to Groups
@@ -496,8 +418,12 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
     <div className="space-y-6">
       {/* Back button */}
       <button
-        onClick={() => router.push("/groups")}
-        className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+        onClick={() => router.push("/friends?tab=groups")}
+        className={cn(
+          "flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors",
+          "min-h-[44px] sm:min-h-0",
+          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+        )}
       >
         <ArrowLeft size={16} />
         <span>Back to Groups</span>
@@ -508,13 +434,11 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
         glowColor={group.my_role === "owner" ? "highlight" : "primary"}
         className="relative overflow-hidden"
       >
-        {/* Background pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)] rounded-full blur-3xl" />
         </div>
 
         <div className="relative">
-          {/* Title & Description */}
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -539,15 +463,13 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
               )}
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-2">
-              {/* Invite button - visible to owners and admins */}
               {isOwnerOrAdmin && (
                 <button
                   onClick={() => setShowInviteModal(true)}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm",
-                    "min-h-[44px] sm:min-h-0", // Touch target compliance
+                    "min-h-[44px] sm:min-h-0",
                     "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                     "bg-[var(--accent-primary)] text-white",
                     "hover:opacity-90 transition-opacity"
@@ -558,7 +480,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                 </button>
               )}
 
-              {/* Settings button - visible only to owner */}
               {group.my_role === "owner" && (
                 <button
                   onClick={() => setShowSettingsModal(true)}
@@ -576,14 +497,13 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                 </button>
               )}
 
-              {/* Leave button - visible to non-owners */}
               {group.my_role !== "owner" && (
                 <button
                   onClick={handleLeaveClick}
                   disabled={leaving}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm",
-                    "min-h-[44px] sm:min-h-0", // Touch target compliance
+                    "min-h-[44px] sm:min-h-0",
                     "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                     "bg-red-500/10 text-red-500",
                     "hover:bg-red-500/20 transition-colors",
@@ -601,7 +521,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Stats — removed broken "Your Week" stat */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
@@ -626,48 +546,9 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                 <p className="text-xs text-[var(--text-muted)] uppercase">Total XP</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-[var(--accent-highlight)]/10">
-                <Activity size={16} className="text-[var(--accent-highlight)]" />
-              </div>
-              <div>
-                <p className="font-mono font-bold text-[var(--accent-primary)]">
-                  +{group.my_weekly_xp}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] uppercase">Your Week</p>
-              </div>
-            </div>
           </div>
         </div>
       </GlowCard>
-
-      {/* Weekly Awards Display */}
-      {awards && (
-        <WeeklyAwardsDisplay
-          awards={awards}
-          currentUserId={currentUserId ?? undefined}
-        />
-      )}
-
-      {/* Current Challenge */}
-      {challengeLoading ? (
-        <GroupChallengeCardSkeleton />
-      ) : (
-        <GroupChallengeCard
-          challenge={challenge}
-          progressPercentage={challengeProgress}
-        />
-      )}
-
-      {/* At-Risk Members (Accountability) */}
-      {atRiskMembers.length > 0 && (
-        <AtRiskMembersPanel
-          groupId={groupId}
-          members={atRiskMembers}
-          onNudgeSent={loadAtRisk}
-        />
-      )}
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2">
@@ -693,7 +574,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
 
       {/* Tab Content */}
       <AnimatePresence mode="wait">
-        {/* Leaderboard Tab */}
         {tab === "leaderboard" && (
           <motion.div
             key="leaderboard"
@@ -702,10 +582,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-4"
           >
-            <MetricFilter
-              metric={metric}
-              onChange={(m) => setMetric(m)}
-            />
+            <MetricFilter metric={metric} onChange={(m) => setMetric(m)} />
 
             <GlowCard glowColor="none" className="overflow-hidden">
               {leaderboard.length === 0 ? (
@@ -722,7 +599,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                 >
                   {leaderboard.map((entry, index) => (
                     <motion.div key={entry.user_id} variants={itemVariants}>
-                      <RankingRow entry={entry} metric={metric === "weekly_xp" ? "xp" : metric} index={index} />
+                      <RankingRow entry={entry} metric={metric} index={index} />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -731,7 +608,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
           </motion.div>
         )}
 
-        {/* Activity Tab */}
         {tab === "activity" && (
           <motion.div
             key="activity"
@@ -758,7 +634,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
           </motion.div>
         )}
 
-        {/* Members Tab */}
         {tab === "members" && (
           <motion.div
             key="members"
@@ -826,7 +701,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                   disabled={leaving}
                   className={cn(
                     "flex-1 py-2.5 rounded-xl text-sm font-medium",
-                    "min-h-[44px] sm:min-h-0", // Touch target compliance
+                    "min-h-[44px] sm:min-h-0",
                     "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                     "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
                     "hover:bg-[var(--bg-hover)] transition-colors",
@@ -840,7 +715,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
                   disabled={leaving}
                   className={cn(
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium",
-                    "min-h-[44px] sm:min-h-0", // Touch target compliance
+                    "min-h-[44px] sm:min-h-0",
                     "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                     "bg-red-500 text-white",
                     "hover:bg-red-600 transition-colors",
@@ -872,7 +747,7 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
             name: group.name,
             description: group.description,
           }}
-          onDeleted={() => router.push("/groups")}
+          onDeleted={() => router.push("/friends?tab=groups")}
           onTransferOwnership={() => {
             setShowSettingsModal(false);
             setShowTransferModal(true);
@@ -911,7 +786,6 @@ export default function GroupDetailClient({ groupId }: GroupDetailClientProps) {
           }))}
           currentUserId={currentUserId}
           onTransferred={() => {
-            // Reload group data after transfer
             loadGroup();
           }}
         />
