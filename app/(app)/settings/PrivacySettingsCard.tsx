@@ -35,6 +35,7 @@ type PrivacySettings = {
   show_level: boolean;
   show_streak: boolean;
   show_achievements: boolean;
+  show_habits_to_friends: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -422,6 +423,24 @@ export default function PrivacySettingsCard({
               description="Display your earned achievements"
               checked={settings.show_achievements}
               onChange={(v) => updateSetting("show_achievements", v)}
+              disabled={saving}
+            />
+
+            <SettingRow
+              icon={
+                <Flame
+                  size={16}
+                  className={
+                    settings.show_habits_to_friends
+                      ? "text-[var(--accent-streak)]"
+                      : "text-[var(--text-muted)]"
+                  }
+                />
+              }
+              title="Show Habits to Friends"
+              description="Let friends see your habit grid on your profile"
+              checked={settings.show_habits_to_friends}
+              onChange={(v) => updateSetting("show_habits_to_friends", v)}
               disabled={saving}
             />
           </div>

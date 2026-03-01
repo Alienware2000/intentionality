@@ -19,10 +19,11 @@ type Props = {
   month: number; // 0-indexed
   habits: Habit[];
   completions: Record<Id, ISODateString[]>;
-  onToggle: (habitId: Id, date: ISODateString) => void;
+  onToggle?: (habitId: Id, date: ISODateString) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
+  readOnly?: boolean;
 };
 
 type CellData = {
@@ -56,6 +57,7 @@ export default function MonthlyHabitGrid({
   onPrevMonth,
   onNextMonth,
   onToday,
+  readOnly = false,
 }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const hasAnimatedRef = useRef(false);
@@ -442,13 +444,13 @@ export default function MonthlyHabitGrid({
                       />
                     );
 
-                    const canToggle = day.isToday && cell.status !== "inactive";
+                    const canToggle = !readOnly && day.isToday && cell.status !== "inactive";
 
                     return (
                       <button
                         key={day.date}
                         disabled={!canToggle}
-                        onClick={() => canToggle && onToggle(habit.id, day.date)}
+                        onClick={() => canToggle && onToggle?.(habit.id, day.date)}
                         onMouseEnter={(e) => showTooltip(dayIdx, habit.id, e)}
                         onMouseLeave={hideTooltip}
                         onTouchStart={(e) => {

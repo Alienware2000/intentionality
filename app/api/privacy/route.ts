@@ -21,6 +21,7 @@ type PrivacySettings = {
   show_level: boolean;
   show_streak: boolean;
   show_achievements: boolean;
+  show_habits_to_friends: boolean;
 };
 
 // -----------------------------------------------------------------------------
@@ -58,6 +59,7 @@ export const GET = withAuth(async ({ user, supabase }) => {
       show_level: true,
       show_streak: true,
       show_achievements: true,
+      show_habits_to_friends: true,
     };
 
     const { data: created, error: createError } = await supabase
@@ -124,6 +126,7 @@ export const PATCH = withAuth(async ({ user, supabase, request }) => {
     "show_level",
     "show_streak",
     "show_achievements",
+    "show_habits_to_friends",
   ];
 
   const updates: Record<string, boolean> = {};
