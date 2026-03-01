@@ -117,7 +117,7 @@
   --border-hover: rgba(var(--accent-primary-rgb), 0.25);
 
   /* Heatmap & Skeleton */
-  --heatmap-empty: #27272a;
+  --heatmap-empty: #30303a;
   --skeleton-bg: #27272a;
   --habit-missed: rgba(249, 115, 22, 0.25);
 
@@ -162,7 +162,7 @@
   --bg-hover: #27272a;
 
   /* Adjusted for darker base */
-  --heatmap-empty: #18181b;
+  --heatmap-empty: #21212a;
   --skeleton-bg: #18181b;
   --habit-missed: rgba(249, 115, 22, 0.30);
   --backdrop-color: rgba(9, 9, 11, 0.90);
@@ -221,7 +221,7 @@
   --border-hover: rgba(var(--accent-primary-rgb), 0.20);
 
   /* Heatmap & Skeleton - warm cream tones */
-  --heatmap-empty: #e4e0d8;
+  --heatmap-empty: #d8d4cc;
   --skeleton-bg: #e4e0d8;
   --habit-missed: rgba(201, 74, 20, 0.18);
 
@@ -438,6 +438,15 @@ body {
 
 :root.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-muted);
+}
+
+/* Hidden scrollbar — keeps overflow-x-auto functional but hides the scrollbar */
+.heatmap-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.heatmap-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* =============================================================================

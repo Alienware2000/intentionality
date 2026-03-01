@@ -2,7 +2,7 @@
 
 // =============================================================================
 // FRIEND PROFILE CLIENT
-// Detailed friend analytics with comparison cards, habits, and heatmap.
+// Detailed friend analytics with comparison bars, habits, and activity chart.
 // Progress visibility is the core accountability mechanism.
 // =============================================================================
 
@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  Users,
   Heart,
   Loader2,
   Check,
@@ -19,13 +18,14 @@ import {
   Flame,
   Timer,
   Zap,
-  TrendingUp,
   Lock,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi } from "@/app/lib/api";
 import { useSocial } from "@/app/components/SocialProvider";
 import GlowCard from "@/app/components/ui/GlowCard";
+import UserAvatar from "@/app/components/social/UserAvatar";
+import ActivityBarChart from "@/app/components/charts/ActivityBarChart";
 import ActivityHeatmap from "@/app/components/charts/ActivityHeatmap";
 import MonthlyHabitGrid from "@/app/(app)/analytics/MonthlyHabitGrid";
 import type { Habit, ISODateString, Id } from "@/app/lib/types";
@@ -78,10 +78,10 @@ type FriendStatsData = {
 };
 
 // -----------------------------------------------------------------------------
-// Comparison Card
+// Comparison Bar Row
 // -----------------------------------------------------------------------------
 
-function ComparisonCard({
+function ComparisonRow({
   label,
   icon,
   yours,
@@ -94,41 +94,50 @@ function ComparisonCard({
   theirs: number;
   suffix?: string;
 }) {
-  const diff = yours - theirs;
-  const youAhead = diff > 0;
+  const total = yours + theirs;
+  const bothZero = total === 0;
+  const yoursPercent = bothZero ? 50 : Math.round((yours / total) * 100);
+  const youAhead = yours > theirs;
 
   return (
-    <GlowCard glowColor="none" className="text-center">
-      <div className="flex items-center justify-center gap-1.5 mb-3 text-[var(--text-muted)]">
-        {icon}
-        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 text-center">
-          <p className="text-xs text-[var(--text-muted)] mb-1">You</p>
-          <p
-            className={cn(
-              "text-xl font-mono font-bold",
-              youAhead ? "text-[var(--accent-success)]" : "text-[var(--text-primary)]"
-            )}
-          >
-            {yours.toLocaleString()}{suffix}
-          </p>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+          {icon}
+          <span className="font-medium">{label}</span>
         </div>
-        <div className="text-xs text-[var(--text-muted)] font-medium">vs</div>
-        <div className="flex-1 text-center">
-          <p className="text-xs text-[var(--text-muted)] mb-1">Them</p>
-          <p
-            className={cn(
-              "text-xl font-mono font-bold",
-              !youAhead && diff !== 0 ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"
-            )}
-          >
-            {theirs.toLocaleString()}{suffix}
-          </p>
-        </div>
+        {bothZero ? (
+          <span className="text-[var(--text-muted)] text-[11px]">No data yet</span>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "font-mono font-bold",
+                youAhead ? "text-[var(--accent-success)]" : "text-[var(--text-primary)]"
+              )}
+            >
+              {yours.toLocaleString()}{suffix}
+            </span>
+            <span className="text-[var(--text-muted)]">vs</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
+              {theirs.toLocaleString()}{suffix}
+            </span>
+          </div>
+        )}
       </div>
-    </GlowCard>
+      {!bothZero && (
+        <div className="flex h-2 rounded-full overflow-hidden bg-[var(--bg-elevated)]">
+          <div
+            className="rounded-l-full transition-all duration-500 bg-[var(--accent-primary)]"
+            style={{ width: `${yoursPercent}%` }}
+          />
+          <div
+            className="rounded-r-full transition-all duration-500 bg-[var(--accent-info)]"
+            style={{ width: `${100 - yoursPercent}%` }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -147,6 +156,8 @@ function StatCard({
   icon: React.ReactNode;
   color: string;
 }) {
+  const isEmpty = value === "0" || value === "0m";
+
   return (
     <GlowCard glowColor="none">
       <div className="flex items-center gap-3">
@@ -154,8 +165,14 @@ function StatCard({
           {icon}
         </div>
         <div>
-          <p className="text-lg font-mono font-bold text-[var(--text-primary)]">{value}</p>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{label}</p>
+          {isEmpty ? (
+            <p className="text-sm text-[var(--text-muted)]">No {label.toLowerCase()} completed</p>
+          ) : (
+            <>
+              <p className="text-lg font-mono font-bold text-[var(--text-primary)]">{value}</p>
+              <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{label}</p>
+            </>
+          )}
         </div>
       </div>
     </GlowCard>
@@ -177,6 +194,7 @@ export default function FriendProfileClient({ friendId }: Props) {
   const [data, setData] = useState<FriendStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFullYear, setShowFullYear] = useState(false);
 
   // Nudge state
   const [nudging, setNudging] = useState(false);
@@ -270,11 +288,16 @@ export default function FriendProfileClient({ friendId }: Props) {
   const profile = friend.profile;
   const stats = friend.period_stats;
 
-  // Calculate consistency (tasks per day that had activity)
-  const friendConsistency = stats
-    ? Math.round((stats.tasks_completed / 30) * 100)
-    : 0;
-  const myConsistency = Math.round((comparison.tasks_completed / 30) * 100);
+  // Date range for period context
+  const periodEnd = new Date();
+  const periodStart = new Date();
+  periodStart.setDate(periodStart.getDate() - 30);
+  const dateRangeStr = `${periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+
+  // Heatmap data split: last 30 days for bar chart, full year for heatmap
+  const last30Days = heatmap
+    ? heatmap.slice(-30)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -297,9 +320,11 @@ export default function FriendProfileClient({ friendId }: Props) {
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-primary)] rounded-full blur-3xl" />
         </div>
         <div className="relative flex items-center gap-4 flex-wrap">
-          <div className="p-3.5 rounded-full bg-[var(--accent-primary)]/10 shrink-0">
-            <Users size={28} className="text-[var(--accent-primary)]" />
-          </div>
+          <UserAvatar
+            userId={profile.user_id}
+            displayName={profile.display_name}
+            size={48}
+          />
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-[var(--text-primary)] truncate">
               {profile.display_name || "Anonymous"}
@@ -349,35 +374,42 @@ export default function FriendProfileClient({ friendId }: Props) {
         </div>
       </GlowCard>
 
-      {/* Comparison Cards */}
+      {/* Comparison Bars */}
       {profile.current_streak != null && profile.level != null && (
-        <>
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-            You vs Them
+        <GlowCard glowColor="none">
+          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)] mb-4">
+            How You Compare
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ComparisonCard
+          <div className="space-y-4">
+            <ComparisonRow
               label="Streak"
-              icon={<Flame size={14} />}
+              icon={<Flame size={13} />}
               yours={comparison.current_streak}
               theirs={profile.current_streak ?? 0}
               suffix="d"
             />
-            <ComparisonCard
-              label="Consistency"
-              icon={<TrendingUp size={14} />}
-              yours={myConsistency}
-              theirs={friendConsistency}
-              suffix="%"
-            />
-            <ComparisonCard
+            <ComparisonRow
               label="Level"
-              icon={<Zap size={14} />}
+              icon={<Zap size={13} />}
               yours={comparison.level}
               theirs={profile.level ?? 1}
             />
+            <ComparisonRow
+              label="Tasks"
+              icon={<CheckCircle2 size={13} />}
+              yours={comparison.tasks_completed}
+              theirs={stats?.tasks_completed ?? 0}
+            />
           </div>
-        </>
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[var(--border-subtle)] text-[10px] text-[var(--text-muted)]">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent-primary)]" /> You
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent-info)]" /> {profile.display_name || "Them"}
+            </span>
+          </div>
+        </GlowCard>
       )}
 
       {/* Overview Stats */}
@@ -385,6 +417,9 @@ export default function FriendProfileClient({ friendId }: Props) {
         <>
           <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
             Last 30 Days
+            <span className="font-normal normal-case tracking-normal ml-2 text-[var(--text-muted)]">
+              ({dateRangeStr})
+            </span>
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard
@@ -467,19 +502,35 @@ export default function FriendProfileClient({ friendId }: Props) {
         </>
       ) : null}
 
-      {/* Activity Heatmap */}
+      {/* Activity Visualization — dual mode: bar chart (30d) / heatmap (year) */}
       {heatmap && heatmap.length > 0 && (
         <>
-          <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-            Activity Heatmap
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+              {showFullYear ? "Activity Heatmap" : "Activity (Last 30 Days)"}
+            </h2>
+            <button
+              onClick={() => setShowFullYear((v) => !v)}
+              className={cn(
+                "text-xs text-[var(--accent-primary)] hover:underline transition-colors",
+                "min-h-[44px] sm:min-h-0 flex items-center",
+                "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+              )}
+            >
+              {showFullYear ? "Show 30 days" : "View full year"}
+            </button>
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
             <GlowCard glowColor="none">
-              <ActivityHeatmap data={heatmap} />
+              {showFullYear ? (
+                <ActivityHeatmap data={heatmap} fullYear />
+              ) : (
+                <ActivityBarChart data={last30Days} />
+              )}
             </GlowCard>
           </motion.div>
         </>

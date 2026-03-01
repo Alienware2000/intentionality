@@ -16,6 +16,7 @@ import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { prefersReducedMotion } from "@/app/lib/anime-utils";
 import XpChart from "@/app/components/charts/XpChart";
 import ActivityHeatmap from "@/app/components/charts/ActivityHeatmap";
+import ActivityBarChart from "@/app/components/charts/ActivityBarChart";
 import {
   DailyChallengesSection,
   WeeklyChallengeCard,
@@ -339,7 +340,7 @@ export default function AnalyticsClient() {
             >
               <span className="text-sm text-[var(--text-muted)]">Period:</span>
               <div className="relative flex gap-1">
-                {[7, 14, 30, 60, 90].map((d) => (
+                {[7, 14, 30, 60, 90, 365].map((d) => (
                   <motion.button
                     key={d}
                     onClick={() => setDays(d)}
@@ -363,7 +364,7 @@ export default function AnalyticsClient() {
                         }}
                       />
                     )}
-                    {d}d
+                    {d === 365 ? "1Y" : `${d}d`}
                   </motion.button>
                 ))}
               </div>
@@ -418,7 +419,7 @@ export default function AnalyticsClient() {
               className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
             >
               <StatCard
-                label={`XP Earned (${days}d)`}
+                label={`XP Earned (${days === 365 ? "YTD" : days + "d"})`}
                 value={`+${overview.xpEarnedInPeriod.toLocaleString()}`}
                 icon={<TrendingUp size={18} />}
                 accent="primary"
@@ -427,14 +428,14 @@ export default function AnalyticsClient() {
               <StatCard
                 label="Habits Completed"
                 value={overview.habitCompletions}
-                subValue={`In last ${days} days`}
+                subValue={days === 365 ? "Year to date" : `In last ${days} days`}
                 icon={<CheckCircle2 size={18} />}
                 accent="success"
                 delay={1}
               />
               <StatCard
                 label="Avg Daily XP"
-                value={Math.round(overview.xpEarnedInPeriod / days)}
+                value={Math.round(overview.xpEarnedInPeriod / (data.period.days || days))}
                 subValue="XP per day"
                 icon={<Zap size={18} />}
                 accent="highlight"
@@ -476,9 +477,13 @@ export default function AnalyticsClient() {
               )}
             >
               <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
-                <span className="text-[var(--accent-info)]">●</span> Activity Heatmap
+                <span className="text-[var(--accent-info)]">●</span> Activity {days <= 30 ? "Chart" : "Heatmap"}
               </h3>
-              <ActivityHeatmap data={activityHeatmap} />
+              {days <= 30 ? (
+                <ActivityBarChart data={activityHeatmap} />
+              ) : (
+                <ActivityHeatmap data={activityHeatmap} fullYear={days === 365} />
+              )}
             </motion.div>
 
             {/* Challenges Row */}
