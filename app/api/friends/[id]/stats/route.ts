@@ -122,16 +122,25 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       .eq("user_id", friendId);
     const friendHabitIds = friendHabits?.map((h: { id: string }) => h.id) ?? [];
 
+    // Get friend's quest IDs (tasks have no user_id column — owned through quests)
+    const { data: friendQuests } = await admin
+      .from("quests")
+      .select("id")
+      .eq("user_id", friendId);
+    const friendQuestIds = friendQuests?.map((q: { id: string }) => q.id) ?? [];
+
     const [tasksResult, focusResult, habitsResult] = await Promise.all([
-      admin
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", friendId)
-        .eq("completed", true)
-        .gte("completed_at", periodStartISO),
+      friendQuestIds.length > 0
+        ? admin
+            .from("tasks")
+            .select("id", { count: "exact", head: true })
+            .in("quest_id", friendQuestIds)
+            .eq("completed", true)
+            .gte("completed_at", periodStartISO)
+        : Promise.resolve({ count: 0, data: null, error: null }),
       admin
         .from("focus_sessions")
-        .select("actual_duration")
+        .select("work_duration")
         .eq("user_id", friendId)
         .eq("status", "completed")
         .gte("started_at", periodStartISO),
@@ -145,7 +154,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     ]);
 
     const focusMinutes = (focusResult.data ?? []).reduce(
-      (sum: number, s: { actual_duration: number | null }) => sum + (s.actual_duration || 0),
+      (sum: number, s: { work_duration: number | null }) => sum + (s.work_duration || 0),
       0
     );
 
@@ -183,7 +192,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
         .gte("completed_at", periodStartISO),
       supabase
         .from("focus_sessions")
-        .select("actual_duration")
+        .select("work_duration")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .gte("started_at", periodStartISO),
@@ -197,7 +206,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     ]);
 
   const myFocusMinutes = (myFocusResult.data ?? []).reduce(
-    (sum: number, s: { actual_duration: number | null }) => sum + (s.actual_duration || 0),
+    (sum: number, s: { work_duration: number | null }) => sum + (s.work_duration || 0),
     0
   );
 
@@ -259,16 +268,25 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       .eq("user_id", friendId);
     const heatHabitIds = heatHabitData?.map((h: { id: string }) => h.id) ?? [];
 
+    // Get friend's quest IDs for heatmap (tasks owned through quests)
+    const { data: heatQuestData } = await admin
+      .from("quests")
+      .select("id")
+      .eq("user_id", friendId);
+    const heatQuestIds = heatQuestData?.map((q: { id: string }) => q.id) ?? [];
+
     const [heatTasks, heatFocus, heatHabits] = await Promise.all([
-      admin
-        .from("tasks")
-        .select("completed_at")
-        .eq("user_id", friendId)
-        .eq("completed", true)
-        .gte("completed_at", yearStartISO),
+      heatQuestIds.length > 0
+        ? admin
+            .from("tasks")
+            .select("completed_at")
+            .in("quest_id", heatQuestIds)
+            .eq("completed", true)
+            .gte("completed_at", yearStartISO)
+        : Promise.resolve({ data: [], error: null }),
       admin
         .from("focus_sessions")
-        .select("started_at, actual_duration")
+        .select("started_at, work_duration")
         .eq("user_id", friendId)
         .eq("status", "completed")
         .gte("started_at", yearStartISO),
@@ -300,7 +318,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       const day = f.started_at?.split("T")[0];
       if (day && dayMap[day]) {
         dayMap[day].count++;
-        dayMap[day].minutes += f.actual_duration || 0;
+        dayMap[day].minutes += f.work_duration || 0;
       }
     }
 
