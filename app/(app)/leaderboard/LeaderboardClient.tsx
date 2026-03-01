@@ -384,7 +384,7 @@ function GroupSelector({ groups, selectedGroupId, onSelect }: GroupSelectorProps
 // -----------------------------------------------------------------------------
 
 export default function LeaderboardClient() {
-  const { groups, sendFriendRequest, sentRequests } = useSocial();
+  const { groups, sendFriendRequest, sentRequests, friends } = useSocial();
 
   const [tab, setTab] = useState<LeaderboardTab>("global");
   const [metric, setMetric] = useState<LeaderboardMetric>("xp");
@@ -615,6 +615,9 @@ export default function LeaderboardClient() {
               const hasPendingRequest = sentRequests.some(
                 (sr) => sr.user_id === entry.user_id
               );
+              const isFriend = friends.some(
+                (f) => f.user_id === entry.user_id
+              );
 
               return (
                 <motion.div
@@ -624,7 +627,7 @@ export default function LeaderboardClient() {
                   variants={itemVariants}
                 >
                   <RankingRow
-                    entry={entry}
+                    entry={{ ...entry, is_friend: isFriend }}
                     metric={metric}
                     index={index}
                     onAddFriend={tab === "global" ? sendFriendRequest : undefined}
