@@ -66,9 +66,12 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   const params = getSearchParams(request);
   const days = Math.min(Math.max(parseInt(params.get("days") ?? "30"), 7), 365);
 
-  const startDate = daysAgo(days);
+  const startDate = days >= 365
+    ? `${new Date().getFullYear()}-01-01`
+    : daysAgo(days);
   const endDate = daysAgo(0);
   const dateRange = getDateRange(startDate, endDate);
+  const actualDays = dateRange.length;
 
   try {
     // Fetch all data in parallel
@@ -228,7 +231,7 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
       xpHistory,
       activityHeatmap,
       period: {
-        days,
+        days: actualDays,
         startDate,
         endDate,
       },

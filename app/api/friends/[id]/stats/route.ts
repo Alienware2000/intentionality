@@ -10,6 +10,7 @@ import {
   ApiErrors,
   successResponse,
 } from "@/app/lib/auth-middleware";
+import { toISODateString } from "@/app/lib/date-utils";
 
 // Service role client for cross-user queries (bypasses RLS)
 function createAdminClient() {
@@ -242,15 +243,14 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Activity heatmap (last 365 days)
+  // 7. Activity heatmap (year to date: Jan 1 → today)
   // ---------------------------------------------------------------------------
 
   let heatmap = null;
   if (privacy.show_activity) {
-    const yearAgo = new Date();
-    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-    const yearAgoISO = yearAgo.toISOString();
-    const yearAgoDate = yearAgoISO.split("T")[0];
+    const now = new Date();
+    const yearStartDate = `${now.getFullYear()}-01-01`;
+    const yearStartISO = `${yearStartDate}T00:00:00`;
 
     // Get friend's habit IDs for heatmap
     const { data: heatHabitData } = await admin
@@ -265,36 +265,40 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
         .select("completed_at")
         .eq("user_id", friendId)
         .eq("completed", true)
-        .gte("completed_at", yearAgoISO),
+        .gte("completed_at", yearStartISO),
       admin
         .from("focus_sessions")
         .select("started_at, actual_duration")
         .eq("user_id", friendId)
         .eq("status", "completed")
-        .gte("started_at", yearAgoISO),
+        .gte("started_at", yearStartISO),
       heatHabitIds.length > 0
         ? admin
             .from("habit_completions")
             .select("completed_date")
             .in("habit_id", heatHabitIds)
-            .gte("completed_date", yearAgoDate)
+            .gte("completed_date", yearStartDate)
         : Promise.resolve({ data: [], error: null }),
     ]);
 
+    // Pre-fill Jan 1 → today with zeros so the heatmap gets a complete grid
     const dayMap: Record<string, { count: number; minutes: number }> = {};
+    const today = new Date();
+    const jan1 = new Date(today.getFullYear(), 0, 1);
+    for (let d = new Date(jan1); d <= today; d.setDate(d.getDate() + 1)) {
+      dayMap[toISODateString(d)] = { count: 0, minutes: 0 };
+    }
 
     for (const t of heatTasks.data ?? []) {
       const day = t.completed_at?.split("T")[0];
-      if (day) {
-        if (!dayMap[day]) dayMap[day] = { count: 0, minutes: 0 };
+      if (day && dayMap[day]) {
         dayMap[day].count++;
       }
     }
 
     for (const f of heatFocus.data ?? []) {
       const day = f.started_at?.split("T")[0];
-      if (day) {
-        if (!dayMap[day]) dayMap[day] = { count: 0, minutes: 0 };
+      if (day && dayMap[day]) {
         dayMap[day].count++;
         dayMap[day].minutes += f.actual_duration || 0;
       }
@@ -302,17 +306,18 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
 
     for (const h of heatHabits.data ?? []) {
       const day = h.completed_date;
-      if (day) {
-        if (!dayMap[day]) dayMap[day] = { count: 0, minutes: 0 };
+      if (day && dayMap[day]) {
         dayMap[day].count++;
       }
     }
 
-    heatmap = Object.entries(dayMap).map(([date, { count, minutes }]) => ({
-      date,
-      count,
-      minutes,
-    }));
+    heatmap = Object.entries(dayMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { count, minutes }]) => ({
+        date,
+        count,
+        minutes,
+      }));
   }
 
   // ---------------------------------------------------------------------------
