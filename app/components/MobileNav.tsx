@@ -239,7 +239,7 @@ export default function MobileNav() {
                 }}
               >
                 {[
-                  { href: "/inbox", icon: Inbox, label: "Inbox" },
+                  { href: "/inbox", icon: Inbox, label: "Thoughts" },
                   { href: "/review", icon: BookOpen, label: "Review" },
                   { href: "/leaderboard", icon: Trophy, label: "Leaderboard" },
                   { href: "/friends", icon: Users, label: "Friends" },

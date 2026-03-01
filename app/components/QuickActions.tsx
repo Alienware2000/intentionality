@@ -62,7 +62,7 @@ export default function QuickActions() {
         )}
       >
         <Inbox size={16} />
-        <span className="hidden sm:inline">Inbox</span>
+        <span className="hidden sm:inline">Thoughts</span>
       </Link>
 
       {/* Analytics Link */}

@@ -87,7 +87,7 @@ export const POWER_STEPS: OnboardingStepConfig[] = [
     title: "Try Brain Dump",
     description: "Press Ctrl+K to quickly capture thoughts",
     icon: "Brain",
-    actionLabel: "Open Inbox",
+    actionLabel: "Open Thoughts",
     actionHref: "/inbox",
   },
   {

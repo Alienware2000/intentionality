@@ -253,7 +253,7 @@ export function BrainDumpTooltip({ className }: { className?: string }) {
         <div className="space-y-1">
           <p className="font-medium text-[var(--text-primary)]">Brain Dump</p>
           <p>Quickly capture thoughts without breaking your flow. Press <kbd className="px-1 py-0.5 rounded bg-[var(--bg-card)] font-mono text-[10px]">Ctrl+K</kbd> anytime.</p>
-          <p className="text-[var(--text-muted)]">Process them later in your Inbox.</p>
+          <p className="text-[var(--text-muted)]">Process them later in Thoughts.</p>
         </div>
       }
     />

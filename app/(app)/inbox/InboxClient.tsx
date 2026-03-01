@@ -26,7 +26,7 @@ export default function InboxClient() {
   const [error, setError] = useState<string | null>(null);
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [convertingEntry, setConvertingEntry] = useState<BrainDumpEntry | null>(null);
-  const { openBrainDump } = useBrainDump();
+  const { openBrainDump, lastCapturedEntry } = useBrainDump();
 
   const loadData = useCallback(async () => {
     try {
@@ -47,6 +47,15 @@ export default function InboxClient() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Prepend newly captured entries from BrainDumpProvider
+  useEffect(() => {
+    if (!lastCapturedEntry) return;
+    setEntries((prev) => {
+      if (prev.some((e) => e.id === lastCapturedEntry.id)) return prev;
+      return [lastCapturedEntry, ...prev];
+    });
+  }, [lastCapturedEntry]);
 
   async function handleDelete(entryId: string) {
     try {
@@ -120,7 +129,7 @@ export default function InboxClient() {
             <Brain size={32} className="text-[var(--text-muted)]" />
           </div>
           <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
-            Inbox is empty
+            No thoughts yet
           </h3>
           <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto mb-6">
             Capture thoughts quickly and process them later.

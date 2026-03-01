@@ -36,7 +36,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Week", href: "/week", icon: Calendar },
   { label: "Quests", href: "/quests", icon: Target },
-  { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "Thoughts", href: "/inbox", icon: Inbox },
   { label: "Review", href: "/review", icon: BookOpen },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   // Social features

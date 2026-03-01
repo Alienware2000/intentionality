@@ -14,6 +14,7 @@ type BrainDumpContextValue = {
   openBrainDump: () => void;
   closeBrainDump: () => void;
   isOpen: boolean;
+  lastCapturedEntry: BrainDumpEntry | null;
 };
 
 const BrainDumpContext = createContext<BrainDumpContextValue | null>(null);
@@ -32,6 +33,7 @@ type Props = {
 
 export function BrainDumpProvider({ children }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [lastCapturedEntry, setLastCapturedEntry] = useState<BrainDumpEntry | null>(null);
 
   const openBrainDump = useCallback(() => setIsOpen(true), []);
   const closeBrainDump = useCallback(() => setIsOpen(false), []);
@@ -51,12 +53,11 @@ export function BrainDumpProvider({ children }: Props) {
   }, []);
 
   function handleCapture(entry: BrainDumpEntry) {
-    // Entry captured successfully - could show toast here in the future
-    void entry;
+    setLastCapturedEntry(entry);
   }
 
   return (
-    <BrainDumpContext.Provider value={{ openBrainDump, closeBrainDump, isOpen }}>
+    <BrainDumpContext.Provider value={{ openBrainDump, closeBrainDump, isOpen, lastCapturedEntry }}>
       {children}
       <BrainDumpModal
         isOpen={isOpen}
