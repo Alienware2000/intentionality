@@ -192,7 +192,8 @@ export function SocialProvider({ children }: SocialProviderProps) {
   const refreshDailyProgress = useCallback(async () => {
     try {
       setDailyProgressLoading(true);
-      const res = await fetchWithRetry("/api/friends/daily-progress");
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetchWithRetry(`/api/friends/daily-progress?tz=${encodeURIComponent(tz)}`);
       const data = await res.json();
 
       if (data.ok) {

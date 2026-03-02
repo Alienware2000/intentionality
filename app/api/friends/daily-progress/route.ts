@@ -20,11 +20,40 @@ function createAdminClient() {
   );
 }
 
+/** Return an ISO timestamp for midnight in the given timezone (today). */
+function getStartOfDayUTC(timezone: string): string {
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone });
+  const [y, m, d] = todayStr.split("-").map(Number);
+
+  // Reference: midnight UTC for today's date
+  const refUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+
+  // Find timezone offset using Intl.DateTimeFormat
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(refUTC);
+
+  const get = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value || "0");
+  const tzAsUTC = Date.UTC(
+    get("year"), get("month") - 1, get("day"),
+    get("hour"), get("minute"), get("second")
+  );
+  const offsetMs = tzAsUTC - refUTC.getTime();
+
+  // Midnight in user's timezone = midnight UTC of their date − offset
+  return new Date(refUTC.getTime() - offsetMs).toISOString();
+}
+
 // -----------------------------------------------------------------------------
 // GET /api/friends/daily-progress
 // -----------------------------------------------------------------------------
 
-export const GET = withAuth(async ({ user, supabase }) => {
+export const GET = withAuth(async ({ user, supabase, request }) => {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return ApiErrors.serverError("Missing SUPABASE_SERVICE_ROLE_KEY");
   }
@@ -67,8 +96,9 @@ export const GET = withAuth(async ({ user, supabase }) => {
   }
 
   // Get today's stats for visible friends (parallel)
-  const today = new Date().toISOString().split("T")[0];
-  const todayStart = `${today}T00:00:00.000Z`;
+  const url = new URL(request.url);
+  const tz = url.searchParams.get("tz") || "UTC";
+  const todayStart = getStartOfDayUTC(tz);
 
   const [tasksResult, habitsResult, focusResult] = await Promise.all([
     admin
@@ -79,8 +109,8 @@ export const GET = withAuth(async ({ user, supabase }) => {
       .gte("completed_at", todayStart),
     admin
       .from("habit_completions")
-      .select("habit_id, completed_at, completed_date")
-      .eq("completed_date", today),
+      .select("habit_id, completed_at")
+      .gte("completed_at", todayStart),
     admin
       .from("focus_sessions")
       .select("user_id, actual_duration, ended_at")
