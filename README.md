@@ -1,4 +1,4 @@
-# Intentionality
+# Intentionality 
 
 **Stop procrastinating. Start progressing.**
 
