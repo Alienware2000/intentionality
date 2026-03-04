@@ -1,7 +1,7 @@
 # Intentionality 
 
 **Stop procrastinating. Start progressing.**
-
+ 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
