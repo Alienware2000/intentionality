@@ -101,7 +101,7 @@ export default function SocialProof() {
   }, []);
 
   return (
-    <section className="py-24 px-6 bg-[var(--bg-elevated)]" ref={containerRef}>
+    <section className="py-24 px-6" ref={containerRef}>
       <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

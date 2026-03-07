@@ -41,7 +41,6 @@ export default function PhilosophySection() {
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)]">
             Why I Built This
           </h2>
-          <div className="mt-4 h-1 w-16 mx-auto bg-gradient-to-r from-[var(--accent-primary)] to-transparent rounded-full" />
         </motion.div>
 
         <div className="space-y-8">

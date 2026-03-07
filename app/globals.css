@@ -405,6 +405,37 @@ body {
 }
 
 /* =============================================================================
+   LANDING PAGE UTILITIES
+   Overrides for marketing/landing pages — keeps app dashboard unaffected
+   ============================================================================= */
+
+/* Hide hex grid + corner glows on landing pages only */
+.landing-page .intentionality-bg { display: none; }
+
+/* Consistent card surface for all landing demos */
+.landing-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+:root.light .landing-card { border-color: rgba(30, 25, 20, 0.08); }
+
+/* Single subtle hero glow — one soft accent bloom, centered */
+.landing-hero-glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px; height: 600px;
+  background: radial-gradient(ellipse at center,
+    rgba(var(--accent-primary-rgb), 0.07) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+:root.light .landing-hero-glow {
+  background: radial-gradient(ellipse at center,
+    rgba(var(--accent-primary-rgb), 0.04) 0%, transparent 70%);
+}
+
+/* =============================================================================
    CUSTOM SCROLLBAR STYLING
    Thin, themed scrollbars that match the design system
    ============================================================================= */

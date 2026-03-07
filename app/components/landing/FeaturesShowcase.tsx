@@ -95,7 +95,7 @@ export default function FeaturesShowcase() {
                   transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                   className={`w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all ${
                     isActive
-                      ? "bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30"
+                      ? "bg-[var(--bg-card)] border border-[var(--border-subtle)]"
                       : "hover:bg-[var(--bg-hover)] border border-transparent"
                   }`}
                 >

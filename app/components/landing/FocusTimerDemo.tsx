@@ -103,14 +103,6 @@ export default function FocusTimerDemo() {
             </span>
           </div>
 
-          {/* Glow effect when running */}
-          {isRunning && (
-            <motion.div
-              animate={{ opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-[var(--accent-primary)]/10 blur-xl -z-10"
-            />
-          )}
         </div>
 
         {/* Controls */}

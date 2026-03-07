@@ -13,8 +13,10 @@ export default function MarketingLayout({
 }) {
   return (
     <ThemeProvider>
-      <div className="intentionality-bg" />
-      <main className="relative z-10 min-h-screen">{children}</main>
+      <div className="landing-page">
+        <div className="intentionality-bg" />
+        <main className="relative z-10 min-h-screen">{children}</main>
+      </div>
     </ThemeProvider>
   );
 }

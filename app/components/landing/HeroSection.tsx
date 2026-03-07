@@ -29,7 +29,7 @@ export default function HeroSection() {
         opacity: [0, 1],
         translateY: [30, 0],
         delay: anime.stagger(80, { start: 300 }),
-        duration: 800,
+        duration: 500,
         easing: "easeOutExpo",
       });
     }
@@ -37,6 +37,7 @@ export default function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 pt-20 pb-12">
+      <div className="landing-hero-glow" />
       <div className="mx-auto max-w-5xl w-full">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
@@ -108,12 +109,12 @@ export default function HeroSection() {
 
           {/* Right: Dashboard Preview */}
           <motion.div
-            initial={{ opacity: 0, y: 40, rotateX: 10 }}
-            animate={{ opacity: 1, y: 0, rotateX: 0 }}
-            transition={{ delay: 0.8, duration: 1, ease: "easeOut" }}
-            className="relative perspective-1000"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6, ease: "easeOut" }}
+            className="relative"
           >
-            <div className="relative rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-6 shadow-2xl shadow-[var(--accent-primary)]/10">
+            <div className="relative rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-6 shadow-2xl shadow-black/20">
               {/* Mini dashboard preview */}
               <div className="space-y-4">
                 {/* Header bar */}
@@ -198,8 +199,6 @@ export default function HeroSection() {
               </div>
             </div>
 
-            {/* Glow effect */}
-            <div className="absolute -inset-px rounded-xl bg-gradient-to-br from-[var(--accent-primary)]/20 via-transparent to-transparent blur-xl -z-10" />
           </motion.div>
         </div>
       </div>

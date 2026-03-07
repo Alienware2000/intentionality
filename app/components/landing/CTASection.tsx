@@ -53,22 +53,12 @@ export default function CTASection() {
           </p>
         </motion.div>
 
-        {/* Subtle divider */}
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          animate={
-            isInView ? { opacity: 1, scaleX: 1 } : { opacity: 0, scaleX: 0 }
-          }
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-16 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent"
-        />
-
         {/* Footer note */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-8 text-sm text-[var(--text-muted)]"
+          className="mt-16 text-sm text-[var(--text-muted)]"
         >
           Built with intention. Designed for focus.
         </motion.p>

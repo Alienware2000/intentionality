@@ -3,19 +3,33 @@
 // =============================================================================
 // LANDING NAV
 // Minimal navigation header for the landing page.
-// Shows logo and sign-in link, fixed at top.
+// Shows logo and sign-in link, fixed at top with scroll-aware frosted glass.
 // =============================================================================
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function LandingNav() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <motion.nav
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
+      className={`fixed top-0 left-0 right-0 z-50 px-6 py-4 transition-all duration-300 ${
+        scrolled
+          ? "bg-[var(--bg-base)]/80 backdrop-blur-md border-b border-[var(--border-subtle)]"
+          : ""
+      }`}
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between">
         {/* Logo */}
