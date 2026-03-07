@@ -110,10 +110,10 @@ export default function SocialProof() {
           className="text-center mb-12"
         >
           <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
-            Built for Students Who Mean It
+            The numbers so far
           </h2>
           <p className="mt-3 text-[var(--text-secondary)]">
-            Real progress from real users
+            From actual students using this right now
           </p>
         </motion.div>
 
@@ -130,7 +130,7 @@ export default function SocialProof() {
                   isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
                 }
                 transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                className="text-center p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]"
+                className="glass-card hover-lift-glow text-center p-6 rounded-xl border border-[var(--border-subtle)]"
               >
                 <div
                   className={`inline-flex p-3 rounded-full ${stat.color}/10 mb-4`}

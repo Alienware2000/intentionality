@@ -42,15 +42,6 @@ export default function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
           <div className="text-center lg:text-left">
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-sm font-medium uppercase tracking-widest text-[var(--accent-primary)] mb-4"
-            >
-              For students who mean it
-            </motion.p>
-
             <h1
               ref={headlineRef}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight text-[var(--text-primary)]"
@@ -77,9 +68,9 @@ export default function HeroSection() {
               transition={{ delay: 1.2, duration: 0.8 }}
               className="mt-6 text-lg text-[var(--text-secondary)] max-w-xl mx-auto lg:mx-0"
             >
-              No app will make you productive. That takes effort. Intentionality
-              is built for students who are ready to put in the work—it just makes
-              the work clearer.
+              No app will make you productive. That part is on you.
+              Intentionality just makes it easier to see what actually needs
+              doing, so you spend less time planning and more time working.
             </motion.p>
 
             <motion.div
@@ -90,7 +81,7 @@ export default function HeroSection() {
             >
               <Link
                 href="/auth"
-                className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent-primary)] text-white font-semibold rounded-lg hover:bg-[var(--accent-primary)]/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--accent-primary)] text-white font-semibold rounded-lg hover:bg-[var(--accent-primary)]/90 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[var(--accent-primary)]/20 hover:shadow-xl hover:shadow-[var(--accent-primary)]/30"
               >
                 I&apos;m Ready
                 <ArrowRight
@@ -114,7 +105,7 @@ export default function HeroSection() {
             transition={{ delay: 0.8, duration: 0.6, ease: "easeOut" }}
             className="relative"
           >
-            <div className="relative rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-6 shadow-2xl shadow-black/20">
+            <div className="glass-card-premium relative rounded-xl border border-[var(--border-default)] p-6">
               {/* Mini dashboard preview */}
               <div className="space-y-4">
                 {/* Header bar */}

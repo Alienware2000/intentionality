@@ -6,7 +6,6 @@
 
 import LandingNav from "../components/landing/LandingNav";
 import HeroSection from "../components/landing/HeroSection";
-import PhilosophySection from "../components/landing/PhilosophySection";
 import FeaturesShowcase from "../components/landing/FeaturesShowcase";
 import SocialProof from "../components/landing/SocialProof";
 import CTASection from "../components/landing/CTASection";
@@ -14,7 +13,7 @@ import CTASection from "../components/landing/CTASection";
 export const metadata = {
   title: "Intentionality - For Students Who Mean It",
   description:
-    "A gamified productivity dashboard for students ready to put in the work. XP, streaks, focus timers, and AI assistance—built to support your discipline, not replace it.",
+    "A productivity dashboard for students who are ready to do the work. Focus timers, XP, streaks, and an AI assistant that supports your discipline instead of replacing it.",
 };
 
 export default function LandingPage() {
@@ -22,7 +21,6 @@ export default function LandingPage() {
     <>
       <LandingNav />
       <HeroSection />
-      <PhilosophySection />
       <FeaturesShowcase />
       <SocialProof />
       <CTASection />

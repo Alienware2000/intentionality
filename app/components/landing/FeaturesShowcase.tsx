@@ -8,7 +8,7 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { Brain, ListTodo, Timer, TrendingUp, ChevronRight } from "lucide-react";
+import { Brain, ListTodo, Timer, TrendingUp } from "lucide-react";
 import GamificationDemo from "./GamificationDemo";
 import FocusTimerDemo from "./FocusTimerDemo";
 import AIAssistantDemo from "./AIAssistantDemo";
@@ -17,34 +17,34 @@ const FEATURES = [
   {
     id: "capture",
     title: "Capture",
-    subtitle: "Get it out of your head",
+    subtitle: "Brain dump",
     icon: Brain,
     description:
-      "Brain dump your thoughts, and let Kofi help parse them into actionable tasks. Stop trying to remember everything.",
+      "Type everything floating around in your head. Kofi (the AI) reads through it and pulls out the actual tasks, so you don't have to organize it yourself.",
   },
   {
     id: "plan",
     title: "Plan",
-    subtitle: "Turn chaos into clarity",
+    subtitle: "Figure out what matters",
     icon: ListTodo,
     description:
-      "Prioritize what matters. Weekly planning sessions help you stay intentional about where your time goes.",
+      "Set priorities for the week. The app sorts your tasks by what's most important so you're not staring at a flat list wondering where to start.",
   },
   {
     id: "execute",
     title: "Execute",
-    subtitle: "Do the work",
+    subtitle: "Sit down and focus",
     icon: Timer,
     description:
-      "Focus timers keep you in the zone. Track your progress and earn XP as you complete tasks.",
+      "Pomodoro-style focus timer. You pick a task, set the timer, and work. You earn XP when you finish, which sounds small but actually keeps you coming back.",
   },
   {
     id: "progress",
     title: "Progress",
-    subtitle: "Consistency compounds",
+    subtitle: "See that it's working",
     icon: TrendingUp,
     description:
-      "Watch your XP grow. Level up. Maintain streaks. The gamification isn't a gimmick—it's a feedback loop for your habits.",
+      "Streaks, levels, XP. It sounds like a game because it is one, kind of. The point is you can look at your dashboard and see proof that you showed up this week.",
   },
 ];
 
@@ -64,11 +64,11 @@ export default function FeaturesShowcase() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)]">
-            Here&apos;s How It Works
+            What you actually get
           </h2>
           <p className="mt-4 text-[var(--text-secondary)] max-w-2xl mx-auto">
-            Four steps to staying on top of your work. No complex setup, no steep
-            learning curve.
+            You don&apos;t need another app that takes a week to set up.
+            Here&apos;s the whole thing.
           </p>
         </motion.div>
 
@@ -95,7 +95,7 @@ export default function FeaturesShowcase() {
                   transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                   className={`w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all ${
                     isActive
-                      ? "bg-[var(--bg-card)] border border-[var(--border-subtle)]"
+                      ? "bg-[var(--accent-primary)]/8 border border-[var(--accent-primary)]/20"
                       : "hover:bg-[var(--bg-hover)] border border-transparent"
                   }`}
                 >
@@ -109,23 +109,6 @@ export default function FeaturesShowcase() {
                     <Icon size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-medium uppercase tracking-wide ${
-                          isActive
-                            ? "text-[var(--accent-primary)]"
-                            : "text-[var(--text-muted)]"
-                        }`}
-                      >
-                        Step {index + 1}
-                      </span>
-                      {isActive && (
-                        <ChevronRight
-                          size={14}
-                          className="text-[var(--accent-primary)]"
-                        />
-                      )}
-                    </div>
                     <h3
                       className={`text-lg font-semibold mt-1 ${
                         isActive
@@ -255,7 +238,7 @@ function PlanningDemo() {
   };
 
   return (
-    <div className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)]">
+    <div className="glass-card-premium p-6 rounded-xl border border-[var(--border-default)]">
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="font-semibold text-[var(--text-primary)]">

@@ -27,8 +27,8 @@ export default function CTASection() {
             This won&apos;t work unless you do.
           </h2>
           <p className="mt-6 text-lg text-[var(--text-secondary)] max-w-xl mx-auto">
-            If you&apos;re ready to put in the effort, Intentionality will help
-            you stay clear, focused, and accountable.
+            Intentionality won&apos;t do the work for you. But it&apos;ll make
+            it a lot harder to ignore.
           </p>
         </motion.div>
 
@@ -53,15 +53,6 @@ export default function CTASection() {
           </p>
         </motion.div>
 
-        {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-16 text-sm text-[var(--text-muted)]"
-        >
-          Built with intention. Designed for focus.
-        </motion.p>
       </div>
     </section>
   );
