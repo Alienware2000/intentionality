@@ -13,6 +13,7 @@ import type { ISODateString } from "@/app/lib/types";
 
 // Google Calendar API
 const GOOGLE_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars";
+const GOOGLE_CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 // -----------------------------------------------------------------------------
@@ -26,6 +27,22 @@ type GoogleEvent = {
   start: { date?: string; dateTime?: string };
   end: { date?: string; dateTime?: string };
   status: string;
+  colorId?: string;
+};
+
+// Google event colorId (1-11) → hex mapping
+const GOOGLE_EVENT_COLORS: Record<string, string> = {
+  "1": "#a4bdfc",  // Lavender
+  "2": "#7ae7bf",  // Sage
+  "3": "#dbadff",  // Grape
+  "4": "#ff887c",  // Flamingo
+  "5": "#fbd75b",  // Banana
+  "6": "#ffb878",  // Tangerine
+  "7": "#46d6db",  // Peacock
+  "8": "#e1e1e1",  // Graphite
+  "9": "#5484ed",  // Blueberry
+  "10": "#51b749", // Basil
+  "11": "#dc2127", // Tomato
 };
 
 type SyncResult = {
@@ -285,6 +302,94 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
   const timeMax = new Date();
   timeMax.setMonth(timeMax.getMonth() + 3);
 
+  // Fetch calendar-level colors via CalendarList (single request for all calendars)
+  const calendarColors = new Map<string, string>();
+  try {
+    const calListRes = await fetch(GOOGLE_CALENDAR_LIST_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (calListRes.ok) {
+      const calListData = await calListRes.json();
+      for (const cal of calListData.items ?? []) {
+        if (cal.backgroundColor) {
+          calendarColors.set(cal.id, cal.backgroundColor);
+        }
+      }
+    }
+  } catch { /* fall back to default colors */ }
+
+  // ---------------------------------------------------------------------------
+  // ONE-TIME FIX: Repair colors for previously-imported blocks stuck on default
+  // Runs after calendarColors is populated, before the event loop.
+  // Idempotent: WHERE color = '#6366f1' won't match once fixed.
+  // ---------------------------------------------------------------------------
+  if (calendarColors.size > 0) {
+    const { data: blockImports } = await supabase
+      .from("imported_events")
+      .select("id, external_uid, created_id")
+      .eq("source_type", "google")
+      .eq("user_id", user.id)
+      .eq("created_as", "schedule_block");
+
+    if (blockImports && blockImports.length > 0) {
+      const blockIds = blockImports.map((i) => i.created_id);
+      const { data: indigoBlocks } = await supabase
+        .from("schedule_blocks")
+        .select("id")
+        .in("id", blockIds)
+        .eq("color", "#6366f1");
+
+      if (indigoBlocks && indigoBlocks.length > 0) {
+        const indigoSet = new Set(indigoBlocks.map((b) => b.id));
+
+        // Group by calendar color for batch updates
+        const colorGroups = new Map<string, string[]>();
+        for (const imp of blockImports) {
+          if (!indigoSet.has(imp.created_id)) continue;
+          // external_uid format: "gcal:{calendarId}:{eventId}"
+          const match = imp.external_uid.match(/^gcal:(.+):[^:]+$/);
+          if (!match) continue;
+          const calColor = calendarColors.get(match[1]);
+          if (!calColor) continue;
+
+          if (!colorGroups.has(calColor)) colorGroups.set(calColor, []);
+          colorGroups.get(calColor)!.push(imp.created_id);
+        }
+
+        // Batch update blocks by color (typically 1-3 UPDATE queries)
+        for (const [color, ids] of colorGroups) {
+          await supabase
+            .from("schedule_blocks")
+            .update({ color })
+            .in("id", ids);
+        }
+
+        // Invalidate hashes so the event loop below also updates them
+        const repairIds = blockImports
+          .filter((i) => indigoSet.has(i.created_id))
+          .map((i) => i.id);
+        if (repairIds.length > 0) {
+          await supabase
+            .from("imported_events")
+            .update({ event_hash: "" })
+            .in("id", repairIds);
+
+          // Refresh importMap so event loop sees invalidated hashes
+          const { data: refreshedImports } = await supabase
+            .from("imported_events")
+            .select("*")
+            .eq("source_type", "google")
+            .eq("user_id", user.id);
+          importMap.clear();
+          for (const imp of refreshedImports ?? []) {
+            importMap.set(imp.external_uid, imp);
+          }
+        }
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+
   // Fetch events from each selected calendar
   for (const calendarId of connection.selected_calendars) {
     try {
@@ -334,6 +439,11 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
             }
           }
 
+          // Resolve color: event-level override > calendar-level default
+          const eventColor = event.colorId
+            ? GOOGLE_EVENT_COLORS[event.colorId]
+            : calendarColors.get(calendarId);
+
           // Determine import type
           const importAs = connection.import_as === "smart"
             ? (isAllDay ? "task" : "schedule")
@@ -343,8 +453,8 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
           const externalUid = `gcal:${calendarId}:${event.id}`;
           const existing = importMap.get(externalUid);
 
-          // Simple hash for change detection (includes timezone to auto-fix old imports)
-          const eventHash = `${event.summary}|${startDate}|${startTime ?? ""}|${userTimezone}`;
+          // Simple hash for change detection (includes timezone and color to auto-fix old imports)
+          const eventHash = `${event.summary}|${startDate}|${startTime ?? ""}|${userTimezone}|${eventColor ?? ""}|v2`;
 
           if (existing) {
             // Check if changed
@@ -370,7 +480,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
                   end_time: endTime ?? "10:00",
                   start_date: startDate,
                   end_date: startDate,
-                  updated_at: new Date().toISOString(),
+                  ...(eventColor && { color: eventColor }),
                 })
                 .eq("id", existing.created_id);
               result.scheduleBlocksUpdated++;
@@ -471,6 +581,7 @@ export const POST = withAuth(async ({ user, supabase, request }) => {
                   end_time: blockEndTime,
                   start_date: startDate,
                   end_date: startDate, // Single day event
+                  ...(eventColor && { color: eventColor }),
                 })
                 .select("id")
                 .single();

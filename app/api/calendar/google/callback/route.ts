@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Verify state and extract user ID
-  let stateData: { userId: string; timestamp: number };
+  let stateData: { userId: string; timestamp: number; returnTo?: string };
   try {
     stateData = JSON.parse(Buffer.from(state, "base64").toString());
   } catch {
@@ -157,9 +157,10 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    // Redirect back to settings with success
+    // Redirect back to originating page (or settings) with success
+    const redirectTo = stateData.returnTo || "/settings";
     return NextResponse.redirect(
-      new URL("/settings?google=connected", request.nextUrl.origin)
+      new URL(`${redirectTo}?google=connected`, request.nextUrl.origin)
     );
   } catch (error) {
     console.error("OAuth callback error:", error);

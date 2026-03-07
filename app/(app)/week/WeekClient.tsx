@@ -18,6 +18,7 @@ import DayTimeline from "@/app/components/DayTimeline";
 import AddScheduleModal from "@/app/components/AddScheduleModal";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { WeeklyPlanModal } from "@/app/components/WeeklyPlanModal";
+import GoogleCalendarQuickConnect from "@/app/components/GoogleCalendarQuickConnect";
 
 // Animation variants for staggered entrance
 const containerVariants = {
@@ -183,6 +184,9 @@ export default function WeekClient({ start }: Props) {
           </div>
           <span>Add Schedule Block</span>
         </motion.button>
+
+        {/* Google Calendar Quick Connect */}
+        <GoogleCalendarQuickConnect onSyncComplete={triggerRefresh} />
       </motion.div>
 
       <motion.div

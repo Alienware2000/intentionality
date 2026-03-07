@@ -59,10 +59,15 @@ export async function GET(request: NextRequest) {
   const canonicalOrigin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const redirectUri = `${canonicalOrigin}/api/calendar/google/callback`;
 
+  // Read optional returnTo param (validate to prevent open redirect)
+  const returnTo = request.nextUrl.searchParams.get("returnTo");
+  const safeReturnTo = returnTo && returnTo.startsWith("/") ? returnTo : undefined;
+
   // Generate state parameter (includes user ID for security)
   const state = Buffer.from(JSON.stringify({
     userId: user.id,
     timestamp: Date.now(),
+    ...(safeReturnTo && { returnTo: safeReturnTo }),
   })).toString("base64");
 
   // Build Google OAuth URL
