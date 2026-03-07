@@ -2,41 +2,47 @@
 
 // =============================================================================
 // SOCIAL PROOF SECTION
-// Displays stats and credibility indicators.
-// Uses counter animations for engagement.
+// Fetches real stats from /api/stats and displays them with counter animations.
 // =============================================================================
 
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { CheckCircle, Clock, Flame, Zap } from "lucide-react";
+import { CheckCircle, Clock, Flame, Users } from "lucide-react";
 
-const STATS = [
+interface Stats {
+  tasksCompleted: number;
+  focusHours: number;
+  longestStreak: number;
+  totalUsers: number;
+}
+
+const STAT_CONFIG = [
   {
+    key: "tasksCompleted" as const,
     icon: CheckCircle,
-    value: 12847,
     suffix: "+",
     label: "Tasks Completed",
     color: "text-[var(--accent-success)]",
   },
   {
+    key: "focusHours" as const,
     icon: Clock,
-    value: 2156,
     suffix: "h",
-    label: "Focus Time Logged",
+    label: "Focus Hours",
     color: "text-[var(--accent-primary)]",
   },
   {
+    key: "longestStreak" as const,
     icon: Flame,
-    value: 186,
-    suffix: "",
+    suffix: " days",
     label: "Longest Streak",
     color: "text-[var(--accent-streak)]",
   },
   {
-    icon: Zap,
-    value: 458920,
-    suffix: "",
-    label: "Total XP Earned",
+    key: "totalUsers" as const,
+    icon: Users,
+    suffix: "+",
+    label: "Students",
     color: "text-[var(--accent-highlight)]",
   },
 ];
@@ -85,6 +91,14 @@ function AnimatedCounter({
 export default function SocialProof() {
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: true, margin: "-100px" });
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((data: Stats) => setStats(data))
+      .catch(() => {});
+  }, []);
 
   return (
     <section className="py-24 px-6 bg-[var(--bg-elevated)]" ref={containerRef}>
@@ -104,8 +118,10 @@ export default function SocialProof() {
         </motion.div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((stat, index) => {
+          {STAT_CONFIG.map((stat, index) => {
             const Icon = stat.icon;
+            const value = stats ? stats[stat.key] : 0;
+
             return (
               <motion.div
                 key={stat.label}
@@ -122,11 +138,15 @@ export default function SocialProof() {
                   <Icon size={24} className={stat.color} />
                 </div>
                 <p className={`text-3xl sm:text-4xl font-bold ${stat.color}`}>
-                  <AnimatedCounter
-                    value={stat.value}
-                    suffix={stat.suffix}
-                    inView={isInView}
-                  />
+                  {stats ? (
+                    <AnimatedCounter
+                      value={value}
+                      suffix={stat.suffix}
+                      inView={isInView}
+                    />
+                  ) : (
+                    <span className="opacity-30">&mdash;</span>
+                  )}
                 </p>
                 <p className="text-sm text-[var(--text-muted)] mt-2">
                   {stat.label}
@@ -135,37 +155,6 @@ export default function SocialProof() {
             );
           })}
         </div>
-
-        {/* Testimonial / Quote */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-12 p-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]"
-        >
-          <div className="max-w-2xl mx-auto text-center">
-            <p className="text-lg text-[var(--text-secondary)] italic">
-              &ldquo;The XP system isn&apos;t a gimmick—it gives me a reason to
-              check things off instead of just moving them to tomorrow. Again.
-              The streak kept me accountable during finals.&rdquo;
-            </p>
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--accent-primary)]/20 flex items-center justify-center">
-                <span className="text-sm font-bold text-[var(--accent-primary)]">
-                  J
-                </span>
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-[var(--text-primary)]">
-                  Jordan
-                </p>
-                <p className="text-xs text-[var(--text-muted)]">
-                  Computer Science, Junior
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
