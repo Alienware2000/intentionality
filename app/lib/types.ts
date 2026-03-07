@@ -891,7 +891,6 @@ export type RecommendationType =
   | 'urgent'              // High-priority overdue tasks
   | 'streak_at_risk'      // Streak might be lost
   | 'weekly_goal'         // Behind on weekly goals
-  | 'heavy_day'           // Too many tasks today
   | 'quest_progress'      // Quest close to completion
   | 'habit_reminder'      // Daily habits not done
   | 'planning_needed'     // Weekly plan due (Sunday/Monday)
@@ -1084,7 +1083,6 @@ export type AIInsight = {
  */
 export type AIInsightType =
   | 'optimal_focus_time'      // Good time to start a focus session
-  | 'workload_warning'        // Heavy day ahead
   | 'streak_risk'             // Complete something to maintain streak
   | 'break_reminder'          // Take a break after long focus
   | 'progress_celebration'    // Weekly milestones reached
@@ -1329,7 +1327,7 @@ export type AdviceSuccessRates = {
  * Dismissed insights count by type.
  */
 export type InsightsDismissedByType = {
-  [key: string]: number; // e.g., {"habit_reminder": 5, "workload_warning": 2}
+  [key: string]: number; // e.g., {"habit_reminder": 5, "streak_risk": 2}
 };
 
 /**

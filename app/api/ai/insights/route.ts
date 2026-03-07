@@ -14,7 +14,6 @@
 // Rule-based insights handle all insight types:
 // - streak_risk: Evening + streak > 2 + no completions
 // - optimal_focus_time: Matches user's common focus hours
-// - workload_warning: Tasks > 7 or overdue > 3
 // - habit_reminder: After 5 PM + incomplete habits
 //
 // This saves ~2,880 API calls/month per user while providing
@@ -367,27 +366,6 @@ function generateRuleBasedInsights(
         action_payload: { work_duration: config.preferredFocusDuration },
       });
     }
-  }
-
-  // Workload warning - use personalized threshold
-  // Threshold: max(avgTasksPerDay * 1.5, 5) to avoid too-sensitive warnings
-  const workloadThreshold = Math.max(config.avgTasksPerDay * 1.5, 5);
-  const overdueThreshold = 3;
-
-  if (
-    isAllowed('workload_warning') &&
-    (context.today.totalCount > workloadThreshold || context.upcoming.overdueCount > overdueThreshold)
-  ) {
-    const title = isAchievementMotivated ? 'Ambitious Day Ahead!' : 'Heavy Workload';
-    insights.push({
-      user_id: userId,
-      insight_type: 'workload_warning',
-      title,
-      description: `You have ${context.today.totalCount} tasks today${context.upcoming.overdueCount > 0 ? ` and ${context.upcoming.overdueCount} overdue` : ''}. Consider rescheduling.`,
-      priority: 'high',
-      action_type: 'NAVIGATE',
-      action_payload: { path: '/week' },
-    });
   }
 
   // Habit reminder

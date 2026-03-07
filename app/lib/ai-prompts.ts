@@ -368,7 +368,7 @@ Respond with ONLY a valid JSON object:
   "dislikes": [
     {
       "type": "insight_type" | "feature" | "behavior",
-      "value": "habit_reminder | workload_warning | streak_risk | etc",
+      "value": "habit_reminder | streak_risk | etc",
       "confidence": 0.8
     }
   ],
@@ -409,7 +409,7 @@ MOTIVATION DRIVERS:
 DISLIKES:
 - Explicit opt-outs: "stop reminding me about habits" → habit_reminder
 - "I don't care about my streak" → streak_risk
-- insight_type values: habit_reminder, workload_warning, streak_risk, break_reminder, planning_reminder
+- insight_type values: habit_reminder, streak_risk, break_reminder, planning_reminder
 
 FOCUS DURATION:
 - Extract if user states preference: "I like 45-minute sessions"

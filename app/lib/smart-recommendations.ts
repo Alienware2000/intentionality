@@ -92,24 +92,6 @@ function checkStreakAtRisk(ctx: RecommendationContext): DailyRecommendation | nu
 }
 
 /**
- * Check if the day has too many tasks (8+ tasks).
- */
-function checkHeavyDay(ctx: RecommendationContext): DailyRecommendation | null {
-  const incompleteTasks = ctx.todayTasks.filter(t => !t.completed);
-
-  if (incompleteTasks.length < 8) return null;
-
-  return {
-    type: "heavy_day",
-    priority: "medium",
-    title: "Heavy day ahead",
-    description: `You have ${incompleteTasks.length} tasks today. Consider moving some to tomorrow.`,
-    actionLabel: "View Week",
-    actionHref: "/week",
-  };
-}
-
-/**
  * Check for quests close to completion (80%+).
  */
 function checkQuestProgress(ctx: RecommendationContext): DailyRecommendation | null {
@@ -438,7 +420,6 @@ export function generateRecommendations(ctx: RecommendationContext): DailyRecomm
   const generators = [
     checkUrgentTasks,
     checkStreakAtRisk,
-    checkHeavyDay,
     checkWeeklyGoalProgress,
     checkQuestProgress,
     checkHabitReminder,

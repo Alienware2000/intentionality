@@ -25,7 +25,6 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
-  AlertTriangle,
   Clock,
   Flame,
   PartyPopper,
@@ -55,11 +54,6 @@ const INSIGHT_CONFIGS: Record<AIInsightType, InsightConfig> = {
     icon: Clock,
     color: "text-[var(--accent-primary)]",
     bgColor: "bg-[var(--accent-primary)]/10",
-  },
-  workload_warning: {
-    icon: AlertTriangle,
-    color: "text-[var(--priority-high)]",
-    bgColor: "bg-[var(--priority-high)]/10",
   },
   streak_risk: {
     icon: Flame,

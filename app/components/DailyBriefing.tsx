@@ -12,7 +12,6 @@ import {
   Sparkles,
   AlertTriangle,
   Flame,
-  Calendar,
   Target,
   Heart,
   BookOpen,
@@ -69,11 +68,6 @@ const RECOMMENDATION_ICONS: Record<RecommendationType, IconConfig> = {
     icon: Target,
     color: "text-[var(--accent-primary)]",
     bgColor: "bg-[var(--accent-primary)]/10",
-  },
-  heavy_day: {
-    icon: Calendar,
-    color: "text-[var(--priority-medium)]",
-    bgColor: "bg-[var(--priority-medium)]/10",
   },
   quest_progress: {
     icon: Target,
