@@ -7,11 +7,13 @@
 // =============================================================================
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, X, SkipForward, Check, Zap, Coffee } from "lucide-react";
+import { Play, Pause, X, SkipForward, Check, Zap, Coffee, Volume2, VolumeX } from "lucide-react";
 import { useFocus } from "./FocusProvider";
 import { getFocusMilestoneBonus, getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
 import { formatCountdown } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
+import { useSoundSettings } from "@/app/lib/hooks/useSoundSettings";
+import { requestNotificationPermission } from "@/app/lib/notifications";
 
 export default function FocusTimer() {
   const {
@@ -27,6 +29,7 @@ export default function FocusTimer() {
     skipToBreak,
     skipBreak,
   } = useFocus();
+  const { muted, volume, setMuted, setVolume } = useSoundSettings();
 
   if (!session || mode === "idle") {
     return null;
@@ -400,6 +403,42 @@ export default function FocusTimer() {
               <X size={18} className="text-[var(--text-muted)]" />
             </motion.button>
           </div>
+        </div>
+
+        {/* Sound controls */}
+        <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--border-default)]/30">
+          <button
+            onClick={() => {
+              setMuted(!muted);
+              requestNotificationPermission();
+            }}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+              "hover:bg-[var(--bg-hover)]",
+              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+            )}
+            title={muted ? "Unmute sounds" : "Mute sounds"}
+          >
+            {muted ? (
+              <VolumeX size={16} className="text-[var(--text-muted)]" />
+            ) : (
+              <Volume2 size={16} className="text-[var(--text-secondary)]" />
+            )}
+          </button>
+          {!muted && (
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.1}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-20 h-1 accent-[var(--accent-primary)] cursor-pointer"
+              aria-label="Sound volume"
+            />
+          )}
         </div>
       </div>
     </motion.div>

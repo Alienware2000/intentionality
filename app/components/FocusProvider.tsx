@@ -19,6 +19,8 @@ import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "./ProfileProvider";
 import { useCelebration } from "./CelebrationOverlay";
 import { getProRatedFocusXp, MIN_FOCUS_COMPLETION_RATIO } from "@/app/lib/gamification";
+import { useSoundSettings } from "@/app/lib/hooks/useSoundSettings";
+import { requestNotificationPermission, sendFocusNotification } from "@/app/lib/notifications";
 
 type FocusMode = "work" | "break" | "completed" | "idle";
 
@@ -64,8 +66,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   // Timestamp-based timing: store when current phase ends (ms since epoch)
   const targetEndTimeRef = useRef<number | null>(null);
+  const warningSentRef = useRef(false);
   const { refreshProfile } = useProfile();
   const { showXpGain, showLevelUp } = useCelebration();
+  const { playSound } = useSoundSettings();
 
   // Check for active session on mount
   useEffect(() => {
@@ -131,13 +135,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     return Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
   }, []);
 
-  // Handle phase transitions
+  // Handle phase transitions — side effects OUTSIDE setState to avoid
+  // React StrictMode double-invocation and batching issues
   const handlePhaseComplete = useCallback(() => {
+    const currentMode = state.mode;
+
     setState((prev) => {
       if (prev.mode === "work") {
-        // Switch to break
         const breakSeconds = (prev.session?.break_duration ?? 5) * 60;
         targetEndTimeRef.current = Date.now() + breakSeconds * 1000;
+        warningSentRef.current = false;
         return {
           ...prev,
           timeRemaining: breakSeconds,
@@ -146,7 +153,6 @@ export function FocusProvider({ children }: { children: ReactNode }) {
           workEndedAt: Date.now(),
         };
       } else if (prev.mode === "break") {
-        // Break finished, show completion screen
         targetEndTimeRef.current = null;
         return {
           ...prev,
@@ -157,7 +163,16 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       }
       return prev;
     });
-  }, []);
+
+    // Side effects outside setState
+    if (currentMode === "work") {
+      playSound("workEnd");
+      sendFocusNotification("Break time!", "Great focus session. Take a break.");
+    } else if (currentMode === "break") {
+      playSound("breakEnd");
+      sendFocusNotification("Session complete!", "Ready to claim your XP.");
+    }
+  }, [state.mode, playSound]);
 
   // Timer interval - uses timestamp-based calculation
   useEffect(() => {
@@ -167,6 +182,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         if (remaining <= 0) {
           handlePhaseComplete();
         } else {
+          if (remaining === 30 && !warningSentRef.current) {
+            warningSentRef.current = true;
+            playSound("warning");
+          }
           setState((prev) => ({ ...prev, timeRemaining: remaining }));
         }
       }, 1000);
@@ -178,7 +197,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         intervalRef.current = null;
       }
     };
-  }, [state.isRunning, state.timeRemaining, calculateTimeRemaining, handlePhaseComplete]);
+  }, [state.isRunning, state.timeRemaining, calculateTimeRemaining, handlePhaseComplete, playSound]);
 
   // Handle visibility change - recalculate time when tab becomes visible
   useEffect(() => {
@@ -206,6 +225,14 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     }) => {
       setState((prev) => ({ ...prev, error: null }));
 
+      // Request notification permission on first session
+      try {
+        if (!localStorage.getItem("notification-permission-requested")) {
+          localStorage.setItem("notification-permission-requested", "1");
+          requestNotificationPermission();
+        }
+      } catch { /* localStorage unavailable */ }
+
       try {
         const data = await fetchApi<SessionResponse>("/api/focus", {
           method: "POST",
@@ -221,6 +248,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         const session = data.session;
         const workSeconds = session.work_duration * 60;
         targetEndTimeRef.current = Date.now() + workSeconds * 1000;
+        warningSentRef.current = false;
+        playSound("start");
         setState({
           session,
           timeRemaining: workSeconds,
@@ -233,7 +262,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, error: getErrorMessage(e) }));
       }
     },
-    []
+    [playSound]
   );
 
   const pauseSession = useCallback(() => {
