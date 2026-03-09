@@ -153,14 +153,14 @@ export default function HeroSection() {
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded bg-[var(--accent-primary)] flex items-center justify-center font-bold text-white text-[10px] shadow-lg shadow-red-500/20">I</div>
                     <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--text-primary)]">
-                      Command Center
+                      Intentionality
                     </span>
                   </div>
                 </div>
 
                 {/* Kofi Assistant Button */}
                 <div className="px-4 pb-4">
-                  <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl glass-red transition-all hover:bg-[rgba(220,38,38,0.12)] cursor-pointer">
+                  <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl glass-red transition-all hover:bg-[rgba(220,38,38,0.12)] cursor-pointer shadow-sm">
                     <Sparkles size={16} className="text-[var(--accent-primary)]" />
                     <span className="font-bold text-[12px] tracking-tight">Chat with Kofi</span>
                   </div>
@@ -179,36 +179,51 @@ export default function HeroSection() {
                     </div>
                     {/* XP Bar */}
                     <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
-                       <div className="h-full bg-[var(--accent-primary)] w-[65%] shadow-[0_0_10px_rgba(220,38,38,0.5)]" />
+                       <div className="h-full bg-[var(--accent-primary)] w-[65%]" />
                     </div>
                   </div>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-3 space-y-1">
-                   <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
+                   <motion.div 
+                     whileHover={{ x: 2, backgroundColor: "rgba(255,255,255,0.03)" }}
+                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm cursor-pointer"
+                   >
                       <LayoutDashboard size={14} className="text-[var(--accent-primary)]" />
                       <span className="text-[12px] font-bold tracking-tight">Dashboard</span>
-                   </div>
-                   <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors group">
-                      <Calendar size={14} className="group-hover:text-[var(--accent-info)] transition-colors" />
+                   </motion.div>
+                   <motion.div 
+                     whileHover={{ x: 2, backgroundColor: "var(--bg-hover)" }}
+                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group cursor-pointer"
+                   >
+                      <Calendar size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
                       <span className="text-[12px] font-medium">Calendar</span>
-                   </div>
-                   <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors group">
-                      <Target size={14} className="group-hover:text-[var(--accent-success)] transition-colors" />
+                   </motion.div>
+                   <motion.div 
+                     whileHover={{ x: 2, backgroundColor: "var(--bg-hover)" }}
+                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group cursor-pointer"
+                   >
+                      <Target size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
                       <span className="text-[12px] font-medium">Goals</span>
-                   </div>
+                   </motion.div>
                 </nav>
 
                 {/* Footer */}
                 <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-card)]/50">
-                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--accent-streak)]/10 text-[var(--accent-streak)] border border-[var(--accent-streak)]/20 shadow-sm accent-glow-gold">
-                      <Flame size={12} fill="currentColor" />
-                      <span className="text-[11px] font-bold">14</span>
-                   </div>
-                   <div className="p-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
+                   <motion.div 
+                     whileHover={{ scale: 1.05 }}
+                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-gold shadow-sm"
+                   >
+                      <Flame size={12} className="text-[var(--accent-streak)]" fill="currentColor" />
+                      <span className="text-[11px] font-bold text-[var(--text-primary)]">14</span>
+                   </motion.div>
+                   <motion.div 
+                     whileHover={{ rotate: 15 }} 
+                     className="p-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                   >
                       <Settings size={14} />
-                   </div>
+                   </motion.div>
                 </div>
              </div>
 
@@ -226,25 +241,39 @@ export default function HeroSection() {
                         <div className="h-px flex-1 bg-[var(--border-subtle)] ml-4" />
                       </div>
                       <div className="grid grid-cols-3 gap-4">
-                         <div className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm hover:accent-glow-red transition-all group">
+                         <motion.div 
+                           whileHover={{ y: -2, borderColor: "rgba(220, 38, 38, 0.2)" }}
+                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
+                         >
                             <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Focus Time</div>
-                            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight group-hover:text-[var(--accent-primary)] transition-colors">1h 45m</div>
+                            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">1h 45m</div>
                             <div className="mt-3 flex items-center gap-1.5 text-[10px] text-[var(--accent-success)] font-bold uppercase">
                                <TrendingUp size={10} /> +12%
                             </div>
-                         </div>
-                         <div className="p-5 rounded-xl glass-green shadow-sm transition-all group">
-                            <div className="text-[9px] font-bold text-[var(--accent-success)] uppercase tracking-[0.2em] mb-2">Completion</div>
+                         </motion.div>
+                         <motion.div 
+                           whileHover={{ y: -2, borderColor: "rgba(34, 197, 94, 0.2)" }}
+                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
+                         >
+                            <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Completion</div>
                             <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">4 / 7</div>
-                            <div className="h-1.5 w-full bg-white/10 mt-4 rounded-full overflow-hidden border border-white/5">
-                               <div className="h-full bg-[var(--accent-success)] w-[57%] shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                            <div className="h-1.5 w-full bg-[var(--bg-hover)] mt-4 rounded-full overflow-hidden border border-[var(--border-subtle)]">
+                               <motion.div 
+                                 initial={{ x: "-100%" }}
+                                 animate={{ x: "0%" }}
+                                 transition={{ duration: 1, delay: 0.5 }}
+                                 className="h-full bg-[var(--accent-success)] w-[57%]" 
+                               />
                             </div>
-                         </div>
-                         <div className="p-5 rounded-xl glass-gold shadow-sm transition-all group">
-                            <div className="text-[9px] font-bold text-[var(--accent-highlight)] uppercase tracking-[0.2em] mb-2">Yield</div>
-                            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">+120 XP</div>
-                            <div className="mt-3 text-[9px] font-bold text-white/50 uppercase tracking-wider">Top 5% Student</div>
-                         </div>
+                         </motion.div>
+                         <motion.div 
+                           whileHover={{ y: -2, borderColor: "rgba(251, 191, 36, 0.2)" }}
+                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
+                         >
+                            <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Yield</div>
+                            <div className="text-2xl font-bold text-[var(--accent-success)] tracking-tight">+120 XP</div>
+                            <div className="mt-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Top 5% Student</div>
+                         </motion.div>
                       </div>
                    </section>
 
@@ -252,14 +281,13 @@ export default function HeroSection() {
                       {/* Focus Launcher */}
                       <section>
                          <h2 className="text-label mb-4">Focus Protocol</h2>
-                         <div className="p-8 rounded-2xl glass-red flex flex-col items-center justify-center text-center h-[260px] shadow-xl relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-                            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 mb-6 shadow-xl">
-                               <Clock size={28} className="text-white" />
+                         <div className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col items-center justify-center text-center h-[260px] shadow-xl relative overflow-hidden group">
+                            <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-default)] mb-6 shadow-lg group-hover:border-[var(--accent-primary)]/30 transition-all">
+                               <Clock size={28} className="text-[var(--accent-primary)]" />
                             </div>
-                            <div className="text-[16px] font-bold text-white mb-1">Engage Deep Work</div>
-                            <div className="text-[12px] text-white/70 mb-8 font-medium">Start session to trigger bonus multipliers</div>
-                            <button className="px-10 py-3 rounded-xl bg-white text-[var(--accent-primary)] text-[13px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/20">
+                            <div className="text-[16px] font-bold text-[var(--text-primary)] mb-1">Engage Deep Work</div>
+                            <div className="text-[12px] text-[var(--text-muted)] mb-8 font-medium">Start session to trigger bonus multipliers</div>
+                            <button className="px-10 py-3 rounded-xl bg-[var(--accent-primary)] text-white text-[13px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-red-500/20 border border-red-400/20">
                                Start Focusing
                             </button>
                          </div>
@@ -304,11 +332,14 @@ function MockTaskCard({ title, priority, completed, active, info }: { title: str
    };
 
    return (
-      <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+      <motion.div 
+        whileHover={{ x: 4, borderColor: "rgba(255,255,255,0.15)" }}
+        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-default ${
          active 
             ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5' 
             : 'border-[var(--border-subtle)] bg-[var(--bg-card)]'
-      } ${completed ? 'opacity-40 grayscale-[0.5]' : ''}`}>
+      } ${completed ? 'opacity-40 grayscale-[0.5]' : ''}`}
+      >
          <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 ${
             completed 
                ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white' 
@@ -328,6 +359,6 @@ function MockTaskCard({ title, priority, completed, active, info }: { title: str
          <div className={`px-2 py-0.5 rounded text-[9px] font-geist-mono tracking-widest uppercase border ${priorityColors[priority]}`}>
             {priority}
          </div>
-      </div>
+      </motion.div>
    );
 }

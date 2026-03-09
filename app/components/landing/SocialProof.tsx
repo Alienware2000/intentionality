@@ -101,36 +101,48 @@ export default function SocialProof() {
     <section className="py-24 md:py-32 px-6 relative" ref={containerRef}>
       <div className="mx-auto max-w-7xl relative z-10">
         
-        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6 border-b border-[var(--border-default)] pb-8">
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6 border-b border-[var(--border-default)] pb-10">
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
             transition={{ duration: 0.5 }}
           >
              <div className="text-label text-[var(--accent-primary)] mb-3 flex items-center gap-2">
-               <Activity size={14} /> Global Pulse
+               <Activity size={14} /> Community Progress
              </div>
             <h2 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">
-              Collective Focus
+              Real progress, together
             </h2>
+            <p className="mt-2 text-lg text-[var(--text-secondary)]">
+              Numbers that reflect collective discipline and intentionality.
+            </p>
           </motion.div>
 
           <motion.div
              initial={{ opacity: 0, x: 10 }}
              animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 10 }}
              transition={{ duration: 0.5 }}
-             className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg shadow-sm"
+             className="hidden md:flex items-center gap-3 px-4 py-2 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl shadow-sm"
           >
              <ShieldCheck size={16} className="text-[var(--accent-success)]" />
-             <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">Verified Stats</span>
+             <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Verified Metrics</span>
           </motion.div>
         </div>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {STAT_CONFIG.map((stat, index) => {
             const Icon = stat.icon;
             const value = stats ? stats[stat.key] : 0;
-            const glassClass = index === 0 ? "glass-green" : index === 1 ? "glass-red" : index === 2 ? "glass-gold" : "glass-blue";
+            
+            // Map accents to cards
+            const accentClasses = [
+              { text: "text-[var(--accent-success)]", border: "hover:border-[var(--accent-success)]/30", glow: "rgba(34, 197, 94, 0.05)" },
+              { text: "text-[var(--accent-primary)]", border: "hover:border-[var(--accent-primary)]/30", glow: "rgba(220, 38, 38, 0.05)" },
+              { text: "text-[var(--accent-streak)]", border: "hover:border-[var(--accent-streak)]/30", glow: "rgba(249, 115, 22, 0.05)" },
+              { text: "text-[var(--accent-info)]", border: "hover:border-[var(--accent-info)]/30", glow: "rgba(59, 130, 246, 0.05)" }
+            ][index];
 
             return (
               <motion.div
@@ -138,17 +150,22 @@ export default function SocialProof() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className={`p-8 rounded-2xl flex flex-col gap-8 relative group hover:translate-y-[-4px] transition-all shadow-xl shadow-black/10 ${glassClass}`}
+                className={`p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col gap-10 relative group ${accentClasses.border} transition-all shadow-xl shadow-black/5 overflow-hidden`}
               >
-                 <div className="flex items-center justify-between">
-                    <div className="p-3 rounded-xl bg-white/10 text-[var(--text-primary)] border border-white/10 shadow-inner">
-                       <Icon size={20} strokeWidth={2} className="text-white" />
+                 {/* Internal Glow Point */}
+                 <div 
+                   className="absolute -top-10 -right-10 w-32 h-32 blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                   style={{ backgroundColor: accentClasses.glow }}
+                 />
+
+                 <div className="flex items-center justify-between relative z-10">
+                    <div className={`p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-inner transition-colors ${accentClasses.text}`}>
+                       <Icon size={20} strokeWidth={2.5} />
                     </div>
-                    <div className="text-[9px] font-bold text-white/30">0{index + 1}</div>
                  </div>
                   
-                 <div className="space-y-1">
-                    <div className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter">
+                 <div className="space-y-3 relative z-10">
+                    <div className={`text-5xl font-bold tracking-tighter ${accentClasses.text}`}>
                       {stats ? (
                         <AnimatedCounter value={value} suffix={stat.suffix} inView={isInView} />
                       ) : (
@@ -156,8 +173,11 @@ export default function SocialProof() {
                       )}
                     </div>
                     
-                    <div className="text-label mt-2">
-                      {stat.label}
+                    <div className="flex items-center gap-3">
+                       <div className={`h-px w-4 ${accentClasses.text} opacity-30`} />
+                       <div className="text-label text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                         {stat.label}
+                       </div>
                     </div>
                  </div>
               </motion.div>

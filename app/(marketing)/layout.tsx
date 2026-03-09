@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { ThemeProvider } from "../components/ThemeProvider";
+import "./landing.css";
 
 export default function MarketingLayout({
   children,
