@@ -31,6 +31,9 @@ DEVLOG.md
 # Claude Code instructions (not tracked)
 CLAUDE.md
 
+# Gemini Code instructions (not tracked)
+GEMINI.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
