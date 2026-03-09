@@ -2,13 +2,13 @@
 
 // =============================================================================
 // AI ASSISTANT DEMO
-// Interactive Kofi AI chat preview showing example conversations
-// and demonstrating the AI's contextual awareness.
+// Refined human-facing Kofi AI chat preview.
+// Uses sharp borders, technical monospace accents, and brand-consistent colors.
 // =============================================================================
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Bot, User } from "lucide-react";
+import { Sparkles, Send, User, MessageSquare } from "lucide-react";
 
 const DEMO_CONVERSATIONS = [
   {
@@ -19,7 +19,7 @@ const DEMO_CONVERSATIONS = [
       {
         role: "assistant" as const,
         content:
-          "Based on your schedule and priorities, I'd suggest starting with your CS assignment—it's high priority and due tomorrow. After that, you have a 2-hour focus block at 2 PM that would be perfect for the research paper outline.",
+          "Based on your priorities, start with your History chapters—it's high priority and due by evening. You have a prime focus window at 2 PM for the Ethics Essay.",
       },
     ],
   },
@@ -31,19 +31,7 @@ const DEMO_CONVERSATIONS = [
       {
         role: "assistant" as const,
         content:
-          "Let's break this down. You have 3 hours available. I suggest: 25 min on flashcards (warm-up), 50 min on problem set (deep work), 10 min break, then 50 min on reading. Want me to set up focus timers for each block?",
-      },
-    ],
-  },
-  {
-    id: 3,
-    trigger: "I'm overwhelmed",
-    messages: [
-      { role: "user" as const, content: "I'm feeling overwhelmed right now" },
-      {
-        role: "assistant" as const,
-        content:
-          "I hear you. Looking at your list, let's simplify: pick ONE thing that would make tomorrow easier if done today. Everything else can wait. What's that one thing for you?",
+          "You have 3 hours available. Suggestion: 25m on flashcards (warm-up), 50m on problem set (deep work), 10m break, then 50m on reading. Set timers?",
       },
     ],
   },
@@ -70,141 +58,118 @@ export default function AIAssistantDemo() {
 
     // Simulate typing delay
     setIsTyping(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     setIsTyping(false);
 
     // Show assistant response
     setVisibleMessages(conversation.messages);
   };
 
-  const resetDemo = () => {
-    setActiveConversation(null);
-    setVisibleMessages([]);
-  };
-
   return (
-    <div className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)]">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[var(--border-subtle)]">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-primary)]/60 flex items-center justify-center">
-          <Sparkles size={18} className="text-white" />
+    <div className="w-full max-w-sm mx-auto bg-[var(--bg-base)] rounded-xl border border-[var(--border-subtle)] overflow-hidden flex flex-col shadow-2xl">
+      {/* Header - Human Facing */}
+      <div className="bg-[var(--bg-elevated)] p-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-[var(--accent-primary)]/10 flex items-center justify-center border border-[var(--accent-primary)]/20">
+            <Sparkles size={12} className="text-[var(--accent-primary)]" />
+          </div>
+          <span className="text-xs font-semibold text-[var(--text-primary)] tracking-tight">Kofi AI Assistant</span>
         </div>
-        <div>
-          <p className="font-semibold text-[var(--text-primary)]">Kofi</p>
-          <p className="text-xs text-[var(--text-muted)]">AI Study Assistant</p>
+        <div className="flex gap-1.5 items-center">
+           <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-success)] animate-pulse" />
+           <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Ready to help</span>
         </div>
       </div>
 
       {/* Chat area */}
-      <div className="min-h-[200px] mb-4">
+      <div className="h-[240px] p-5 overflow-y-auto custom-scrollbar flex flex-col gap-5">
         {activeConversation === null ? (
-          <div className="text-center py-8">
-            <Bot size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
-            <p className="text-sm text-[var(--text-muted)]">
-              Click a prompt below to see Kofi in action
-            </p>
+          <div className="h-full flex flex-col items-center justify-start py-4">
+            <div className="flex gap-3 w-full">
+              <div className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border bg-[var(--accent-primary)] text-white shadow-sm">
+                <Sparkles size={14} />
+              </div>
+              <div className="p-3.5 rounded-2xl text-[13.5px] leading-relaxed bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] shadow-sm">
+                Hi! I&apos;m Kofi, your study assistant. I can help you plan your day, stay focused, or figure out what to tackle next. How can I help you right now?
+              </div>
+            </div>
+            <div className="mt-auto opacity-50 text-center w-full">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Select a prompt below</p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <AnimatePresence mode="popLayout">
               {visibleMessages.map((message, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  {message.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-[var(--accent-primary)]/20 flex-shrink-0 flex items-center justify-center">
-                      <Sparkles
-                        size={14}
-                        className="text-[var(--accent-primary)]"
-                      />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                      message.role === "user"
-                        ? "bg-[var(--accent-primary)] text-white rounded-br-none"
-                        : "bg-[var(--bg-hover)] text-[var(--text-primary)] rounded-bl-none"
-                    }`}
-                  >
+                  <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${
+                    message.role === "assistant" 
+                      ? "bg-[var(--accent-primary)] text-white shadow-sm" 
+                      : "bg-[var(--bg-hover)] border-[var(--border-default)] text-[var(--text-secondary)]"
+                  }`}>
+                    {message.role === "assistant" ? <Sparkles size={14} /> : <User size={14} />}
+                  </div>
+                  <div className={`p-3.5 rounded-2xl text-[13.5px] leading-relaxed shadow-sm ${
+                    message.role === "user"
+                      ? "bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                      : "bg-[var(--bg-card)] border border-[var(--border-accent)] text-[var(--text-primary)]"
+                  }`}>
                     {message.content}
                   </div>
-                  {message.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-hover)] flex-shrink-0 flex items-center justify-center">
-                      <User size={14} className="text-[var(--text-muted)]" />
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
 
-            {/* Typing indicator */}
             {isTyping && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-[var(--accent-primary)]/20 flex-shrink-0 flex items-center justify-center">
-                  <Sparkles size={14} className="text-[var(--accent-primary)]" />
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[var(--accent-primary)] text-white flex items-center justify-center shadow-sm">
+                  <Sparkles size={14} />
                 </div>
-                <div className="px-4 py-3 rounded-lg bg-[var(--bg-hover)] rounded-bl-none">
-                  <div className="flex gap-1">
-                    <motion.span
-                      animate={{ opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                      className="w-2 h-2 rounded-full bg-[var(--text-muted)]"
-                    />
-                    <motion.span
-                      animate={{ opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                      className="w-2 h-2 rounded-full bg-[var(--text-muted)]"
-                    />
-                    <motion.span
-                      animate={{ opacity: [0.4, 1, 0.4] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                      className="w-2 h-2 rounded-full bg-[var(--text-muted)]"
-                    />
+                <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl shadow-sm">
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                        className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]"
+                      />
+                    ))}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Quick prompts */}
-      <div className="space-y-2">
-        {activeConversation !== null ? (
-          <button
-            onClick={resetDemo}
-            className="w-full py-2 text-xs text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-lg transition-colors"
-          >
-            Try another prompt
-          </button>
-        ) : (
-          <p className="text-xs text-[var(--text-muted)] mb-2">Try asking:</p>
-        )}
-        {activeConversation === null && (
-          <div className="flex flex-wrap gap-2">
+      {/* Inputs / Quick Actions */}
+      <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+        {activeConversation === null ? (
+          <div className="grid grid-cols-1 gap-2">
             {DEMO_CONVERSATIONS.map((conv) => (
-              <motion.button
+              <button
                 key={conv.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => handleTrigger(conv.id)}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-[var(--bg-hover)] hover:bg-[var(--bg-hover)]/80 text-[var(--text-primary)] rounded-lg border border-[var(--border-subtle)] transition-colors"
+                className="flex items-center justify-between px-4 py-2.5 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] rounded-xl transition-all group"
               >
-                <Send size={12} className="text-[var(--text-muted)]" />
-                {conv.trigger}
-              </motion.button>
+                <span>{conv.trigger}</span>
+                <Send size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--accent-primary)]" />
+              </button>
             ))}
           </div>
+        ) : (
+          <button
+            onClick={() => { setActiveConversation(null); setVisibleMessages([]); }}
+            className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:underline"
+          >
+            Reset Chat
+          </button>
         )}
       </div>
     </div>

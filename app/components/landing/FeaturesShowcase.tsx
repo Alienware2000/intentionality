@@ -2,13 +2,13 @@
 
 // =============================================================================
 // FEATURES SHOWCASE
-// Tabbed feature demonstrations with interactive mini-demos.
-// Flows through Capture → Plan → Execute → Progress narrative.
+// OS Command Center bento-style presentation.
+// Refined for a sleeker, terminal-esque "Personal OS" vibe.
 // =============================================================================
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
-import { Brain, ListTodo, Timer, TrendingUp } from "lucide-react";
+import { Brain, ListTodo, Timer, TrendingUp, Sparkles, Check, Terminal, Box } from "lucide-react";
 import GamificationDemo from "./GamificationDemo";
 import FocusTimerDemo from "./FocusTimerDemo";
 import AIAssistantDemo from "./AIAssistantDemo";
@@ -16,188 +16,162 @@ import AIAssistantDemo from "./AIAssistantDemo";
 const FEATURES = [
   {
     id: "capture",
-    title: "Capture",
-    subtitle: "Brain dump",
+    title: "Instant Capture",
+    subtitle: "Focus First",
     icon: Brain,
     description:
-      "Type everything floating around in your head. Kofi (the AI) reads through it and pulls out the actual tasks, so you don't have to organize it yourself.",
+      "Clear your mind in seconds. Type anything floating around in your head, and let Kofi automatically sort tasks from thoughts.",
+    demo: AIAssistantDemo,
   },
   {
     id: "plan",
-    title: "Plan",
-    subtitle: "Figure out what matters",
+    title: "Strategic Planning",
+    subtitle: "Prioritize Better",
     icon: ListTodo,
     description:
-      "Set priorities for the week. The app sorts your tasks by what's most important so you're not staring at a flat list wondering where to start.",
+      "Stop staring at endless lists. Intentionality helps you identify what actually matters for the week so you can start with confidence.",
+    demo: PlanningDemo,
   },
   {
     id: "execute",
-    title: "Execute",
-    subtitle: "Sit down and focus",
+    title: "Deep Work Sessions",
+    subtitle: "Execution",
     icon: Timer,
     description:
-      "Pomodoro-style focus timer. You pick a task, set the timer, and work. You earn XP when you finish, which sounds small but actually keeps you coming back.",
+      "A focused timer that respects your discipline. Work in intervals, earn XP, and build a habit of showing up.",
+    demo: FocusTimerDemo,
   },
   {
     id: "progress",
-    title: "Progress",
-    subtitle: "See that it's working",
+    title: "Visual Progress",
+    subtitle: "Momentum",
     icon: TrendingUp,
     description:
-      "Streaks, levels, XP. It sounds like a game because it is one, kind of. The point is you can look at your dashboard and see proof that you showed up this week.",
+      "See your growth in real-time. Streaks, levels, and activity heatmaps provide the proof you need to keep moving forward.",
+    demo: GamificationDemo,
   },
 ];
 
 export default function FeaturesShowcase() {
-  const [activeFeature, setActiveFeature] = useState("capture");
-  const containerRef = useRef(null);
-  const isInView = useInView(containerRef, { once: true, margin: "-100px" });
+  const [activeFeature, setActiveFeature] = useState(FEATURES[0].id);
 
   return (
-    <section id="how-it-works" className="py-24 px-6" ref={containerRef}>
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)]">
-            What you actually get
-          </h2>
-          <p className="mt-4 text-[var(--text-secondary)] max-w-2xl mx-auto">
-            You don&apos;t need another app that takes a week to set up.
-            Here&apos;s the whole thing.
-          </p>
-        </motion.div>
+    <section id="features" className="py-20 md:py-32 px-6 relative font-sans">
+      <div className="mx-auto max-w-7xl border-t border-[var(--border-default)] pt-16 md:pt-24">
+        
+        {/* Section Header */}
+        <div className="mb-16 md:mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-[var(--accent-primary)] font-bold text-[10px] uppercase tracking-widest">
+               <Box size={14} /> Feature Suite
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[var(--text-primary)] tracking-tight">
+              Designed for focus
+            </h2>
+            <p className="text-lg text-[var(--text-secondary)] max-w-xl leading-relaxed font-sans">
+              A streamlined workflow that removes the friction between planning and doing.
+            </p>
+          </div>
+          <div className="flex gap-2 items-center">
+             {FEATURES.map((f, i) => (
+                <div key={f.id} className={`h-1 rounded-full transition-all duration-500 ${activeFeature === f.id ? 'w-8 bg-[var(--accent-primary)]' : 'w-2 bg-[var(--border-default)]'}`} />
+             ))}
+          </div>
+        </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Feature tabs */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="space-y-3"
-          >
-            {FEATURES.map((feature, index) => {
-              const Icon = feature.icon;
-              const isActive = activeFeature === feature.id;
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 relative">
+          {/* Left Column: Human Text */}
+          <div className="flex flex-col gap-[15vh] md:gap-[25vh] py-[5vh] md:py-[10vh]">
+            {FEATURES.map((feature) => (
+              <FeatureText
+                key={feature.id}
+                feature={feature}
+                setActive={setActiveFeature}
+              />
+            ))}
+          </div>
 
-              return (
-                <motion.button
-                  key={feature.id}
-                  onClick={() => setActiveFeature(feature.id)}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={
-                    isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }
-                  }
-                  transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                  className={`w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all ${
-                    isActive
-                      ? "bg-[var(--accent-primary)]/8 border border-[var(--accent-primary)]/20"
-                      : "hover:bg-[var(--bg-hover)] border border-transparent"
-                  }`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                      isActive
-                        ? "bg-[var(--accent-primary)] text-white"
-                        : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
-                    }`}
-                  >
-                    <Icon size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className={`text-lg font-semibold mt-1 ${
-                        isActive
-                          ? "text-[var(--text-primary)]"
-                          : "text-[var(--text-secondary)]"
-                      }`}
-                    >
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {feature.subtitle}
-                    </p>
-                    {isActive && (
-                      <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="text-sm text-[var(--text-secondary)] mt-2"
-                      >
-                        {feature.description}
-                      </motion.p>
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </motion.div>
-
-          {/* Demo area */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="lg:sticky lg:top-24"
-          >
-            <AnimatePresence mode="wait">
-              {activeFeature === "capture" && (
-                <motion.div
-                  key="capture"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <AIAssistantDemo />
-                </motion.div>
-              )}
-              {activeFeature === "plan" && (
-                <motion.div
-                  key="plan"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <PlanningDemo />
-                </motion.div>
-              )}
-              {activeFeature === "execute" && (
-                <motion.div
-                  key="execute"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <FocusTimerDemo />
-                </motion.div>
-              )}
-              {activeFeature === "progress" && (
-                <motion.div
-                  key="progress"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <GamificationDemo />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          {/* Right Column: Sticky Personal OS Demo */}
+          <div className="hidden lg:block relative">
+            <div className="sticky top-40 h-[480px] w-full">
+              <div className="relative w-full h-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden shadow-2xl ring-1 ring-white/5">
+                {/* Demo Chrome */}
+                <div className="h-10 border-b border-[var(--border-default)] bg-[var(--bg-elevated)] flex items-center justify-between px-6">
+                   <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--border-subtle)]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--border-subtle)]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--border-subtle)]" />
+                      </div>
+                   </div>
+                   <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                      Live Preview
+                   </div>
+                </div>
+                
+                <AnimatePresence mode="wait">
+                   {FEATURES.map((feature) => (
+                     activeFeature === feature.id && (
+                       <motion.div
+                         key={feature.id}
+                         initial={{ opacity: 0, scale: 0.98 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 1.02 }}
+                         transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+                         className="absolute inset-0 flex items-center justify-center p-8"
+                       >
+                          <feature.demo />
+                       </motion.div>
+                     )
+                   ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-// Simple planning demo showing task prioritization
+function FeatureText({ 
+  feature, 
+  setActive 
+}: { 
+  feature: typeof FEATURES[0], 
+  setActive: (id: string) => void 
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { margin: "-50% 0px -50% 0px" });
+
+  useEffect(() => {
+    if (isInView) setActive(feature.id);
+  }, [isInView, feature.id, setActive]);
+
+  return (
+    <div ref={ref} className={`transition-all duration-700 ${isInView ? "opacity-100 translate-x-0" : "opacity-20 -translate-x-4"}`}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-10 h-10 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--accent-primary)] flex items-center justify-center shadow-sm">
+           <feature.icon size={20} strokeWidth={2} />
+        </div>
+        <div>
+           <div className="text-[10px] font-bold text-[var(--accent-primary)] mb-1 uppercase tracking-widest">{feature.subtitle}</div>
+           <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">{feature.title}</h3>
+        </div>
+      </div>
+      <p className="text-[17px] text-[var(--text-secondary)] leading-relaxed mb-8 font-sans">
+        {feature.description}
+      </p>
+      
+      {/* Mobile Demo */}
+      <div className="lg:hidden mb-12 w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden flex items-center justify-center p-6 py-16 shadow-xl">
+         <feature.demo />
+      </div>
+    </div>
+  );
+}
+
+// Restored simple planning demo showing task prioritization
 function PlanningDemo() {
   const [tasks, setTasks] = useState([
     { id: 1, title: "Research paper outline", priority: "high" as const },
@@ -226,69 +200,50 @@ function PlanningDemo() {
   };
 
   const priorityColors = {
-    high: "bg-[var(--priority-high)]",
-    medium: "bg-[var(--priority-medium)]",
-    low: "bg-[var(--priority-low)]",
-  };
-
-  const priorityLabels = {
-    high: "High",
-    medium: "Medium",
-    low: "Low",
+    high: "text-[var(--priority-high)] bg-[var(--priority-high)]/10 border-[var(--priority-high)]/20",
+    medium: "text-[var(--priority-medium)] bg-[var(--priority-medium)]/10 border-[var(--priority-medium)]/20",
+    low: "text-[var(--text-muted)] bg-[var(--bg-hover)] border-[var(--border-subtle)]",
   };
 
   return (
-    <div className="glass-card-premium p-6 rounded-xl border border-[var(--border-default)]">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full max-w-xs mx-auto bg-[var(--bg-base)] p-6 rounded-2xl border border-[var(--border-default)] shadow-2xl">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="font-semibold text-[var(--text-primary)]">
-            Weekly Planning
-          </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Click priorities to change them
-          </p>
+          <p className="font-bold text-[var(--text-primary)] text-sm tracking-tight">Focus Queue</p>
+          <p className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider mt-0.5">Smart Sort Active</p>
         </div>
-        <span className="text-xs px-2 py-1 rounded bg-[var(--bg-hover)] text-[var(--text-muted)]">
-          Auto-sorted
-        </span>
+        <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center">
+          <ListTodo size={14} className="text-[var(--accent-primary)]" />
+        </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <AnimatePresence mode="popLayout">
-          {sortedTasks.map((task, index) => (
+          {sortedTasks.map((task) => (
             <motion.div
               key={task.id}
               layout
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
-              className="flex items-center gap-3 p-4 rounded-lg bg-[var(--bg-hover)] border border-[var(--border-subtle)]"
+              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+              className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 hover:border-[var(--border-default)] transition-all group cursor-pointer"
+              onClick={() => cyclePriority(task.id)}
             >
-              <span className="text-sm text-[var(--text-muted)] w-6">
-                {index + 1}.
-              </span>
-              <span className="flex-1 text-[var(--text-primary)]">
+              <div className="w-5 h-5 rounded-md border-2 border-[var(--border-default)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent-primary)]/50 transition-colors" />
+              <span className="flex-1 text-[13px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
                 {task.title}
               </span>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => cyclePriority(task.id)}
-                className={`flex items-center gap-2 px-2 py-1 rounded text-xs font-medium ${priorityColors[task.priority]}/20 text-[var(--text-primary)]`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${priorityColors[task.priority]}`}
-                />
-                {priorityLabels[task.priority]}
-              </motion.button>
+              <div className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${priorityColors[task.priority]}`}>
+                {task.priority}
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
-
-      <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-        Tasks automatically sort by priority
-      </p>
+      
+      <div className="mt-8 text-center">
+         <p className="text-[10px] text-[var(--text-muted)] font-medium">Tap to change priority</p>
+      </div>
     </div>
   );
 }

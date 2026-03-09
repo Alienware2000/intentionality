@@ -2,14 +2,14 @@
 
 // =============================================================================
 // GAMIFICATION DEMO
-// Interactive XP/Level demo where users can click to complete tasks,
-// watch XP fill, and trigger level-up animations.
+// Refined OS-style XP/Level demo.
+// Uses technical layout, monospace stats, and sharp brand-consistent colors.
 // =============================================================================
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import anime from "animejs";
-import { Zap, Trophy, CheckCircle, Sparkles } from "lucide-react";
+import { Zap, Trophy, CheckCircle, Sparkles, Terminal } from "lucide-react";
 import { prefersReducedMotion } from "@/app/lib/anime-utils";
 
 const TASKS = [
@@ -18,7 +18,7 @@ const TASKS = [
   { id: 3, title: "Read chapter 5", xp: 15, done: false },
 ];
 
-const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700]; // XP needed for each level
+const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700];
 
 export default function GamificationDemo() {
   const [xp, setXp] = useState(75);
@@ -27,7 +27,6 @@ export default function GamificationDemo() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
   const xpBarRef = useRef<HTMLDivElement>(null);
-  const particleContainerRef = useRef<HTMLDivElement>(null);
 
   const currentLevelXp = LEVEL_THRESHOLDS[level - 1] || 0;
   const nextLevelXp = LEVEL_THRESHOLDS[level] || 100;
@@ -41,7 +40,6 @@ export default function GamificationDemo() {
 
     const newXp = xp + task.xp;
 
-    // Create particles
     const newParticles = Array.from({ length: 6 }, (_, i) => ({
       id: Date.now() + i,
       x: Math.random() * 100 - 50,
@@ -50,7 +48,6 @@ export default function GamificationDemo() {
     setParticles(newParticles);
     setTimeout(() => setParticles([]), 800);
 
-    // Animate XP bar
     if (xpBarRef.current && !prefersReducedMotion()) {
       anime({
         targets: xpBarRef.current,
@@ -60,7 +57,6 @@ export default function GamificationDemo() {
       });
     }
 
-    // Check for level up
     if (newXp >= nextLevelXp && level < LEVEL_THRESHOLDS.length) {
       setTimeout(() => {
         setLevel((l) => l + 1);
@@ -83,162 +79,139 @@ export default function GamificationDemo() {
   const allDone = tasks.every((t) => t.done);
 
   return (
-    <div className="relative">
+    <div className="w-full max-w-sm mx-auto relative bg-[var(--bg-base)] p-8 rounded-2xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden">
+      
       {/* Level Up Overlay */}
       <AnimatePresence>
         {showLevelUp && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-card)]/90 backdrop-blur-sm rounded-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-base)]/95 backdrop-blur-md"
           >
             <div className="text-center">
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex p-4 rounded-full bg-[var(--accent-highlight)]/20 mb-4"
+              <motion.div 
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="inline-flex p-5 rounded-full bg-[var(--accent-primary)] text-white mb-6 shadow-2xl shadow-red-500/20"
               >
-                <Trophy size={40} className="text-[var(--accent-highlight)]" />
+                <Trophy size={48} />
               </motion.div>
-              <p className="text-lg font-bold text-[var(--accent-highlight)]">
-                Level Up!
-              </p>
-              <p className="text-3xl font-mono font-bold text-[var(--text-primary)] mt-1">
-                LVL {level}
-              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--accent-primary)] mb-2">Level Up!</p>
+              <p className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">Level {level}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main demo */}
-      <div className="p-6 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[var(--accent-primary)]/20 flex items-center justify-center">
-              <span className="text-lg font-bold text-[var(--accent-primary)]">
-                {level}
-              </span>
-            </div>
-            <div>
-              <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
-                Level
-              </p>
-              <p className="text-lg font-bold font-mono text-[var(--text-primary)]">
-                {xp.toLocaleString()} XP
-              </p>
-            </div>
-          </div>
-
-          {allDone && (
-            <button
-              onClick={resetDemo}
-              className="px-3 py-1.5 text-xs font-medium text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-lg transition-colors"
-            >
-              Reset Demo
-            </button>
-          )}
-        </div>
-
-        {/* XP Bar */}
-        <div className="mb-6" ref={xpBarRef}>
-          <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
-            <span>Progress to Level {level + 1}</span>
-            <span>
-              {xpInLevel} / {xpNeeded} XP
+      {/* Header */}
+      <div className="flex items-center justify-between mb-10 pb-5 border-b border-[var(--border-subtle)]">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent-primary)] flex items-center justify-center shadow-lg shadow-red-500/10">
+            <span className="text-2xl font-bold text-white">
+              {level}
             </span>
           </div>
-          <div className="h-3 rounded-full bg-[var(--bg-hover)] overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-primary)]/80 rounded-full"
-              initial={false}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            />
+          <div>
+            <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Your Progress</div>
+            <p className="text-[15px] font-bold text-[var(--text-primary)]">
+              {xp.toLocaleString()} XP Total
+            </p>
           </div>
         </div>
 
-        {/* Tasks */}
-        <div className="space-y-2" ref={particleContainerRef}>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-3">
-            Click to complete
-          </p>
-          {tasks.map((task) => (
-            <motion.button
-              key={task.id}
-              onClick={() => completeTask(task.id)}
-              disabled={task.done}
-              whileHover={task.done ? {} : { scale: 1.01 }}
-              whileTap={task.done ? {} : { scale: 0.99 }}
-              className={`relative w-full flex items-center gap-3 p-4 rounded-lg border transition-all ${
+        {allDone && (
+          <button
+            onClick={resetDemo}
+            className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-primary)] hover:underline"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* XP Bar */}
+      <div className="mb-10">
+        <div className="flex justify-between text-[11px] font-bold text-[var(--text-muted)] uppercase mb-3">
+          <span>Next Level</span>
+          <span className="text-[var(--accent-primary)]">
+            {progress.toFixed(0)}%
+          </span>
+        </div>
+        <div className="h-2 w-full bg-[var(--bg-hover)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+          <motion.div
+            className="h-full bg-[var(--accent-primary)]"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.6, ease: [0.2, 0, 0, 1] }}
+          />
+        </div>
+      </div>
+
+      {/* Tasks */}
+      <div className="space-y-3">
+        {tasks.map((task) => (
+          <button
+            key={task.id}
+            onClick={() => completeTask(task.id)}
+            disabled={task.done}
+            className={`relative w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+              task.done
+                ? "bg-[var(--bg-elevated)] border-transparent opacity-40 grayscale"
+                : "bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent-primary)]/40 hover:translate-x-1 cursor-pointer shadow-sm"
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                 task.done
-                  ? "bg-[var(--bg-hover)] border-[var(--border-subtle)] opacity-60 cursor-default"
-                  : "bg-[var(--bg-card)] border-[var(--border-default)] hover:border-[var(--accent-primary)]/50 cursor-pointer"
+                  ? "bg-[var(--accent-success)] border-[var(--accent-success)] text-white"
+                  : "border-[var(--border-default)] bg-[var(--bg-base)]"
               }`}
             >
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                  task.done
-                    ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
-                    : "border-[var(--text-muted)]"
-                }`}
-              >
-                {task.done && <CheckCircle size={12} className="text-white" />}
-              </div>
-              <span
-                className={`flex-1 text-left ${
-                  task.done
-                    ? "line-through text-[var(--text-muted)]"
-                    : "text-[var(--text-primary)]"
-                }`}
-              >
-                {task.title}
-              </span>
-              <span
-                className={`flex items-center gap-1 text-sm font-mono ${
-                  task.done
-                    ? "text-[var(--text-muted)]"
-                    : "text-[var(--accent-primary)]"
-                }`}
-              >
-                <Zap size={12} />+{task.xp}
-              </span>
+              {task.done && <CheckCircle size={12} strokeWidth={3} />}
+            </div>
+            <span
+              className={`flex-1 text-left text-[14px] ${
+                task.done
+                  ? "line-through text-[var(--text-muted)]"
+                  : "text-[var(--text-primary)] font-bold"
+              }`}
+            >
+              {task.title}
+            </span>
+            <span
+              className={`flex items-center gap-1 text-[12px] font-bold ${
+                task.done
+                  ? "text-[var(--text-muted)]"
+                  : "text-[var(--accent-primary)]"
+              }`}
+            >
+              <Zap size={12} fill="currentColor" />+{task.xp}
+            </span>
 
-              {/* Particles */}
-              <AnimatePresence>
-                {!task.done &&
-                  particles.map((p) => (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                      animate={{
-                        opacity: 0,
-                        x: p.x,
-                        y: p.y,
-                        scale: 0.5,
-                      }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
-                      className="absolute right-4 top-1/2"
-                    >
-                      <Sparkles size={12} className="text-[var(--accent-primary)]" />
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
-            </motion.button>
-          ))}
-        </div>
+            {/* Particles */}
+            <AnimatePresence>
+              {!task.done &&
+                particles.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 1, scale: 1 }}
+                    animate={{ opacity: 0, x: p.x, y: p.y, scale: 0.5 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="absolute right-6"
+                  >
+                    <Sparkles size={12} className="text-[var(--accent-primary)]" />
+                  </motion.div>
+                ))}
+            </AnimatePresence>
+          </button>
+        ))}
+      </div>
 
-        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          {allDone
-            ? "Nice work! Click reset to try again."
-            : "Click tasks to earn XP and level up"}
-        </p>
+      <div className="mt-8 text-center">
+         <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.2em]">Complete tasks to level up</p>
       </div>
     </div>
   );

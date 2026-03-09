@@ -951,14 +951,12 @@ body {
    Iron Man HUD-inspired glass effects with depth and dimension
    ============================================================================= */
 
-/* Glass card - subtle backdrop blur with improved shadows for grey */
+/* Glass card - glassy translucent card */
 .glass-card {
-  background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.15),
-    0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(var(--bg-card-rgb), 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
 }
 
 /* Glass card elevated - stronger blur */
@@ -1654,4 +1652,64 @@ body {
   .cell-hover-pulse:hover {
     animation: none;
   }
+}
+
+/* =============================================================================
+   LANDING PAGE UTILITIES
+   Custom classes used by landing page components (HeroSection, SocialProof)
+   ============================================================================= */
+
+/* Uppercase label style */
+.text-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Accent glow effects */
+.accent-glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3), 0 0 40px rgba(239, 68, 68, 0.1);
+}
+
+.accent-glow-gold {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
+}
+
+.accent-glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 0 40px rgba(34, 197, 94, 0.1);
+}
+
+/* Colored glass panels */
+.glass-red {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.glass-gold {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.glass-green {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.glass-blue {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Glass surface - translucent card surface */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Monospace font utility */
+.font-geist-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
 }

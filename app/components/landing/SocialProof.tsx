@@ -2,12 +2,13 @@
 
 // =============================================================================
 // SOCIAL PROOF SECTION
-// Fetches real stats from /api/stats and displays them with counter animations.
+// Refined for a "Sleek OS" feel.
+// Uses Geist Mono for system stats and Geist Sans for titles.
 // =============================================================================
 
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { CheckCircle, Clock, Flame, Users } from "lucide-react";
+import { CheckCircle, Clock, Flame, Users, Activity, Terminal, ShieldCheck } from "lucide-react";
 
 interface Stats {
   tasksCompleted: number;
@@ -27,23 +28,23 @@ const STAT_CONFIG = [
   {
     key: "focusHours" as const,
     icon: Clock,
-    suffix: "h",
+    suffix: "H",
     label: "Focus Hours",
     color: "text-[var(--accent-primary)]",
   },
   {
     key: "longestStreak" as const,
     icon: Flame,
-    suffix: " days",
-    label: "Longest Streak",
+    suffix: "D",
+    label: "Best Streak",
     color: "text-[var(--accent-streak)]",
   },
   {
     key: "totalUsers" as const,
     icon: Users,
     suffix: "+",
-    label: "Students",
-    color: "text-[var(--accent-highlight)]",
+    label: "Active Students",
+    color: "text-[var(--text-primary)]",
   },
 ];
 
@@ -67,23 +68,19 @@ function AnimatedCounter({
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-
-      // Easing function (ease out cubic)
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const eased = 1 - Math.pow(1 - progress, 4);
       setDisplayValue(Math.floor(eased * value));
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+      if (progress < 1) requestAnimationFrame(animate);
     };
 
     requestAnimationFrame(animate);
   }, [inView, value]);
 
   return (
-    <span className="font-mono">
+    <span className="tabular-nums tracking-tighter">
       {displayValue.toLocaleString()}
-      {suffix}
+      <span className="text-[0.5em] text-[var(--text-muted)] ml-1 font-bold">{suffix}</span>
     </span>
   );
 }
@@ -101,56 +98,68 @@ export default function SocialProof() {
   }, []);
 
   return (
-    <section className="py-24 px-6" ref={containerRef}>
-      <div className="mx-auto max-w-5xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
-            The numbers so far
-          </h2>
-          <p className="mt-3 text-[var(--text-secondary)]">
-            From actual students using this right now
-          </p>
-        </motion.div>
+    <section className="py-24 md:py-32 px-6 relative" ref={containerRef}>
+      <div className="mx-auto max-w-7xl relative z-10">
+        
+        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6 border-b border-[var(--border-default)] pb-8">
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+            transition={{ duration: 0.5 }}
+          >
+             <div className="text-label text-[var(--accent-primary)] mb-3 flex items-center gap-2">
+               <Activity size={14} /> Global Pulse
+             </div>
+            <h2 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">
+              Collective Focus
+            </h2>
+          </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div
+             initial={{ opacity: 0, x: 10 }}
+             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 10 }}
+             transition={{ duration: 0.5 }}
+             className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg shadow-sm"
+          >
+             <ShieldCheck size={16} className="text-[var(--accent-success)]" />
+             <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">Verified Stats</span>
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {STAT_CONFIG.map((stat, index) => {
             const Icon = stat.icon;
             const value = stats ? stats[stat.key] : 0;
+            const glassClass = index === 0 ? "glass-green" : index === 1 ? "glass-red" : index === 2 ? "glass-gold" : "glass-blue";
 
             return (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={
-                  isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-                }
-                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                className="glass-card hover-lift-glow text-center p-6 rounded-xl border border-[var(--border-subtle)]"
+                initial={{ opacity: 0, y: 10 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                className={`p-8 rounded-2xl flex flex-col gap-8 relative group hover:translate-y-[-4px] transition-all shadow-xl shadow-black/10 ${glassClass}`}
               >
-                <div
-                  className={`inline-flex p-3 rounded-full ${stat.color}/10 mb-4`}
-                >
-                  <Icon size={24} className={stat.color} />
-                </div>
-                <p className={`text-3xl sm:text-4xl font-bold ${stat.color}`}>
-                  {stats ? (
-                    <AnimatedCounter
-                      value={value}
-                      suffix={stat.suffix}
-                      inView={isInView}
-                    />
-                  ) : (
-                    <span className="opacity-30">&mdash;</span>
-                  )}
-                </p>
-                <p className="text-sm text-[var(--text-muted)] mt-2">
-                  {stat.label}
-                </p>
+                 <div className="flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-white/10 text-[var(--text-primary)] border border-white/10 shadow-inner">
+                       <Icon size={20} strokeWidth={2} className="text-white" />
+                    </div>
+                    <div className="text-[9px] font-bold text-white/30">0{index + 1}</div>
+                 </div>
+                  
+                 <div className="space-y-1">
+                    <div className="text-4xl font-bold text-[var(--text-primary)] tracking-tighter">
+                      {stats ? (
+                        <AnimatedCounter value={value} suffix={stat.suffix} inView={isInView} />
+                      ) : (
+                        <span className="opacity-10 animate-pulse">---</span>
+                      )}
+                    </div>
+                    
+                    <div className="text-label mt-2">
+                      {stat.label}
+                    </div>
+                 </div>
               </motion.div>
             );
           })}

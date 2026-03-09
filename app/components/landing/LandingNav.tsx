@@ -2,54 +2,83 @@
 
 // =============================================================================
 // LANDING NAV
-// Minimal navigation header for the landing page.
-// Shows logo and sign-in link, fixed at top with scroll-aware frosted glass.
+// Clean, professional navigation inspired by Linear and Notion.
+// Uses Geist Sans for a high-end, approachable look.
 // =============================================================================
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
+  const { scrollY } = useScroll();
+  
+  const navBackground = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(24, 24, 27, 0)", "rgba(24, 24, 27, 0.8)"]
+  );
+  
+  const navBorder = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.1)"]
+  );
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <motion.nav
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 px-6 py-4 transition-all duration-300 ${
-        scrolled
-          ? "bg-[var(--bg-base)]/80 backdrop-blur-md border-b border-[var(--border-subtle)]"
-          : ""
-      }`}
+    <motion.header
+      style={{
+        backgroundColor: navBackground,
+        borderColor: navBorder,
+      }}
+      className="fixed top-0 left-0 right-0 z-50 h-16 border-b transition-colors duration-200 backdrop-blur-lg"
     >
-      <div className="mx-auto max-w-6xl flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center font-bold text-white text-sm transition-transform group-hover:scale-105">
-            I
-          </div>
-          <span className="font-semibold text-[var(--text-primary)] hidden sm:block">
-            Intentionality
-          </span>
-        </Link>
+      <div className="mx-auto max-w-7xl h-full px-6 flex items-center justify-between">
+        {/* Left: Brand */}
+        <div className="flex items-center gap-10">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)] flex items-center justify-center transition-transform group-hover:scale-105">
+              <span className="font-bold text-white text-[13px]">I</span>
+            </div>
+            <span className="font-bold text-[var(--text-primary)] tracking-tight text-lg">
+              Intentionality
+            </span>
+          </Link>
 
-        {/* Sign In */}
-        <Link
-          href="/auth"
-          className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          Sign in
-        </Link>
+          {/* Nav Links */}
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="#features" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              Workflow
+            </Link>
+          </nav>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-6">
+          <Link
+            href="/auth"
+            className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/auth?mode=signup"
+            className="inline-flex items-center justify-center px-5 py-2 bg-[var(--text-primary)] text-[var(--bg-base)] font-bold rounded-lg hover:opacity-90 transition-all active:scale-[0.98] text-sm shadow-lg shadow-white/5"
+          >
+            Get Started
+          </Link>
+        </div>
       </div>
-    </motion.nav>
+    </motion.header>
   );
 }
