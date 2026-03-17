@@ -65,7 +65,7 @@ export default function CTASection() {
               </Link>
             </div>
             
-            <div className="mt-20 pt-12 border-t border-[var(--border-subtle)] grid grid-cols-3 gap-4 sm:gap-8 opacity-50">
+            <div className="mt-20 pt-12 border-t border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 opacity-50">
                <div className="space-y-1">
                   <div className="text-label text-xs">Identity</div>
                   <div className="text-xs font-bold text-[var(--text-primary)]">Student-First</div>

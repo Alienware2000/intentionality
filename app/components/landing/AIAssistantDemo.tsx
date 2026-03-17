@@ -82,7 +82,7 @@ export default function AIAssistantDemo() {
       </div>
 
       {/* Chat area */}
-      <div className="h-[240px] p-5 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+      <div className="h-[200px] sm:h-[240px] p-5 overflow-y-auto custom-scrollbar flex flex-col gap-5">
         {activeConversation === null ? (
           <div className="h-full flex flex-col items-center justify-start py-4">
             <div className="flex gap-3 w-full">

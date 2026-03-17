@@ -127,9 +127,7 @@ export default function HeroSection() {
         style={{ y: yMockup, opacity: opacityMockup }}
         className="relative w-full max-w-[1100px] mx-auto z-0 will-change-[transform]"
       >
-        {/* Scale wrapper for mobile responsiveness */}
-        <div className="h-[280px] sm:h-[380px] md:h-auto overflow-hidden">
-          <div className="scale-[0.55] sm:scale-[0.75] md:scale-100 origin-top">
+        {/* Dashboard mockup - truly responsive, no scale hack */}
             <div className="relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)] shadow-2xl overflow-hidden ring-1 ring-white/5 flex flex-col">
 
               {/* Subtle Window Chrome */}
@@ -148,7 +146,7 @@ export default function HeroSection() {
               </div>
 
               {/* Application Layout */}
-              <div className="flex h-[600px] bg-[var(--bg-base)] font-sans text-sm">
+              <div className="flex h-[420px] sm:h-[500px] md:h-[600px] bg-[var(--bg-base)] font-sans text-sm">
 
                  {/* Left Sidebar */}
                  <div className="w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-elevated)] hidden md:flex flex-col">
@@ -226,11 +224,11 @@ export default function HeroSection() {
                  </div>
 
                  {/* Main Content Area */}
-                 <div className="flex-1 p-8 overflow-y-auto bg-[var(--bg-base)] custom-scrollbar relative">
+                 <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto bg-[var(--bg-base)] custom-scrollbar relative">
                     {/* Subtle structural lines */}
-                    <div className="absolute top-0 left-8 bottom-0 w-px bg-gradient-to-b from-transparent via-[var(--border-subtle)] to-transparent" />
+                    <div className="absolute top-0 left-4 sm:left-8 bottom-0 w-px bg-gradient-to-b from-transparent via-[var(--border-subtle)] to-transparent" />
 
-                    <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+                    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 relative z-10">
 
                        {/* Top Stats Overview */}
                        <section>
@@ -238,9 +236,9 @@ export default function HeroSection() {
                             <h2 className="text-label">Active Performance</h2>
                             <div className="h-px flex-1 bg-[var(--border-subtle)] ml-4" />
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                              <div
-                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-red-600/20 hover:-translate-y-0.5"
+                               className="p-3 sm:p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-red-600/20 hover:-translate-y-0.5"
                              >
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Focus Time</div>
                                 <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">1h 45m</div>
@@ -249,7 +247,7 @@ export default function HeroSection() {
                                 </div>
                              </div>
                              <div
-                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-green-500/20 hover:-translate-y-0.5"
+                               className="p-3 sm:p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-green-500/20 hover:-translate-y-0.5"
                              >
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Completion</div>
                                 <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">4 / 7</div>
@@ -263,7 +261,7 @@ export default function HeroSection() {
                                 </div>
                              </div>
                              <div
-                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-yellow-500/20 hover:-translate-y-0.5"
+                               className="p-3 sm:p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-yellow-500/20 hover:-translate-y-0.5"
                              >
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Yield</div>
                                 <div className="text-2xl font-bold text-[var(--accent-success)] tracking-tight">+120 XP</div>
@@ -276,12 +274,12 @@ export default function HeroSection() {
                           {/* Focus Launcher */}
                           <section>
                              <h2 className="text-label mb-4">Focus Protocol</h2>
-                             <div className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col items-center justify-center text-center h-[260px] shadow-xl relative overflow-hidden group">
-                                <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-default)] mb-6 shadow-lg group-hover:border-[var(--accent-primary)]/30 transition-all">
+                             <div className="p-4 sm:p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col items-center justify-center text-center h-[200px] sm:h-[260px] shadow-xl relative overflow-hidden group">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-default)] mb-4 sm:mb-6 shadow-lg group-hover:border-[var(--accent-primary)]/30 transition-all">
                                    <Clock size={28} className="text-[var(--accent-primary)]" />
                                 </div>
                                 <div className="text-[16px] font-bold text-[var(--text-primary)] mb-1">Engage Deep Work</div>
-                                <div className="text-[12px] text-[var(--text-muted)] mb-8 font-medium">Start session to trigger bonus multipliers</div>
+                                <div className="text-[12px] text-[var(--text-muted)] mb-6 sm:mb-8 font-medium">Start session to trigger bonus multipliers</div>
                                 <button className="px-10 py-3 rounded-xl bg-[var(--accent-primary)] text-white text-[13px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-red-500/20 border border-red-400/20">
                                    Start Focusing
                                 </button>
@@ -310,8 +308,6 @@ export default function HeroSection() {
 
               </div>
             </div>
-          </div>
-        </div>
 
         {/* Crisp Shadow */}
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-black blur-3xl -z-10 opacity-40" />

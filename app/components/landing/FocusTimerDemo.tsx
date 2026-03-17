@@ -65,12 +65,12 @@ export default function FocusTimerDemo() {
   return (
     <div className="w-full max-w-sm mx-auto bg-[var(--bg-base)] p-8 rounded-2xl border border-[var(--border-subtle)] shadow-2xl flex flex-col items-center">
       {/* Label */}
-      <div className="flex items-center gap-2 mb-10 text-[var(--accent-primary)] font-bold text-[10px] uppercase tracking-widest">
+      <div className="flex items-center gap-2 mb-6 sm:mb-10 text-[var(--accent-primary)] font-bold text-[10px] uppercase tracking-widest">
          <Timer size={14} strokeWidth={2} /> Time to Focus
       </div>
 
       {/* Timer Ring */}
-      <div className="relative w-48 h-48 mb-10">
+      <div className="relative w-36 h-36 sm:w-48 sm:h-48 mb-6 sm:mb-10">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
           <circle
             cx="50"
@@ -106,7 +106,7 @@ export default function FocusTimerDemo() {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-6 mb-10">
+      <div className="flex items-center gap-6 mb-6 sm:mb-10">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
