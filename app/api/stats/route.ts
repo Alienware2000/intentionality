@@ -5,7 +5,15 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/app/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+
+// Service role client for cross-user aggregate queries (bypasses RLS)
+function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 const FALLBACK_STATS = {
   tasksCompleted: 500,
@@ -16,7 +24,15 @@ const FALLBACK_STATS = {
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(FALLBACK_STATS, {
+        headers: {
+          "Cache-Control": "public, s-maxage=300",
+        },
+      });
+    }
+
+    const supabase = createAdminClient();
 
     const [tasksResult, focusResult, streakResult, usersResult] =
       await Promise.all([

@@ -86,7 +86,7 @@ export default function AIAssistantDemo() {
         {activeConversation === null ? (
           <div className="h-full flex flex-col items-center justify-start py-4">
             <div className="flex gap-3 w-full">
-              <div className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border bg-[var(--accent-primary)] text-white shadow-sm">
+              <div className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center bg-[var(--accent-primary)] text-white shadow-sm">
                 <Sparkles size={14} />
               </div>
               <div className="p-3.5 rounded-2xl text-[13.5px] leading-relaxed bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] shadow-sm">
@@ -107,10 +107,10 @@ export default function AIAssistantDemo() {
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border ${
-                    message.role === "assistant" 
-                      ? "bg-[var(--accent-primary)] text-white shadow-sm" 
-                      : "bg-[var(--bg-hover)] border-[var(--border-default)] text-[var(--text-secondary)]"
+                  <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center ${
+                    message.role === "assistant"
+                      ? "bg-[var(--accent-primary)] text-white shadow-sm"
+                      : "border bg-[var(--bg-hover)] border-[var(--border-default)] text-[var(--text-secondary)]"
                   }`}>
                     {message.role === "assistant" ? <Sparkles size={14} /> : <User size={14} />}
                   </div>
