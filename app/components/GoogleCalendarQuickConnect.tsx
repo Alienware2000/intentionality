@@ -30,6 +30,8 @@ import {
   AlertCircle,
   Loader2,
   ArrowRight,
+  ShieldAlert,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
@@ -118,6 +120,7 @@ export default function GoogleCalendarQuickConnect({ onSyncComplete }: Props) {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
   // Feedback state
   const [buttonFeedback, setButtonFeedback] = useState<{
     text: string;
@@ -248,7 +251,12 @@ export default function GoogleCalendarQuickConnect({ onSyncComplete }: Props) {
   // Handlers
   // ---------------------------------------------------------------------------
 
-  async function handleConnect() {
+  function handleConnect() {
+    setShowWarningModal(true);
+  }
+
+  async function handleProceedToGoogle() {
+    setShowWarningModal(false);
     setConnecting(true);
     try {
       const data = await fetchApi<{ ok: true; authUrl: string }>(
@@ -343,31 +351,200 @@ export default function GoogleCalendarQuickConnect({ onSyncComplete }: Props) {
 
   if (!status.connected) {
     return (
-      <motion.button
-        onClick={handleConnect}
-        disabled={connecting}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className={cn(
-          "flex items-center gap-2",
-          "rounded-xl glass-card",
-          "border border-[#4285F4]/20 bg-[#4285F4]/5",
-          "px-4 py-3 text-sm",
-          "hover:bg-[#4285F4]/10 hover:border-[#4285F4]/40",
-          "transition-all duration-200",
-          "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
-          "[touch-action:manipulation]",
-          "[-webkit-tap-highlight-color:transparent]",
-          connecting && "opacity-70 pointer-events-none"
-        )}
-      >
-        <div className="p-1.5 rounded-lg bg-[#4285F4]/10">
-          <Calendar size={14} className="text-[#4285F4]" />
-        </div>
-        <span className="text-[#4285F4]">
-          {connecting ? "Connecting..." : "Sync Google Calendar"}
-        </span>
-      </motion.button>
+      <>
+        <motion.button
+          onClick={handleConnect}
+          disabled={connecting}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "flex items-center gap-2",
+            "rounded-xl glass-card",
+            "border border-[#4285F4]/20 bg-[#4285F4]/5",
+            "px-4 py-3 text-sm",
+            "hover:bg-[#4285F4]/10 hover:border-[#4285F4]/40",
+            "transition-all duration-200",
+            "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+            "[touch-action:manipulation]",
+            "[-webkit-tap-highlight-color:transparent]",
+            connecting && "opacity-70 pointer-events-none"
+          )}
+        >
+          <div className="p-1.5 rounded-lg bg-[#4285F4]/10">
+            <Calendar size={14} className="text-[#4285F4]" />
+          </div>
+          <span className="text-[#4285F4]">
+            {connecting ? "Connecting..." : "Sync Google Calendar"}
+          </span>
+        </motion.button>
+
+        {/* Unverified app warning modal */}
+        <AnimatePresence>
+          {showWarningModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowWarningModal(false);
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                transition={{ duration: 0.15 }}
+                className={cn(
+                  "relative w-full max-w-md sm:max-w-2xl",
+                  "rounded-2xl border border-[var(--border-subtle)]",
+                  "bg-[var(--bg-elevated)] shadow-2xl",
+                  "max-h-[90vh] overflow-y-auto custom-scrollbar"
+                )}
+              >
+                {/* Close button */}
+                <button
+                  onClick={() => setShowWarningModal(false)}
+                  className={cn(
+                    "absolute top-3 right-3 p-1.5 rounded-lg",
+                    "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
+                    "hover:bg-[var(--bg-hover)] transition-colors",
+                    "min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+                    "flex items-center justify-center",
+                    "[touch-action:manipulation]",
+                    "[-webkit-tap-highlight-color:transparent]"
+                  )}
+                >
+                  <X size={16} />
+                </button>
+
+                <div className="p-5 sm:p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start gap-3 pr-8">
+                    <div className="p-2 rounded-xl bg-amber-500/10 shrink-0">
+                      <ShieldAlert size={20} className="text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                        Heads up before you connect
+                      </h3>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)] leading-relaxed">
+                        Google hasn&apos;t verified Intentionality yet, so you&apos;ll
+                        see a warning screen. This is completely normal for newer
+                        apps &mdash; it&apos;s safe to continue.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Steps with inline screenshots */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
+                      How to proceed
+                    </p>
+                    {/* Steps 1 & 2 side-by-side on desktop */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-[var(--text-secondary)]">
+                      {/* Step 1 */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2.5">
+                          <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-xs font-semibold flex items-center justify-center">
+                            1
+                          </span>
+                          <span>
+                            Click <strong className="text-[var(--text-primary)]">&ldquo;Advanced&rdquo;</strong> (bottom-left of the warning)
+                          </span>
+                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/images/google-unverified-step1.png"
+                          alt="Google warning screen with 'Advanced' circled"
+                          className="w-full mt-auto aspect-[4/3] object-contain rounded-lg border border-[var(--border-subtle)] bg-white"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2.5">
+                          <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-xs font-semibold flex items-center justify-center">
+                            2
+                          </span>
+                          <span>
+                            Click <strong className="text-[var(--text-primary)]">&ldquo;Go to Intentionality (unsafe)&rdquo;</strong>
+                          </span>
+                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/images/google-unverified-step2.png"
+                          alt="Google warning screen with 'Go to Intentionality (unsafe)' underlined"
+                          className="w-full mt-auto aspect-[4/3] object-contain rounded-lg border border-[var(--border-subtle)] bg-white"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Step 3 — full width below */}
+                    <div className="flex gap-2.5 text-sm text-[var(--text-secondary)]">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-xs font-semibold flex items-center justify-center">
+                        3
+                      </span>
+                      <span>
+                        Review the permissions and click <strong className="text-[var(--text-primary)]">&ldquo;Continue&rdquo;</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Reassurance */}
+                  <div
+                    className={cn(
+                      "rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                      "px-3 py-2.5 text-xs text-[var(--text-muted)] leading-relaxed"
+                    )}
+                  >
+                    We only request <strong className="text-[var(--text-secondary)]">read-only</strong> access
+                    to your calendar events. You can disconnect anytime from Settings.
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={() => setShowWarningModal(false)}
+                      className={cn(
+                        "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium",
+                        "border border-[var(--border-default)]",
+                        "text-[var(--text-secondary)]",
+                        "hover:bg-[var(--bg-hover)] transition-colors",
+                        "min-h-[44px] sm:min-h-0",
+                        "[touch-action:manipulation]",
+                        "[-webkit-tap-highlight-color:transparent]"
+                      )}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleProceedToGoogle}
+                      className={cn(
+                        "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium",
+                        "bg-[#4285F4] text-white",
+                        "hover:bg-[#3367D6] transition-colors",
+                        "min-h-[44px] sm:min-h-0",
+                        "[touch-action:manipulation]",
+                        "[-webkit-tap-highlight-color:transparent]"
+                      )}
+                    >
+                      Continue to Google
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   }
 
