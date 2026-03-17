@@ -169,7 +169,7 @@ export default function SocialProof() {
                       {stats ? (
                         <AnimatedCounter value={value} suffix={stat.suffix} inView={isInView} />
                       ) : (
-                        <span className="opacity-10 animate-pulse">---</span>
+                        <span className="opacity-10 motion-safe:animate-pulse">---</span>
                       )}
                     </div>
                     

@@ -16,7 +16,7 @@ export default function MarketingLayout({
     <ThemeProvider>
       <div className="landing-page">
         <div className="intentionality-bg" />
-        <main className="relative z-10 min-h-screen">{children}</main>
+        <main className="relative z-10 min-h-dvh">{children}</main>
       </div>
     </ThemeProvider>
   );

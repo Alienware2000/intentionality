@@ -43,15 +43,15 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section 
+    <section
       ref={containerRef}
-      className="relative min-h-screen flex flex-col items-center justify-start pt-40 pb-20 px-6 overflow-hidden"
+      className="relative min-h-screen flex flex-col items-center justify-start pt-24 sm:pt-32 md:pt-40 pb-20 px-6 overflow-hidden"
     >
       {/* Background Atmosphere Glow - Subtle Crimson */}
       <div className="landing-hero-atmosphere" />
 
-      <div className="relative z-10 max-w-4xl w-full text-center mb-24">
-        
+      <div className="relative z-10 max-w-4xl w-full text-center mb-12 sm:mb-16 md:mb-24">
+
         {/* Clean Status Badge */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -59,7 +59,7 @@ export default function HeroSection() {
           transition={{ duration: 0.5 }}
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] mb-8 shadow-sm"
         >
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] motion-safe:animate-pulse" />
           <span className="text-[11px] text-[var(--text-secondary)] tracking-wide font-medium uppercase">
             Built for focus
           </span>
@@ -94,8 +94,8 @@ export default function HeroSection() {
           transition={{ delay: 0.6, duration: 0.8 }}
           className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
         >
-          No app will make you productive. That part is on you. 
-          Intentionality just makes it easier to see what actually needs doing, 
+          No app will make you productive. That part is on you.
+          Intentionality just makes it easier to see what actually needs doing,
           so you spend less time planning and more time working.
         </motion.p>
 
@@ -125,197 +125,194 @@ export default function HeroSection() {
       {/* Refined Dashboard Mockup - Clean, high-fidelity, app-accurate */}
       <motion.div
         style={{ y: yMockup, opacity: opacityMockup }}
-        className="relative w-full max-w-[1100px] mx-auto z-0"
+        className="relative w-full max-w-[1100px] mx-auto z-0 will-change-[transform]"
       >
-        <div className="relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)] shadow-2xl overflow-hidden ring-1 ring-white/5 flex flex-col">
-          
-          {/* Subtle Window Chrome */}
-          <div className="h-10 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] flex items-center px-4">
-             <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
-             </div>
-             <div className="mx-auto flex items-center justify-center">
-                <div className="px-4 py-1 rounded-md bg-[var(--bg-base)] border border-[var(--border-subtle)] flex items-center gap-2 text-[11px] font-geist-mono text-[var(--text-muted)]">
-                   <span>app.intentionality.com</span>
-                </div>
-             </div>
-             <div className="w-[50px]"></div> {/* Spacer */}
-          </div>
+        {/* Scale wrapper for mobile responsiveness */}
+        <div className="h-[280px] sm:h-[380px] md:h-auto overflow-hidden">
+          <div className="scale-[0.55] sm:scale-[0.75] md:scale-100 origin-top">
+            <div className="relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)] shadow-2xl overflow-hidden ring-1 ring-white/5 flex flex-col">
 
-          {/* Application Layout */}
-          <div className="flex h-[600px] bg-[var(--bg-base)] font-sans text-sm">
-             
-             {/* Left Sidebar */}
-             <div className="w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-elevated)] hidden md:flex flex-col">
-                <div className="p-6 pb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-[var(--accent-primary)] flex items-center justify-center font-bold text-white text-[10px] shadow-lg shadow-red-500/20">I</div>
-                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--text-primary)]">
-                      Intentionality
-                    </span>
-                  </div>
-                </div>
-
-                {/* Kofi Assistant Button */}
-                <div className="px-4 pb-4">
-                  <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl glass-red transition-all hover:bg-[rgba(220,38,38,0.12)] cursor-pointer shadow-sm">
-                    <Sparkles size={16} className="text-[var(--accent-primary)]" />
-                    <span className="font-bold text-[12px] tracking-tight">Chat with Kofi</span>
-                  </div>
-                </div>
-
-                {/* Progress / XP */}
-                <div className="px-6 pb-6">
-                  <div className="space-y-3">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                        Rank // Initiate
-                      </span>
-                      <span className="text-[10px] font-bold text-[var(--accent-highlight)]">
-                        LVL 12
-                      </span>
+              {/* Subtle Window Chrome */}
+              <div className="h-10 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] flex items-center px-4">
+                 <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-hover)]" />
+                 </div>
+                 <div className="mx-auto flex items-center justify-center">
+                    <div className="px-4 py-1 rounded-md bg-[var(--bg-base)] border border-[var(--border-subtle)] flex items-center gap-2 text-[11px] font-geist-mono text-[var(--text-muted)]">
+                       <span>app.intentionality.com</span>
                     </div>
-                    {/* XP Bar */}
-                    <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
-                       <div className="h-full bg-[var(--accent-primary)] w-[65%]" />
+                 </div>
+                 <div className="w-[50px]"></div> {/* Spacer */}
+              </div>
+
+              {/* Application Layout */}
+              <div className="flex h-[600px] bg-[var(--bg-base)] font-sans text-sm">
+
+                 {/* Left Sidebar */}
+                 <div className="w-64 border-r border-[var(--border-subtle)] bg-[var(--bg-elevated)] hidden md:flex flex-col">
+                    <div className="p-6 pb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-[var(--accent-primary)] flex items-center justify-center font-bold text-white text-[10px] shadow-lg shadow-red-500/20">I</div>
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--text-primary)]">
+                          Intentionality
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 overflow-y-auto px-3 space-y-1">
-                   <motion.div 
-                     whileHover={{ x: 2, backgroundColor: "rgba(255,255,255,0.03)" }}
-                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm cursor-pointer"
-                   >
-                      <LayoutDashboard size={14} className="text-[var(--accent-primary)]" />
-                      <span className="text-[12px] font-bold tracking-tight">Dashboard</span>
-                   </motion.div>
-                   <motion.div 
-                     whileHover={{ x: 2, backgroundColor: "var(--bg-hover)" }}
-                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group cursor-pointer"
-                   >
-                      <Calendar size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
-                      <span className="text-[12px] font-medium">Calendar</span>
-                   </motion.div>
-                   <motion.div 
-                     whileHover={{ x: 2, backgroundColor: "var(--bg-hover)" }}
-                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group cursor-pointer"
-                   >
-                      <Target size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
-                      <span className="text-[12px] font-medium">Goals</span>
-                   </motion.div>
-                </nav>
-
-                {/* Footer */}
-                <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-card)]/50">
-                   <motion.div 
-                     whileHover={{ scale: 1.05 }}
-                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-gold shadow-sm"
-                   >
-                      <Flame size={12} className="text-[var(--accent-streak)]" fill="currentColor" />
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]">14</span>
-                   </motion.div>
-                   <motion.div 
-                     whileHover={{ rotate: 15 }} 
-                     className="p-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
-                   >
-                      <Settings size={14} />
-                   </motion.div>
-                </div>
-             </div>
-
-             {/* Main Content Area */}
-             <div className="flex-1 p-8 overflow-y-auto bg-[var(--bg-base)] custom-scrollbar relative">
-                {/* Subtle structural lines */}
-                <div className="absolute top-0 left-8 bottom-0 w-px bg-gradient-to-b from-transparent via-[var(--border-subtle)] to-transparent" />
-                
-                <div className="max-w-4xl mx-auto space-y-8 relative z-10">
-                   
-                   {/* Top Stats Overview */}
-                   <section>
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-label">Active Performance</h2>
-                        <div className="h-px flex-1 bg-[var(--border-subtle)] ml-4" />
+                    {/* Kofi Assistant Button */}
+                    <div className="px-4 pb-4">
+                      <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl glass-red transition-all cursor-pointer shadow-sm">
+                        <Sparkles size={16} className="text-[var(--accent-primary)]" />
+                        <span className="font-bold text-[12px] tracking-tight">Chat with Kofi</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
-                         <motion.div 
-                           whileHover={{ y: -2, borderColor: "rgba(220, 38, 38, 0.2)" }}
-                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
-                         >
-                            <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Focus Time</div>
-                            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">1h 45m</div>
-                            <div className="mt-3 flex items-center gap-1.5 text-[10px] text-[var(--accent-success)] font-bold uppercase">
-                               <TrendingUp size={10} /> +12%
-                            </div>
-                         </motion.div>
-                         <motion.div 
-                           whileHover={{ y: -2, borderColor: "rgba(34, 197, 94, 0.2)" }}
-                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
-                         >
-                            <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Completion</div>
-                            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">4 / 7</div>
-                            <div className="h-1.5 w-full bg-[var(--bg-hover)] mt-4 rounded-full overflow-hidden border border-[var(--border-subtle)]">
-                               <motion.div 
-                                 initial={{ x: "-100%" }}
-                                 animate={{ x: "0%" }}
-                                 transition={{ duration: 1, delay: 0.5 }}
-                                 className="h-full bg-[var(--accent-success)] w-[57%]" 
-                               />
-                            </div>
-                         </motion.div>
-                         <motion.div 
-                           whileHover={{ y: -2, borderColor: "rgba(251, 191, 36, 0.2)" }}
-                           className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default"
-                         >
-                            <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Yield</div>
-                            <div className="text-2xl font-bold text-[var(--accent-success)] tracking-tight">+120 XP</div>
-                            <div className="mt-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Top 5% Student</div>
-                         </motion.div>
+                    </div>
+
+                    {/* Progress / XP */}
+                    <div className="px-6 pb-6">
+                      <div className="space-y-3">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                            Rank // Initiate
+                          </span>
+                          <span className="text-[10px] font-bold text-[var(--accent-highlight)]">
+                            LVL 12
+                          </span>
+                        </div>
+                        {/* XP Bar */}
+                        <div className="h-1.5 w-full bg-[var(--bg-card)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+                           <div className="h-full bg-[var(--accent-primary)] w-[65%]" />
+                        </div>
                       </div>
-                   </section>
+                    </div>
 
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Focus Launcher */}
-                      <section>
-                         <h2 className="text-label mb-4">Focus Protocol</h2>
-                         <div className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col items-center justify-center text-center h-[260px] shadow-xl relative overflow-hidden group">
-                            <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-default)] mb-6 shadow-lg group-hover:border-[var(--accent-primary)]/30 transition-all">
-                               <Clock size={28} className="text-[var(--accent-primary)]" />
-                            </div>
-                            <div className="text-[16px] font-bold text-[var(--text-primary)] mb-1">Engage Deep Work</div>
-                            <div className="text-[12px] text-[var(--text-muted)] mb-8 font-medium">Start session to trigger bonus multipliers</div>
-                            <button className="px-10 py-3 rounded-xl bg-[var(--accent-primary)] text-white text-[13px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-red-500/20 border border-red-400/20">
-                               Start Focusing
-                            </button>
-                         </div>
-                      </section>
+                    {/* Navigation */}
+                    <nav className="flex-1 overflow-y-auto px-3 space-y-1">
+                       <div
+                         className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm cursor-pointer"
+                       >
+                          <LayoutDashboard size={14} className="text-[var(--accent-primary)]" />
+                          <span className="text-[12px] font-bold tracking-tight">Dashboard</span>
+                       </div>
+                       <div
+                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer"
+                       >
+                          <Calendar size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
+                          <span className="text-[12px] font-medium">Calendar</span>
+                       </div>
+                       <div
+                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer"
+                       >
+                          <Target size={14} className="transition-colors group-hover:text-[var(--text-primary)]" />
+                          <span className="text-[12px] font-medium">Goals</span>
+                       </div>
+                    </nav>
 
-                      {/* Today's Tasks */}
-                      <section className="flex flex-col h-full">
-                         <div className="flex justify-between items-center mb-4">
-                           <h2 className="text-label">Active Quests</h2>
-                           <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest border border-[var(--border-subtle)] px-2 py-0.5 rounded-full bg-[var(--bg-elevated)]">March 7</span>
-                         </div>
-                         <div className="space-y-3 flex-1">
-                            <MockTaskCard title="Research paper outline" priority="high" completed />
-                            <MockTaskCard title="Draft introduction for essay" priority="medium" active />
-                            <MockTaskCard title="Lab report data analysis" priority="high" info="Lab 3" />
-                            <div className="py-3 rounded-xl border border-dashed border-[var(--border-default)] flex items-center justify-center gap-2 text-[var(--text-muted)] text-[12px] mt-2 hover:border-[var(--accent-primary)]/40 hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-all cursor-pointer">
-                               <Plus size={14} /> Initialize Task
-                            </div>
-                         </div>
-                      </section>
-                   </div>
+                    {/* Footer */}
+                    <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-card)]/50">
+                       <div
+                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-gold shadow-sm"
+                       >
+                          <Flame size={12} className="text-[var(--accent-streak)]" fill="currentColor" />
+                          <span className="text-[11px] font-bold text-[var(--text-primary)]">14</span>
+                       </div>
+                       <div
+                         className="p-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                       >
+                          <Settings size={14} />
+                       </div>
+                    </div>
+                 </div>
 
-                </div>
-             </div>
+                 {/* Main Content Area */}
+                 <div className="flex-1 p-8 overflow-y-auto bg-[var(--bg-base)] custom-scrollbar relative">
+                    {/* Subtle structural lines */}
+                    <div className="absolute top-0 left-8 bottom-0 w-px bg-gradient-to-b from-transparent via-[var(--border-subtle)] to-transparent" />
 
+                    <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+
+                       {/* Top Stats Overview */}
+                       <section>
+                          <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-label">Active Performance</h2>
+                            <div className="h-px flex-1 bg-[var(--border-subtle)] ml-4" />
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                             <div
+                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-red-600/20 hover:-translate-y-0.5"
+                             >
+                                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Focus Time</div>
+                                <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">1h 45m</div>
+                                <div className="mt-3 flex items-center gap-1.5 text-[10px] text-[var(--accent-success)] font-bold uppercase">
+                                   <TrendingUp size={10} /> +12%
+                                </div>
+                             </div>
+                             <div
+                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-green-500/20 hover:-translate-y-0.5"
+                             >
+                                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Completion</div>
+                                <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">4 / 7</div>
+                                <div className="h-1.5 w-full bg-[var(--bg-hover)] mt-4 rounded-full overflow-hidden border border-[var(--border-subtle)]">
+                                   <motion.div
+                                     initial={{ x: "-100%" }}
+                                     animate={{ x: "0%" }}
+                                     transition={{ duration: 1, delay: 0.5 }}
+                                     className="h-full bg-[var(--accent-success)] w-[57%]"
+                                   />
+                                </div>
+                             </div>
+                             <div
+                               className="p-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm transition-all group cursor-default hover:border-yellow-500/20 hover:-translate-y-0.5"
+                             >
+                                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-2">Yield</div>
+                                <div className="text-2xl font-bold text-[var(--accent-success)] tracking-tight">+120 XP</div>
+                                <div className="mt-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Top 5% Student</div>
+                             </div>
+                          </div>
+                       </section>
+
+                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          {/* Focus Launcher */}
+                          <section>
+                             <h2 className="text-label mb-4">Focus Protocol</h2>
+                             <div className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col items-center justify-center text-center h-[260px] shadow-xl relative overflow-hidden group">
+                                <div className="w-16 h-16 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-default)] mb-6 shadow-lg group-hover:border-[var(--accent-primary)]/30 transition-all">
+                                   <Clock size={28} className="text-[var(--accent-primary)]" />
+                                </div>
+                                <div className="text-[16px] font-bold text-[var(--text-primary)] mb-1">Engage Deep Work</div>
+                                <div className="text-[12px] text-[var(--text-muted)] mb-8 font-medium">Start session to trigger bonus multipliers</div>
+                                <button className="px-10 py-3 rounded-xl bg-[var(--accent-primary)] text-white text-[13px] font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-red-500/20 border border-red-400/20">
+                                   Start Focusing
+                                </button>
+                             </div>
+                          </section>
+
+                          {/* Today's Tasks */}
+                          <section className="flex flex-col h-full">
+                             <div className="flex justify-between items-center mb-4">
+                               <h2 className="text-label">Active Quests</h2>
+                               <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest border border-[var(--border-subtle)] px-2 py-0.5 rounded-full bg-[var(--bg-elevated)]">March 7</span>
+                             </div>
+                             <div className="space-y-3 flex-1">
+                                <MockTaskCard title="Research paper outline" priority="high" completed />
+                                <MockTaskCard title="Draft introduction for essay" priority="medium" active />
+                                <MockTaskCard title="Lab report data analysis" priority="high" info="Lab 3" />
+                                <div className="py-3 rounded-xl border border-dashed border-[var(--border-default)] flex items-center justify-center gap-2 text-[var(--text-muted)] text-[12px] mt-2 hover:border-[var(--accent-primary)]/40 hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-all cursor-pointer">
+                                   <Plus size={14} /> Initialize Task
+                                </div>
+                             </div>
+                          </section>
+                       </div>
+
+                    </div>
+                 </div>
+
+              </div>
+            </div>
           </div>
         </div>
-        
+
         {/* Crisp Shadow */}
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-black blur-3xl -z-10 opacity-40" />
       </motion.div>
@@ -332,21 +329,20 @@ function MockTaskCard({ title, priority, completed, active, info }: { title: str
    };
 
    return (
-      <motion.div 
-        whileHover={{ x: 4, borderColor: "rgba(255,255,255,0.15)" }}
-        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-default ${
-         active 
-            ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5' 
+      <div
+        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-default hover:translate-x-1 ${
+         active
+            ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5'
             : 'border-[var(--border-subtle)] bg-[var(--bg-card)]'
       } ${completed ? 'opacity-40 grayscale-[0.5]' : ''}`}
       >
          <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center shrink-0 ${
-            completed 
-               ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white' 
+            completed
+               ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white'
                : active ? 'border-[var(--accent-primary)] bg-transparent' : 'border-[var(--border-default)] bg-transparent'
          }`}>
             {completed && <Check size={12} strokeWidth={3} />}
-            {active && !completed && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-pulse" />}
+            {active && !completed && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] motion-safe:animate-pulse" />}
          </div>
          <div className={`flex-1 text-sm truncate ${completed ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)] font-medium'}`}>
             {title}
@@ -359,6 +355,6 @@ function MockTaskCard({ title, priority, completed, active, info }: { title: str
          <div className={`px-2 py-0.5 rounded text-[9px] font-geist-mono tracking-widest uppercase border ${priorityColors[priority]}`}>
             {priority}
          </div>
-      </motion.div>
+      </div>
    );
 }

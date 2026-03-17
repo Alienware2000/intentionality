@@ -6,7 +6,7 @@
 // Refined for a sleeker, terminal-esque "Personal OS" vibe.
 // =============================================================================
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ComponentType } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Brain, ListTodo, Timer, TrendingUp, Sparkles, Check, Terminal, Box } from "lucide-react";
 import GamificationDemo from "./GamificationDemo";
@@ -81,7 +81,7 @@ export default function FeaturesShowcase() {
 
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 relative">
           {/* Left Column: Human Text */}
-          <div className="flex flex-col gap-[15vh] md:gap-[25vh] py-[5vh] md:py-[10vh]">
+          <div className="flex flex-col gap-16 md:gap-[15vh] lg:gap-[25vh] py-[5vh] md:py-[10vh]">
             {FEATURES.map((feature) => (
               <FeatureText
                 key={feature.id}
@@ -163,10 +163,22 @@ function FeatureText({
         {feature.description}
       </p>
       
-      {/* Mobile Demo */}
-      <div className="lg:hidden mb-12 w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden flex items-center justify-center p-6 py-16 shadow-xl">
-         <feature.demo />
+      {/* Mobile Demo - Lazy loaded */}
+      <div className="lg:hidden mb-12">
+        <LazyDemo Demo={feature.demo} />
       </div>
+    </div>
+  );
+}
+
+// Lazy-load wrapper for mobile demos — only mounts when scrolled near
+function LazyDemo({ Demo }: { Demo: ComponentType }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "200px" });
+
+  return (
+    <div ref={ref} className="w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden flex items-center justify-center p-6 py-8 sm:py-16 shadow-xl min-h-[300px]">
+      {isInView ? <Demo /> : null}
     </div>
   );
 }

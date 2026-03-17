@@ -39,13 +39,13 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <a
               href="/privacy"
-              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors min-h-[44px] flex items-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
             >
               Privacy
             </a>
             <a
               href="/terms"
-              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors min-h-[44px] flex items-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
             >
               Terms
             </a>

@@ -51,7 +51,7 @@ export default function CTASection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/auth?mode=signup"
-                className="group relative w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 bg-[var(--accent-primary)] text-white font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-sm shadow-xl shadow-red-500/20"
+                className="group relative w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 bg-[var(--accent-primary)] text-white font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-sm shadow-xl shadow-red-500/20 min-h-[44px] [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
               >
                 Launch Dashboard
                 <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
@@ -59,23 +59,23 @@ export default function CTASection() {
               
               <Link
                 href="/auth"
-                className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-[var(--text-primary)] font-bold rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)]/50 hover:bg-[var(--bg-hover)] transition-all text-sm"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-[var(--text-primary)] font-bold rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)]/50 hover:bg-[var(--bg-hover)] transition-all text-sm min-h-[44px] [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
               >
                 Access Account
               </Link>
             </div>
             
-            <div className="mt-20 pt-12 border-t border-[var(--border-subtle)] grid grid-cols-3 gap-8 opacity-50">
+            <div className="mt-20 pt-12 border-t border-[var(--border-subtle)] grid grid-cols-3 gap-4 sm:gap-8 opacity-50">
                <div className="space-y-1">
-                  <div className="text-label text-[9px]">Identity</div>
+                  <div className="text-label text-xs">Identity</div>
                   <div className="text-xs font-bold text-[var(--text-primary)]">Student-First</div>
                </div>
                <div className="space-y-1">
-                  <div className="text-label text-[9px]">Status</div>
+                  <div className="text-label text-xs">Status</div>
                   <div className="text-xs font-bold text-[var(--accent-success)]">Always Free</div>
                </div>
                <div className="space-y-1">
-                  <div className="text-label text-[9px]">Build</div>
+                  <div className="text-label text-xs">Build</div>
                   <div className="text-xs font-bold text-[var(--text-primary)]">Public Beta</div>
                </div>
             </div>
