@@ -119,48 +119,53 @@ export default function PremiumUsageBanner() {
       )}
     >
       {/* Collapsed State - Clickable Header */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={cn(
-          "w-full flex items-center justify-between p-3",
-          "text-left transition-colors hover:bg-[var(--bg-hover)]/50 rounded-xl",
-          "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
-          "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg bg-[var(--text-muted)]/10">
-            <HighestIcon size={14} className="text-[var(--text-muted)]" />
+      <div className={cn(
+        "flex items-center justify-between p-3",
+        "rounded-xl"
+      )}>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "flex-1 flex items-center justify-between",
+            "text-left transition-colors hover:bg-[var(--bg-hover)]/50 rounded-lg",
+            "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+            "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-lg bg-[var(--text-muted)]/10">
+              <HighestIcon size={14} className="text-[var(--text-muted)]" />
+            </div>
+            <span className="text-sm text-[var(--text-secondary)]">
+              {highestData?.used}/{highestData?.limit} {highestLabel.toLowerCase()}
+              <span className="text-[var(--text-muted)]"> today</span>
+            </span>
           </div>
-          <span className="text-sm text-[var(--text-secondary)]">
-            {highestData?.used}/{highestData?.limit} {highestLabel.toLowerCase()}
-            <span className="text-[var(--text-muted)]"> today</span>
-          </span>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--text-muted)]">
-            {isExpanded ? "Hide" : "See all"}
-          </span>
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronDown size={14} className="text-[var(--text-muted)]" />
-          </motion.div>
-          <button
-            onClick={handleDismiss}
-            className={cn(
-              "p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors ml-1",
-              "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
-              "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
-            )}
-            aria-label="Dismiss banner"
-          >
-            <X size={12} className="text-[var(--text-muted)]" />
-          </button>
-        </div>
-      </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-muted)]">
+              {isExpanded ? "Hide" : "See all"}
+            </span>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown size={14} className="text-[var(--text-muted)]" />
+            </motion.div>
+          </div>
+        </button>
+        <button
+          onClick={handleDismiss}
+          className={cn(
+            "p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors ml-1",
+            "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+            "focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+          )}
+          aria-label="Dismiss banner"
+        >
+          <X size={12} className="text-[var(--text-muted)]" />
+        </button>
+      </div>
 
       {/* Expanded State */}
       <AnimatePresence>
