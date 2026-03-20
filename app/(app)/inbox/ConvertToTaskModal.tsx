@@ -14,12 +14,14 @@ import { getTodayISO } from "@/app/lib/date-utils";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { useProfile } from "@/app/components/ProfileProvider";
+import { useToast } from "@/app/components/Toast";
 
 type Props = {
   entry: BrainDumpEntry | null;
   quests: Quest[];
   onClose: () => void;
   onConverted: (entryId: string) => void;
+  onUndo?: (entry: BrainDumpEntry) => void;
 };
 
 const priorityOptions: { value: Priority; label: string; color: string }[] = [
@@ -28,7 +30,7 @@ const priorityOptions: { value: Priority; label: string; color: string }[] = [
   { value: "low", label: "Low", color: "var(--priority-low)" },
 ];
 
-export default function ConvertToTaskModal({ entry, quests, onClose, onConverted }: Props) {
+export default function ConvertToTaskModal({ entry, quests, onClose, onConverted, onUndo }: Props) {
   const [title, setTitle] = useState("");
   const [questId, setQuestId] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -37,6 +39,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
   const [error, setError] = useState<string | null>(null);
 
   const { refreshProfile } = useProfile();
+  const { showToast } = useToast();
 
   // Initialize form when entry changes
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
 
     try {
       // Create the task
-      await fetchApi("/api/tasks", {
+      const result = await fetchApi<{ task: { id: string } }>("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,7 +81,29 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
         body: JSON.stringify({ entryId: entry.id, processed: true }),
       });
 
+      const convertedEntry = entry;
       refreshProfile();
+      showToast({
+        message: "Task created!",
+        type: "success",
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            await fetchApi("/api/tasks", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ taskId: result.task.id }),
+            });
+            await fetchApi("/api/brain-dump", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ entryId: convertedEntry.id, processed: false }),
+            });
+            refreshProfile();
+            onUndo?.(convertedEntry);
+          },
+        },
+      });
       onConverted(entry.id);
     } catch (e) {
       setError(getErrorMessage(e));

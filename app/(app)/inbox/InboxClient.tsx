@@ -6,15 +6,16 @@
 // Allows manual conversion to tasks or deletion.
 // =============================================================================
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, CheckCircle, Clock, Brain, Plus, ArrowRight } from "lucide-react";
+import { Trash2, CheckCircle, Clock, Brain, ChevronDown, FileText, Target } from "lucide-react";
 import type { BrainDumpEntry, Quest } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
 import { useBrainDump } from "@/app/components/BrainDumpProvider";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ConvertToTaskModal from "./ConvertToTaskModal";
+import ConvertToQuestModal from "./ConvertToQuestModal";
 
 type InboxResponse = { ok: true; entries: BrainDumpEntry[] };
 type QuestsResponse = { ok: true; quests: Quest[] };
@@ -26,7 +27,29 @@ export default function InboxClient() {
   const [error, setError] = useState<string | null>(null);
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [convertingEntry, setConvertingEntry] = useState<BrainDumpEntry | null>(null);
+  const [convertingToQuestEntry, setConvertingToQuestEntry] = useState<BrainDumpEntry | null>(null);
+  const [convertDropdownId, setConvertDropdownId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { openBrainDump, lastCapturedEntry } = useBrainDump();
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!convertDropdownId) return;
+    function handleMouseDown(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setConvertDropdownId(null);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setConvertDropdownId(null);
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [convertDropdownId]);
 
   const loadData = useCallback(async () => {
     try {
@@ -209,19 +232,75 @@ export default function InboxClient() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => setConvertingEntry(entry)}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium",
-                          "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
-                          "hover:bg-[var(--accent-primary)]/20 transition-colors"
-                        )}
-                        title="Convert to task"
-                      >
-                        <Plus size={12} />
-                        <span>Task</span>
-                        <ArrowRight size={12} />
-                      </button>
+                      <div className="relative" ref={convertDropdownId === entry.id ? dropdownRef : undefined}>
+                        <button
+                          onClick={() => setConvertDropdownId(convertDropdownId === entry.id ? null : entry.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium",
+                            "min-h-[44px] sm:min-h-0",
+                            "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
+                            "hover:bg-[var(--accent-primary)]/20 transition-colors",
+                            "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+                          )}
+                          title="Convert"
+                        >
+                          <span>Convert</span>
+                          <ChevronDown size={12} />
+                        </button>
+                        <AnimatePresence>
+                          {convertDropdownId === entry.id && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.1 }}
+                              className={cn(
+                                "absolute right-0 top-full mt-1 z-10 w-56",
+                                "rounded-lg border border-[var(--border-default)]",
+                                "bg-[var(--bg-card)] shadow-lg overflow-hidden"
+                              )}
+                            >
+                              <button
+                                onClick={() => {
+                                  setConvertDropdownId(null);
+                                  setConvertingEntry(entry);
+                                }}
+                                className={cn(
+                                  "w-full flex items-start gap-3 px-3 py-3",
+                                  "min-h-[44px] text-left",
+                                  "hover:bg-[var(--bg-hover)] transition-colors",
+                                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+                                )}
+                              >
+                                <FileText size={16} className="text-[var(--accent-primary)] mt-0.5 shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-[var(--text-primary)]">Task</p>
+                                  <p className="text-xs text-[var(--text-muted)]">A single action item</p>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConvertDropdownId(null);
+                                  setConvertingToQuestEntry(entry);
+                                }}
+                                className={cn(
+                                  "w-full flex items-start gap-3 px-3 py-3",
+                                  "min-h-[44px] text-left",
+                                  "hover:bg-[var(--bg-hover)] transition-colors",
+                                  "border-t border-[var(--border-subtle)]",
+                                  "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]"
+                                )}
+                              >
+                                <Target size={16} className="text-[var(--accent-primary)] mt-0.5 shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-[var(--text-primary)]">Quest</p>
+                                  <p className="text-xs text-[var(--text-muted)]">A group of tasks</p>
+                                </div>
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                       <button
                         onClick={() => handleMarkProcessed(entry.id)}
                         className="p-2 rounded hover:bg-[var(--bg-hover)] transition-colors"
@@ -262,6 +341,28 @@ export default function InboxClient() {
         onConverted={(entryId) => {
           setEntries((e) => e.filter((entry) => entry.id !== entryId));
           setConvertingEntry(null);
+        }}
+        onUndo={(entry) => {
+          setEntries((prev) => {
+            if (prev.some((e) => e.id === entry.id)) return prev;
+            return [entry, ...prev];
+          });
+        }}
+      />
+
+      {/* Convert to Quest Modal */}
+      <ConvertToQuestModal
+        entry={convertingToQuestEntry}
+        onClose={() => setConvertingToQuestEntry(null)}
+        onConverted={(entryId) => {
+          setEntries((e) => e.filter((entry) => entry.id !== entryId));
+          setConvertingToQuestEntry(null);
+        }}
+        onUndo={(entry) => {
+          setEntries((prev) => {
+            if (prev.some((e) => e.id === entry.id)) return prev;
+            return [entry, ...prev];
+          });
         }}
       />
     </div>
