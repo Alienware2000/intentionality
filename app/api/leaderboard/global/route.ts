@@ -3,6 +3,7 @@
 // Fetches global rankings for all users.
 // =============================================================================
 
+import { createClient } from "@supabase/supabase-js";
 import {
   withAuth,
   getSearchParams,
@@ -11,6 +12,14 @@ import {
   successResponse,
 } from "@/app/lib/auth-middleware";
 import type { LeaderboardEntry, LeaderboardMetric } from "@/app/lib/types";
+
+// Service role client for cross-user queries (bypasses RLS)
+function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // -----------------------------------------------------------------------------
 // GET /api/leaderboard/global
@@ -56,9 +65,15 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
   // Determine the ordering column
   const orderColumn = metric === "streak" ? "current_streak" : metric === "level" ? "level" : "xp_total";
 
+  // Admin client bypasses RLS so we can read ALL users' privacy settings
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return ApiErrors.serverError("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+  const admin = createAdminClient();
+
   // Get user IDs that have explicitly opted OUT of the global leaderboard
   // Design: Users appear by default, only hide those who explicitly set show_on_global_leaderboard: false
-  const { data: optedOutUsers, error: privacyError } = await supabase
+  const { data: optedOutUsers, error: privacyError } = await admin
     .from("user_privacy_settings")
     .select("user_id")
     .eq("show_on_global_leaderboard", false);
