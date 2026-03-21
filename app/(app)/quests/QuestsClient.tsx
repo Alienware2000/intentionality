@@ -362,6 +362,18 @@ export default function QuestsClient() {
     return map;
   }, [tasks]);
 
+  // Sort quests: active (incomplete) first, completed last, preserving creation order within groups
+  const sortedQuests = useMemo(() => {
+    return [...quests].sort((a, b) => {
+      const aTasks = tasksByQuest[a.id] ?? [];
+      const bTasks = tasksByQuest[b.id] ?? [];
+      const aComplete = aTasks.length > 0 && aTasks.every((t) => t.completed);
+      const bComplete = bTasks.length > 0 && bTasks.every((t) => t.completed);
+      if (aComplete !== bComplete) return aComplete ? 1 : -1;
+      return 0;
+    });
+  }, [quests, tasksByQuest]);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -452,7 +464,7 @@ export default function QuestsClient() {
             </p>
           </motion.div>
         ) : (
-          quests.map((quest) => {
+          sortedQuests.map((quest) => {
             const questTasks = tasksByQuest[quest.id] ?? [];
             const completed = questTasks.filter((t) => t.completed).length;
             const total = questTasks.length;
