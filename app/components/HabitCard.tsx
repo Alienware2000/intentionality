@@ -75,7 +75,7 @@ function HabitCard({
     <motion.div
       layout
       className={cn(
-        "group flex items-center gap-2 sm:gap-3 p-3",
+        "group flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3",
         "rounded-xl",
         "bg-[var(--bg-card)]",
         "border border-[var(--border-subtle)]",
@@ -191,7 +191,7 @@ function HabitCard({
         <motion.div
           ref={streakRef}
           className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-lg",
+            "flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg",
             "bg-[var(--accent-streak)]/10 text-[var(--accent-streak)]",
             habit.current_streak >= 7 && "border border-[var(--accent-streak)]/30"
           )}
@@ -200,7 +200,7 @@ function HabitCard({
           transition={{ duration: 0.2 }}
         >
           <Flame
-            size={14}
+            size={12}
             fill="currentColor"
             className={cn(
               habit.current_streak >= 7 && "animate-[pulse_2s_ease-in-out_infinite]"
@@ -215,7 +215,7 @@ function HabitCard({
       {/* XP badge - all habits earn flat 15 XP */}
       <motion.div
         className={cn(
-          "text-xs font-mono px-2.5 py-1 rounded-lg",
+          "hidden sm:inline-flex text-xs font-mono px-2.5 py-1 rounded-lg",
           "border",
           isCompleted
             ? "bg-[var(--accent-success)]/10 text-[var(--accent-success)] border-[var(--accent-success)]/20"

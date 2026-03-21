@@ -247,7 +247,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
     <div className="space-y-3">
       {/* Section Header */}
       <div className="flex items-baseline justify-between">
-        <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
+        <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
           <span className="text-[var(--accent-success)]">●</span> Daily Habits
         </h2>
         <Link
@@ -293,7 +293,7 @@ export default function HabitsClient({ date, onHabitToggle }: Props) {
         onClick={() => setIsAddModalOpen(true)}
         className={cn(
           "w-full flex items-center justify-center gap-2",
-          "py-2.5 rounded-lg",
+          "py-3 sm:py-2.5 rounded-lg min-h-[44px] sm:min-h-0 [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
           "border border-dashed border-[var(--border-subtle)]",
           "text-sm text-[var(--text-muted)]",
           "hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]",

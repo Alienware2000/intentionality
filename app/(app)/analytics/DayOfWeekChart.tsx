@@ -41,7 +41,7 @@ export default function DayOfWeekChart({ data }: Props) {
         "p-5 sm:p-6"
       )}
     >
-      <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
+      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
         <span className="text-[var(--accent-info)]">&#9679;</span> Day of Week
       </h3>
 

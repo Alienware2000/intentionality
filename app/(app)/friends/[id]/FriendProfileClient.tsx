@@ -107,7 +107,7 @@ function ComparisonRow({
           <span className="font-medium">{label}</span>
         </div>
         {bothZero ? (
-          <span className="text-[var(--text-muted)] text-[11px]">No data yet</span>
+          <span className="text-[var(--text-muted)] text-xs">No data yet</span>
         ) : (
           <div className="flex items-center gap-2">
             <span

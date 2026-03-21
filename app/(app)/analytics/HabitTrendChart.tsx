@@ -40,7 +40,7 @@ export default function HabitTrendChart({ data, avgPercent }: Props) {
         "p-5 sm:p-6"
       )}
     >
-      <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
+      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
         <span className="text-[var(--accent-success)]">&#9679;</span> Consistency Trend
       </h3>
 

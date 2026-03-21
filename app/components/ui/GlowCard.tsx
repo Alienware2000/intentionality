@@ -217,7 +217,7 @@ const GlowCard = forwardRef<HTMLDivElement, GlowCardProps>(
         }}
         className={cn(
           // Base card styles
-          "relative rounded-xl p-4",
+          "relative rounded-xl p-3 sm:p-4",
           "border",
 
           // Variant styles

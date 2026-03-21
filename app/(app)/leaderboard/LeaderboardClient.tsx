@@ -92,7 +92,7 @@ function TabButton({ active, onClick, icon, label, count }: TabButtonProps) {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+        "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium transition-all min-h-[44px] sm:min-h-0 [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
         active
           ? "bg-[var(--accent-primary)] text-white shadow-lg shadow-[var(--accent-primary)]/20"
           : "bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)]"
@@ -137,7 +137,7 @@ function MetricFilter({ metric, onChange }: MetricFilterProps) {
           key={m.value}
           onClick={() => onChange(m.value)}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+            "flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-lg text-sm sm:text-xs font-medium transition-all min-h-[44px] sm:min-h-0 [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
             metric === m.value
               ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm"
               : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -217,18 +217,18 @@ function UserRankCard({ rank, totalCount, totalPlatformUsers, metric, value }: U
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-[var(--accent-streak)] rounded-full blur-2xl" />
         </div>
 
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex items-center gap-3 sm:gap-4">
           {/* Rank badge */}
           <div
             className={cn(
-              "flex items-center justify-center w-16 h-16 rounded-xl",
+              "flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-xl",
               rank <= 3
                 ? "bg-gradient-to-br from-amber-500/20 to-amber-600/10"
                 : "bg-[var(--bg-elevated)]"
             )}
           >
             <div className="text-center">
-              <p className="text-2xl font-mono font-bold text-[var(--text-primary)]">
+              <p className="text-xl sm:text-2xl font-mono font-bold text-[var(--text-primary)]">
                 #{rank}
               </p>
             </div>
@@ -293,7 +293,7 @@ function PrivacyNotice({ optedOut, onToggle, saving }: PrivacyNoticeProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex items-center gap-3 p-4 rounded-xl",
+        "flex flex-wrap sm:flex-nowrap items-center gap-3 p-3 sm:p-4 rounded-xl",
         "bg-[var(--bg-card)] border",
         optedOut
           ? "border-[var(--accent-success)]/30"
@@ -410,7 +410,7 @@ function GroupSelector({ groups, selectedGroupId, onSelect }: GroupSelectorProps
           key={group.id}
           onClick={() => onSelect(group.id)}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all",
+            "flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl text-sm transition-all min-h-[44px] sm:min-h-0 [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
             selectedGroupId === group.id
               ? "bg-[var(--accent-primary)] text-white"
               : "bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)]"
@@ -621,7 +621,7 @@ export default function LeaderboardClient() {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible scrollbar-hide">
         <TabButton
           active={tab === "global"}
           onClick={() => setTab("global")}
@@ -697,7 +697,7 @@ export default function LeaderboardClient() {
       <GlowCard glowColor="none" className="overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-subtle)]">
-          <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
+          <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] flex items-center gap-2">
             <span className="text-[var(--accent-highlight)]">●</span> Rankings
           </h3>
           <span className="text-xs text-[var(--text-muted)]">

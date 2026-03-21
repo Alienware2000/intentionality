@@ -1072,7 +1072,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
         aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          compact ? "w-10 h-10 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
+          compact ? "w-11 h-11 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
@@ -1117,7 +1117,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
               disabled={hasActiveSession}
               aria-label="Start focus session"
               title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play size={compact ? 14 : 16} className="sm:hidden" />
               <Play size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1134,7 +1134,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
               onClick={(e) => e.stopPropagation()}
               aria-label="Reschedule task"
               title="Reschedule task"
-              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               <CalendarClock size={compact ? 14 : 16} className="sm:hidden" />
               <CalendarClock size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1158,7 +1158,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
             onDelete(task.id);
           }}
           aria-label="Delete task"
-          className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+          className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
           <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1230,7 +1230,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
         aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
         className={cn(
           "flex-shrink-0 rounded border-2 flex items-center justify-center",
-          compact ? "w-10 h-10 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
+          compact ? "w-11 h-11 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
           isCompleted
             ? "bg-[var(--accent-primary)] border-[var(--accent-primary)]"
             : "border-[var(--border-default)] hover:border-[var(--accent-primary)]"
@@ -1266,7 +1266,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
               disabled={hasActiveSession}
               aria-label="Start focus session"
               title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play size={compact ? 14 : 16} className="sm:hidden" />
               <Play size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1283,7 +1283,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
               onClick={(e) => e.stopPropagation()}
               aria-label="Reschedule task"
               title="Reschedule task"
-              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               <CalendarClock size={compact ? 14 : 16} className="sm:hidden" />
               <CalendarClock size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1307,7 +1307,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
             onDelete(task.id);
           }}
           aria-label="Delete task"
-          className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+          className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
         >
           <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
           <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1369,7 +1369,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
             className={cn(
               "flex-shrink-0 rounded-full border-2 flex items-center justify-center",
               // Larger touch targets on mobile (44px min)
-              compact ? "w-10 h-10 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
+              compact ? "w-11 h-11 sm:w-5 sm:h-5" : "w-11 h-11 sm:w-6 sm:h-6",
               completed
                 ? "bg-[var(--accent-success)] border-[var(--accent-success)]"
                 : "border-[var(--text-muted)] hover:border-[var(--accent-success)]"
@@ -1414,7 +1414,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
                   onEdit(block);
                 }}
                 aria-label="Edit schedule block"
-                className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Pencil size={compact ? 14 : 16} className="sm:hidden" />
                 <Pencil size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1427,7 +1427,7 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
                   onDelete(block.id);
                 }}
                 aria-label="Delete schedule block"
-                className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+                className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
                 <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1509,7 +1509,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
               disabled={hasActiveSession}
               aria-label="Start focus session"
               title={hasActiveSession ? "Focus session in progress" : "Start focus session"}
-              className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play size={compact ? 14 : 16} className="sm:hidden" />
               <Play size={compact ? 12 : 14} className="hidden sm:block" />
@@ -1526,7 +1526,7 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
           <button
             onClick={() => onDelete(task.id)}
             aria-label="Delete task"
-            className="p-2.5 sm:p-1 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+            className="p-2.5 sm:p-1 rounded min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
           >
             <Trash2 size={compact ? 14 : 16} className="sm:hidden" />
             <Trash2 size={compact ? 12 : 14} className="hidden sm:block" />

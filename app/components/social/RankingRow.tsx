@@ -125,7 +125,7 @@ export default function RankingRow({
       }}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-4 px-4 py-3 rounded-xl",
+        "flex items-center gap-2 sm:gap-4 px-3 sm:px-4 py-3 rounded-xl",
         "bg-[var(--bg-card)] border border-[var(--border-subtle)]",
         "hover:bg-[var(--bg-hover)] transition-colors duration-150",
         onClick && "cursor-pointer",
@@ -178,7 +178,7 @@ export default function RankingRow({
           </p>
 
           {/* Secondary stats */}
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)]">
             {entry.username && (
               <span className="text-[var(--accent-primary)]">@{entry.username}</span>
             )}
@@ -201,7 +201,7 @@ export default function RankingRow({
         <p
           className={cn(
             "font-mono font-bold",
-            isTopThree ? "text-lg" : "text-base",
+            isTopThree ? "text-base sm:text-lg" : "text-sm sm:text-base",
             entry.is_current_user
               ? "text-[var(--accent-primary)]"
               : "text-[var(--text-primary)]"
@@ -217,7 +217,7 @@ export default function RankingRow({
           onClick={handleAddFriend}
           disabled={sending}
           className={cn(
-            "p-2 rounded-lg shrink-0",
+            "p-2.5 sm:p-2 rounded-lg shrink-0 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
             "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]",
             "hover:bg-[var(--accent-primary)]/20 transition-colors",
             "disabled:opacity-50"

@@ -373,7 +373,7 @@ function FriendsStatsCard({
             <p className="text-2xl font-mono font-bold text-[var(--text-primary)]">
               {friendCount}
             </p>
-            <p className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] flex items-center gap-1.5">
+            <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.2em] flex items-center gap-1.5">
               <span className="text-[var(--accent-info)]">●</span> Friends
             </p>
           </div>
@@ -386,7 +386,7 @@ function FriendsStatsCard({
                 <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent-success)] animate-pulse" />
               )}
             </p>
-            <p className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em]">
+            <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.2em]">
               Active today
             </p>
           </div>
@@ -397,7 +397,7 @@ function FriendsStatsCard({
               <p className="text-2xl font-mono font-bold text-[var(--accent-streak)]">
                 {avgStreak}d
               </p>
-              <p className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.2em]">
+              <p className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-[0.2em]">
                 Avg streak
               </p>
             </div>

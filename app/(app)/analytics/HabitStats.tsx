@@ -89,7 +89,7 @@ export default function HabitStats({ stats, currentStreak, weekDelta, bestDay, w
       </div>
 
       {/* Section label */}
-      <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 relative z-10">
+      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 relative z-10">
         <span className="text-[var(--accent-primary)]">&#9679;</span> Performance
       </h3>
 

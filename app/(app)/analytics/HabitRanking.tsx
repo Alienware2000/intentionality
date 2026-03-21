@@ -52,7 +52,7 @@ export default function HabitRanking({ habits }: Props) {
           "p-5 sm:p-6"
         )}
       >
-        <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
+        <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
           <span className="text-[var(--accent-highlight)]">&#9679;</span> Habit Ranking
         </h3>
         <p className="text-sm text-[var(--text-muted)]">No habits tracked yet</p>
@@ -69,7 +69,7 @@ export default function HabitRanking({ habits }: Props) {
         "p-5 sm:p-6"
       )}
     >
-      <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
+      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
         <span className="text-[var(--accent-highlight)]">&#9679;</span> Habit Ranking
       </h3>
 

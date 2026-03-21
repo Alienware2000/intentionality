@@ -373,7 +373,7 @@ export default function MonthlyHabitGrid({
           {/* Summary row (color intensity) */}
           <div className="flex items-center gap-3 pb-2 mb-1 border-b border-[var(--border-subtle)]">
             <div className="w-28 sm:w-36 flex-shrink-0">
-              <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+              <span className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
                 <span className="text-[var(--accent-primary)]">&#9679;</span> Summary
               </span>
             </div>

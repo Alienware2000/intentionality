@@ -78,7 +78,7 @@ export default function MobileNav() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
         className={cn(
-          "fixed right-4 bottom-20 z-40 md:hidden",
+          "fixed right-4 bottom-[76px] z-40 md:hidden",
           "w-12 h-12 rounded-full",
           "bg-[var(--accent-primary)] text-white",
           "flex items-center justify-center",

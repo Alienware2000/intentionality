@@ -279,7 +279,7 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                   ))}
                 </div>
                 {/* Day toggles */}
-                <div className="flex gap-1 justify-between">
+                <div className="flex gap-0.5 sm:gap-1 justify-between">
                   {dayLabels.map((day) => (
                     <button
                       key={day.value}
@@ -287,7 +287,7 @@ export default function EditHabitModal({ habit, onSave, onCreate, onClose, isOpe
                       onClick={() => toggleDay(day.value)}
                       aria-label={day.label}
                       className={cn(
-                        "w-10 h-10 sm:w-9 sm:h-9 rounded-full text-sm font-medium",
+                        "w-11 h-11 sm:w-9 sm:h-9 rounded-full text-sm font-medium",
                         "border-2 transition-all",
                         "[touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
                         "active:scale-[0.95]",

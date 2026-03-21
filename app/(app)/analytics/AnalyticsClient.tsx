@@ -458,7 +458,7 @@ export default function AnalyticsClient() {
                 "p-4"
               )}
             >
-              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
+              <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
                 <span className="text-[var(--accent-highlight)]">●</span> XP Over Time
               </h3>
               <XpChart data={xpHistory} />
@@ -476,7 +476,7 @@ export default function AnalyticsClient() {
                 "p-4"
               )}
             >
-              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
+              <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4 flex items-center gap-2">
                 <span className="text-[var(--accent-info)]">●</span> Activity {days <= 30 ? "Chart" : "Heatmap"}
               </h3>
               {days <= 30 ? (
@@ -499,7 +499,7 @@ export default function AnalyticsClient() {
                   "p-4"
                 )}
               >
-                <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
                   <span className="text-[var(--accent-primary)]">●</span> Daily Challenges
                 </h3>
                 {profile && (
@@ -521,7 +521,7 @@ export default function AnalyticsClient() {
                   "p-4"
                 )}
               >
-                <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
                   <span className="text-[var(--accent-primary)]">●</span> Weekly Challenge
                 </h3>
                 {profile && <WeeklyChallengeCard challenge={profile.weeklyChallenge} />}
@@ -540,7 +540,7 @@ export default function AnalyticsClient() {
                 "p-4"
               )}
             >
-              <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 flex items-center gap-2">
                 <span className="text-[var(--accent-highlight)]">●</span> Achievements
               </h3>
               <AchievementGrid

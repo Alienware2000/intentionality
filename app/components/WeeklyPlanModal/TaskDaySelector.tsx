@@ -116,7 +116,7 @@ function TaskDaySelector({ task, quests, onSelectDay, onSelectQuest, onToggleInc
         <button
           onClick={() => onRemove(task.id)}
           className={cn(
-            "p-1.5 rounded-lg min-w-[32px] min-h-[32px] flex items-center justify-center",
+            "p-1.5 rounded-lg min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-[32px] flex items-center justify-center",
             "text-[var(--text-muted)] hover:text-[var(--priority-high)]",
             "hover:bg-[var(--priority-high)]/10 transition-colors"
           )}
@@ -140,7 +140,7 @@ function TaskDaySelector({ task, quests, onSelectDay, onSelectQuest, onToggleInc
                   key={day.key}
                   onClick={() => onSelectDay(task.id, day.key)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium min-h-[32px]",
+                    "px-3 py-1.5 rounded-lg text-xs font-medium min-h-[44px] sm:min-h-[32px]",
                     "transition-all relative",
                     isSelected
                       ? "bg-[var(--accent-primary)] text-white shadow-sm"

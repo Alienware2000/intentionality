@@ -118,7 +118,7 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
           onChange={(e) => setQuestId(e.target.value as Id)}
           className={cn(
             "rounded border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-            "px-2 py-1.5 text-xs text-[var(--text-primary)]",
+            "px-3 py-2.5 sm:px-2 sm:py-1.5 text-sm sm:text-xs min-h-[44px] sm:min-h-0 text-[var(--text-primary)]",
             "outline-none focus:border-[var(--accent-primary)]"
           )}
         >
@@ -134,7 +134,7 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
           onChange={(e) => setPriority(e.target.value as Priority)}
           className={cn(
             "rounded border border-[var(--border-subtle)] bg-[var(--bg-card)]",
-            "px-2 py-1.5 text-xs text-[var(--text-primary)]",
+            "px-3 py-2.5 sm:px-2 sm:py-1.5 text-sm sm:text-xs min-h-[44px] sm:min-h-0 text-[var(--text-primary)]",
             "outline-none focus:border-[var(--accent-primary)]"
           )}
         >
@@ -167,8 +167,8 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
           onClick={handleAdd}
           disabled={loading || !title.trim()}
           className={cn(
-            "rounded bg-[var(--accent-primary)] px-3 py-1.5",
-            "text-xs text-white font-medium",
+            "rounded bg-[var(--accent-primary)] px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0",
+            "text-sm sm:text-xs text-white font-medium",
             "hover:bg-[var(--accent-primary)]/80 transition-colors",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
@@ -180,7 +180,7 @@ export default function AddTaskInline({ date, onTaskAdded, compact = false }: Pr
           type="button"
           onClick={handleCancel}
           className={cn(
-            "rounded px-2 py-1.5",
+            "rounded px-2 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0",
             "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
             "hover:bg-[var(--bg-hover)] transition-colors"
           )}

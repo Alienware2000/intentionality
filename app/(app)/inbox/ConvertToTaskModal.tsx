@@ -273,7 +273,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
               <button
                 onClick={onClose}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded",
+                  "px-4 py-3 sm:py-2 text-sm font-medium rounded min-h-[44px] sm:min-h-0",
                   "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
                   "hover:bg-[var(--bg-elevated)] transition-colors"
                 )}
@@ -284,7 +284,7 @@ export default function ConvertToTaskModal({ entry, quests, onClose, onConverted
                 onClick={handleConvert}
                 disabled={saving || !title.trim() || !questId || !dueDate}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded",
+                  "flex items-center gap-2 px-4 py-3 sm:py-2 text-sm font-medium rounded min-h-[44px] sm:min-h-0",
                   "bg-[var(--accent-primary)] text-white",
                   "hover:bg-[var(--accent-primary)]/80 transition-colors",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
