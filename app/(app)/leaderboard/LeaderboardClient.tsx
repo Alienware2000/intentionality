@@ -19,8 +19,10 @@ import {
   TrendingUp,
   Crown,
   Shield,
+  ShieldCheck,
   Settings,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
@@ -28,6 +30,7 @@ import { prefersReducedMotion } from "@/app/lib/anime-utils";
 import { useSocial } from "@/app/components/SocialProvider";
 import { RankingRow, RankingRowSkeleton } from "@/app/components/social";
 import GlowCard from "@/app/components/ui/GlowCard";
+import ToggleSwitch from "@/app/components/ui/ToggleSwitch";
 import type {
   LeaderboardEntry,
   LeaderboardMetric,
@@ -258,39 +261,86 @@ function UserRankCard({ rank, totalCount, metric, value }: UserRankCardProps) {
 // Privacy Notice Component
 // -----------------------------------------------------------------------------
 
-function PrivacyNotice() {
+type PrivacyNoticeProps = {
+  optedOut: boolean | null;
+  onToggle: () => void;
+  saving: boolean;
+};
+
+function PrivacyNotice({ optedOut, onToggle, saving }: PrivacyNoticeProps) {
+  // Still loading privacy state
+  if (optedOut === null) {
+    return (
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] animate-pulse">
+        <div className="w-10 h-10 rounded-lg bg-[var(--skeleton-bg)]" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-48 bg-[var(--skeleton-bg)] rounded" />
+          <div className="h-3 w-64 bg-[var(--skeleton-bg)] rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  const isVisible = !optedOut;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "flex items-center gap-3 p-4 rounded-xl",
-        "bg-[var(--bg-card)] border border-[var(--border-subtle)]"
+        "bg-[var(--bg-card)] border",
+        optedOut
+          ? "border-[var(--accent-success)]/30"
+          : "border-[var(--border-subtle)]"
       )}
     >
-      <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
-        <Shield size={18} className="text-[var(--accent-primary)]" />
-      </div>
-      <div className="flex-1">
-        <p className="text-sm text-[var(--text-secondary)]">
-          You appear on the global leaderboard by default
-        </p>
-        <p className="text-xs text-[var(--text-muted)]">
-          Want to hide your ranking? You can opt out in privacy settings.
-        </p>
-      </div>
-      <Link
-        href="/settings"
+      <div
         className={cn(
-          "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium",
-          "bg-[var(--bg-elevated)] text-[var(--text-secondary)]",
-          "hover:bg-[var(--bg-hover)] transition-colors"
+          "p-2 rounded-lg",
+          optedOut
+            ? "bg-[var(--accent-success)]/10"
+            : "bg-[var(--accent-primary)]/10"
         )}
       >
-        <Settings size={12} />
-        Settings
-        <ChevronRight size={12} />
-      </Link>
+        {optedOut ? (
+          <ShieldCheck size={18} className="text-[var(--accent-success)]" />
+        ) : (
+          <Shield size={18} className="text-[var(--accent-primary)]" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-[var(--text-secondary)]">
+          {optedOut
+            ? "You're hidden from the global leaderboard"
+            : "You appear on the global leaderboard"}
+        </p>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+          {optedOut ? (
+            "Your progress is still tracked privately. You can rejoin anytime."
+          ) : (
+            <>
+              Toggle to hide, or manage all privacy in{" "}
+              <Link
+                href="/settings?section=privacy"
+                className="text-[var(--accent-primary)] hover:underline"
+              >
+                settings
+              </Link>
+            </>
+          )}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {saving && (
+          <Loader2 size={14} className="animate-spin text-[var(--text-muted)]" />
+        )}
+        <ToggleSwitch
+          checked={isVisible}
+          onChange={onToggle}
+          disabled={saving}
+        />
+      </div>
     </motion.div>
   );
 }
@@ -398,6 +448,10 @@ export default function LeaderboardClient() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
+  // Privacy opt-out state
+  const [privacyOptedOut, setPrivacyOptedOut] = useState<boolean | null>(null);
+  const [privacySaving, setPrivacySaving] = useState(false);
+
   // Use a ref to track the current offset to avoid stale closure issues in loadLeaderboard
   const offsetRef = useRef(0);
   // Use a ref for synchronous loading guard (React state batching can't bypass this)
@@ -479,6 +533,51 @@ export default function LeaderboardClient() {
     loadLeaderboard(false);
   }, [tab, metric, selectedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch privacy setting on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/privacy");
+        const data = await res.json();
+        if (data.ok) {
+          setPrivacyOptedOut(!data.settings.show_on_global_leaderboard);
+        }
+      } catch {
+        // Non-critical — leave as null (loading state)
+      }
+    })();
+  }, []);
+
+  // Toggle privacy opt-out with optimistic update
+  const handlePrivacyToggle = useCallback(async () => {
+    if (privacyOptedOut === null) return;
+
+    const newOptedOut = !privacyOptedOut;
+    setPrivacyOptedOut(newOptedOut); // Optimistic
+    setPrivacySaving(true);
+
+    try {
+      const res = await fetch("/api/privacy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ show_on_global_leaderboard: !newOptedOut }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPrivacyOptedOut(!data.settings.show_on_global_leaderboard);
+        // Re-fetch leaderboard to reflect visibility change
+        loadLeaderboard(false);
+      } else {
+        // Revert on error
+        setPrivacyOptedOut(!newOptedOut);
+      }
+    } catch {
+      setPrivacyOptedOut(!newOptedOut);
+    } finally {
+      setPrivacySaving(false);
+    }
+  }, [privacyOptedOut, loadLeaderboard]);
+
   // Update previous entry count ref after entries change (for "Load More" animation optimization)
   useEffect(() => {
     prevEntryCountRef.current = entries.length;
@@ -558,8 +657,8 @@ export default function LeaderboardClient() {
         <MetricFilter metric={metric} onChange={setMetric} />
       </div>
 
-      {/* User rank card */}
-      {!loading && userRank && totalCount > 0 && (
+      {/* User rank card (hidden when opted out of global leaderboard) */}
+      {!loading && userRank && totalCount > 0 && !(tab === "global" && privacyOptedOut) && (
         <UserRankCard
           rank={userRank}
           totalCount={totalCount}
@@ -569,7 +668,13 @@ export default function LeaderboardClient() {
       )}
 
       {/* Privacy notice for global tab */}
-      {tab === "global" && <PrivacyNotice />}
+      {tab === "global" && (
+        <PrivacyNotice
+          optedOut={privacyOptedOut}
+          onToggle={handlePrivacyToggle}
+          saving={privacySaving}
+        />
+      )}
 
       {/* Error state */}
       {error && (

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SettingsClient from "./SettingsClient";
 
 export default async function SettingsPage() {
@@ -12,7 +13,9 @@ export default async function SettingsPage() {
         </p>
       </header>
 
-      <SettingsClient />
+      <Suspense>
+        <SettingsClient />
+      </Suspense>
     </div>
   );
 }

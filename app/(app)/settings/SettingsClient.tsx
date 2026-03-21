@@ -6,7 +6,8 @@
 // Uses centralized expand/collapse state for all sections.
 // =============================================================================
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import CalendarImportCard from "./CalendarImportCard";
@@ -31,8 +32,17 @@ const ALL_SECTIONS: SectionKey[] = ["profile", "appearance", "privacy", "plan", 
 // -----------------------------------------------------------------------------
 
 export default function SettingsClient() {
+  const searchParams = useSearchParams();
+
   // Centralized expansion state - empty set means all collapsed
-  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() => {
+    // Auto-expand section from URL param on initial render
+    const section = searchParams.get("section");
+    if (section && ALL_SECTIONS.includes(section as SectionKey)) {
+      return new Set([section as SectionKey]);
+    }
+    return new Set();
+  });
 
   const allExpanded = expandedSections.size === ALL_SECTIONS.length;
   const noneExpanded = expandedSections.size === 0;
