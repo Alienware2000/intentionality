@@ -35,10 +35,11 @@ import {
   Play,
   List,
   CalendarDays,
+  MoreVertical,
 } from "lucide-react";
 import { useDayTimeline } from "@/app/lib/hooks/useDayTimeline";
 import { cn } from "@/app/lib/cn";
-import { formatTime, toISODateString, getTodayISO } from "@/app/lib/date-utils";
+import { formatTime, toISODateString, getTodayISO, getTomorrowISO, getNextMondayISO, getThisSaturdayISO } from "@/app/lib/date-utils";
 import TaskReschedulePopover from "./TaskReschedulePopover";
 import { FLAT_TASK_XP } from "@/app/lib/gamification";
 import type { ISODateString, Task, ScheduleBlock, Priority, Id, Quest } from "@/app/lib/types";
@@ -963,6 +964,146 @@ function TaskFocusPopover({
 }
 
 /**
+ * Mobile overflow menu — collapses action buttons behind a ⋮ icon on mobile.
+ * Hidden on sm+ breakpoints where inline hover buttons are used instead.
+ */
+function MobileTaskMenu({
+  onStartFocus,
+  onReschedule,
+  onEdit,
+  onDelete,
+}: {
+  onStartFocus?: () => void;
+  onReschedule?: (date: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: "bottom-end",
+    strategy: "fixed",
+    transform: false,
+    middleware: [
+      offset(4),
+      flip({ padding: 8 }),
+      shift({ padding: 8 }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const click = useClick(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context);
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
+
+  function handleAction(fn: () => void) {
+    fn();
+    setIsOpen(false);
+  }
+
+  return (
+    <>
+      <button
+        // eslint-disable-next-line react-hooks/refs -- Floating UI ref callback
+        ref={refs.setReference}
+        {...getReferenceProps()}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="More actions"
+        className={cn(
+          "sm:hidden flex-shrink-0",
+          "min-h-[44px] min-w-[44px] flex items-center justify-center",
+          "rounded [touch-action:manipulation] [-webkit-tap-highlight-color:transparent]",
+          "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] transition-colors"
+        )}
+      >
+        <MoreVertical size={18} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <FloatingPortal>
+            <FloatingFocusManager context={context} modal={false}>
+              <motion.div
+                // eslint-disable-next-line react-hooks/refs -- Floating UI ref callback
+                ref={refs.setFloating}
+                style={floatingStyles}
+                {...getFloatingProps()}
+                onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.15 }}
+                className={cn(
+                  "z-50 bg-[var(--bg-card)] border border-[var(--border-subtle)]",
+                  "rounded-xl shadow-lg min-w-[180px] py-1"
+                )}
+              >
+                {onStartFocus && (
+                  <>
+                    <button
+                      onClick={() => handleAction(onStartFocus)}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--accent-primary)]"
+                    >
+                      <Play size={16} />
+                      Start Focus
+                    </button>
+                    <hr className="border-[var(--border-subtle)] my-1" />
+                  </>
+                )}
+                {onReschedule && (
+                  <>
+                    <button
+                      onClick={() => handleAction(() => onReschedule(getTomorrowISO()))}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)]"
+                    >
+                      <CalendarClock size={16} />
+                      Tomorrow
+                    </button>
+                    <button
+                      onClick={() => handleAction(() => onReschedule(getThisSaturdayISO()))}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)]"
+                    >
+                      <CalendarClock size={16} />
+                      This Weekend
+                    </button>
+                    <button
+                      onClick={() => handleAction(() => onReschedule(getNextMondayISO()))}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)]"
+                    >
+                      <CalendarClock size={16} />
+                      Next Monday
+                    </button>
+                    <hr className="border-[var(--border-subtle)] my-1" />
+                  </>
+                )}
+                <button
+                  onClick={() => handleAction(onEdit)}
+                  className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--text-primary)]"
+                >
+                  <Pencil size={16} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleAction(onDelete)}
+                  className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors text-[var(--accent-primary)]"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              </motion.div>
+            </FloatingFocusManager>
+          </FloatingPortal>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+/**
  * Inner content of the focus popover — pure UI, no positioning logic.
  */
 function TaskFocusPopoverContent({
@@ -1103,8 +1244,16 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
 
       <PriorityPill priority={task.priority} compact />
 
-      {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+      {/* Mobile overflow menu */}
+      <MobileTaskMenu
+        onStartFocus={isCompleted ? undefined : () => handleStartFocus(focusDuration)}
+        onReschedule={isCompleted ? undefined : (newDate) => onReschedule(task.id, newDate)}
+        onEdit={() => onEdit(task)}
+        onDelete={() => onDelete(task.id)}
+      />
+
+      {/* Action buttons - hidden on mobile, hover on desktop */}
+      <div className="hidden sm:flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <TaskFocusPopover
@@ -1166,7 +1315,7 @@ const ScheduledTaskItem = memo(function ScheduledTaskItem({
       </div>
 
       <span className={cn(
-        "text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
+        "hidden sm:inline text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
         isCompleted ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
       )}>
         +{FLAT_TASK_XP}
@@ -1252,8 +1401,16 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
 
       <PriorityPill priority={task.priority} compact />
 
-      {/* Action buttons - always visible on mobile, hover on desktop */}
-      <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+      {/* Mobile overflow menu */}
+      <MobileTaskMenu
+        onStartFocus={isCompleted ? undefined : () => handleStartFocus(focusDuration)}
+        onReschedule={isCompleted ? undefined : (newDate) => onReschedule(task.id, newDate)}
+        onEdit={() => onEdit(task)}
+        onDelete={() => onDelete(task.id)}
+      />
+
+      {/* Action buttons - hidden on mobile, hover on desktop */}
+      <div className="hidden sm:flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
         {/* Focus button - only show for incomplete tasks */}
         {!isCompleted && (
           <TaskFocusPopover
@@ -1315,7 +1472,7 @@ const UnscheduledTaskItem = memo(function UnscheduledTaskItem({
       </div>
 
       <span className={cn(
-        "text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
+        "hidden sm:inline text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--bg-elevated)]",
         isCompleted ? "text-[var(--accent-success)]" : "text-[var(--text-muted)]"
       )}>
         +{FLAT_TASK_XP}
@@ -1404,9 +1561,17 @@ const ScheduleBlockItem = memo(function ScheduleBlockItem({
           </div>
         )}
 
-        {/* Action buttons - always visible on touch, hover on desktop */}
+        {/* Mobile overflow menu */}
         {(onEdit || onDelete) && (
-          <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+          <MobileTaskMenu
+            onEdit={onEdit ? () => onEdit(block) : () => {}}
+            onDelete={onDelete ? () => onDelete(block.id) : () => {}}
+          />
+        )}
+
+        {/* Action buttons - hidden on mobile, hover on desktop */}
+        {(onEdit || onDelete) && (
+          <div className="hidden sm:flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
             {onEdit && (
               <button
                 onClick={(e) => {
@@ -1496,8 +1661,15 @@ const OverdueTaskItem = memo(function OverdueTaskItem({
 
         <PriorityPill priority={task.priority} compact />
 
-        {/* Action buttons - always visible on mobile, hover on desktop */}
-        <div className="flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
+        {/* Mobile overflow menu */}
+        <MobileTaskMenu
+          onStartFocus={() => handleStartFocus(focusDuration)}
+          onEdit={() => onEdit(task)}
+          onDelete={() => onDelete(task.id)}
+        />
+
+        {/* Action buttons - hidden on mobile, hover on desktop */}
+        <div className="hidden sm:flex items-center gap-1 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
           {/* Focus button */}
           <TaskFocusPopover
             onStart={handleStartFocus}
