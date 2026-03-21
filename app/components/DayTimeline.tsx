@@ -1010,8 +1010,7 @@ function MobileTaskMenu({
       <button
         // eslint-disable-next-line react-hooks/refs -- Floating UI ref callback
         ref={refs.setReference}
-        {...getReferenceProps()}
-        onClick={(e) => e.stopPropagation()}
+        {...getReferenceProps({ onClick: (e: React.MouseEvent) => e.stopPropagation() })}
         aria-label="More actions"
         className={cn(
           "sm:hidden flex-shrink-0",
