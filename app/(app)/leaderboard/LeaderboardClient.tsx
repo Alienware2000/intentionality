@@ -49,6 +49,7 @@ type LeaderboardResponse = {
   my_rank: number | null;
   my_value?: number | null;
   total_participants: number;
+  total_platform_users?: number;
 };
 
 /** Items per page for pagination */
@@ -157,11 +158,12 @@ function MetricFilter({ metric, onChange }: MetricFilterProps) {
 type UserRankCardProps = {
   rank: number;
   totalCount: number;
+  totalPlatformUsers: number | null;
   metric: LeaderboardMetric;
   value: number;
 };
 
-function UserRankCard({ rank, totalCount, metric, value }: UserRankCardProps) {
+function UserRankCard({ rank, totalCount, totalPlatformUsers, metric, value }: UserRankCardProps) {
   const valueRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -249,6 +251,9 @@ function UserRankCard({ rank, totalCount, metric, value }: UserRankCardProps) {
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-1">
               Top {percentile}% of {totalCount.toLocaleString()} users
+              {totalPlatformUsers != null && totalPlatformUsers !== totalCount && (
+                <span className="text-[var(--text-muted)]/60"> · {totalPlatformUsers.toLocaleString()} total</span>
+              )}
             </p>
           </div>
         </div>
@@ -443,6 +448,7 @@ export default function LeaderboardClient() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [userRank, setUserRank] = useState<number | undefined>();
   const [totalCount, setTotalCount] = useState(0);
+  const [totalPlatformUsers, setTotalPlatformUsers] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -515,6 +521,9 @@ export default function LeaderboardClient() {
 
       setUserRank(data.my_rank ?? undefined);
       setTotalCount(data.total_participants);
+      if (data.total_platform_users != null) {
+        setTotalPlatformUsers(data.total_platform_users);
+      }
 
       const newOffset = currentOffset + data.entries.length;
       const newHasMore = data.entries.length === ITEMS_PER_PAGE && newOffset < data.total_participants;
@@ -662,6 +671,7 @@ export default function LeaderboardClient() {
         <UserRankCard
           rank={userRank}
           totalCount={totalCount}
+          totalPlatformUsers={totalPlatformUsers}
           metric={metric}
           value={userValue}
         />
@@ -691,7 +701,9 @@ export default function LeaderboardClient() {
             <span className="text-[var(--accent-highlight)]">●</span> Rankings
           </h3>
           <span className="text-xs text-[var(--text-muted)]">
-            {loading ? "Loading..." : `${entries.length} of ${totalCount}`}
+            {loading ? "Loading..." : totalPlatformUsers != null && totalPlatformUsers !== totalCount
+              ? `${entries.length} of ${totalCount} · ${totalPlatformUsers.toLocaleString()} on platform`
+              : `${entries.length} of ${totalCount}`}
           </span>
         </div>
 

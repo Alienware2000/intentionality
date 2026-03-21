@@ -99,6 +99,11 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     return ApiErrors.serverError(countError.message);
   }
 
+  // Total platform users (unfiltered — for community size display)
+  const { count: totalPlatformUsers } = await supabase
+    .from("user_profiles")
+    .select("*", { count: "exact", head: true });
+
   // Find current user's rank (only if they haven't opted out)
   let myRank: number | null = null;
   let myValue: number | null = null;
@@ -189,5 +194,6 @@ export const GET = withAuth(async ({ user, supabase, request }) => {
     my_rank: myRank,
     my_value: myValue,
     total_participants: totalParticipants,
+    total_platform_users: totalPlatformUsers,
   });
 });

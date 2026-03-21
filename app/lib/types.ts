@@ -1689,6 +1689,7 @@ export type LeaderboardResponse = {
   my_rank: number | null;
   my_value: number | null;
   total_participants: number;
+  total_platform_users?: number;
 };
 
 // -----------------------------------------------------------------------------
