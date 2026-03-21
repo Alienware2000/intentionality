@@ -7,8 +7,8 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, MoreVertical, Target } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, MoreVertical, Target, Brain } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import type { Id, Quest, Task, Priority } from "@/app/lib/types";
 import { fetchApi, getErrorMessage } from "@/app/lib/api";
 import { cn } from "@/app/lib/cn";
@@ -47,6 +47,50 @@ type QuestsResponse = { ok: true; quests: Quest[] };
 type TasksResponse = { ok: true; tasks: Task[] };
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+// Swipeable wrapper for task items — reveals "Convert to Thought" action on swipe left
+function SwipeableTask({
+  task,
+  onConvert,
+  children,
+}: {
+  task: Task;
+  onConvert: (task: Task) => void;
+  children: React.ReactNode;
+}) {
+  const dragX = useMotionValue(0);
+  const revealOpacity = useTransform(dragX, [-120, -40, 0], [1, 0.5, 0]);
+
+  if (task.completed) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Behind layer: revealed on swipe left */}
+      <motion.div
+        className="absolute inset-y-0 right-0 flex items-center px-4 bg-[var(--accent-primary)] rounded-r-lg"
+        style={{ opacity: revealOpacity }}
+      >
+        <Brain size={16} className="text-white" />
+        <span className="text-white text-xs ml-2 whitespace-nowrap">To Thought</span>
+      </motion.div>
+
+      {/* Foreground: draggable task item */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -120, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={(_, info) => {
+          if (info.offset.x < -80) onConvert(task);
+        }}
+        style={{ x: dragX }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
 
 export default function QuestsClient() {
   const [quests, setQuests] = useState<Quest[]>([]);
@@ -313,6 +357,61 @@ export default function QuestsClient() {
     }
   }
 
+  async function handleConvertToThought(task: Task) {
+    // Optimistic update
+    setTasks((ts) => ts.filter((t) => t.id !== task.id));
+
+    try {
+      // Create brain dump entry with task title
+      const entryRes = await fetchApi<{ ok: true; entry: { id: string } }>("/api/brain-dump", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: task.title }),
+      });
+
+      // Soft-delete the task
+      await fetchApi("/api/tasks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      const entryId = entryRes.entry.id;
+
+      showToast({
+        message: "Task converted to thought",
+        type: "default",
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await fetchApi("/api/tasks/restore", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ taskId: task.id }),
+              });
+              await fetchApi("/api/brain-dump", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ entryId }),
+              });
+              setTasks((ts) => [...ts, task]);
+            } catch {
+              showToast({ message: "Failed to undo conversion", type: "error" });
+            }
+          },
+        },
+        duration: 6000,
+      });
+
+      refreshProfile();
+    } catch (e) {
+      // Rollback on error
+      setTasks((ts) => [...ts, task]);
+      alert(getErrorMessage(e));
+    }
+  }
+
   const loadData = useCallback(async () => {
     try {
       // Fetch all tasks - we need them all to show quest progress accurately
@@ -362,15 +461,21 @@ export default function QuestsClient() {
     return map;
   }, [tasks]);
 
-  // Sort quests: active (incomplete) first, completed last, preserving creation order within groups
+  // Sort quests: empty → not started → in progress → completed
   const sortedQuests = useMemo(() => {
     return [...quests].sort((a, b) => {
       const aTasks = tasksByQuest[a.id] ?? [];
       const bTasks = tasksByQuest[b.id] ?? [];
-      const aComplete = aTasks.length > 0 && aTasks.every((t) => t.completed);
-      const bComplete = bTasks.length > 0 && bTasks.every((t) => t.completed);
-      if (aComplete !== bComplete) return aComplete ? 1 : -1;
-      return 0;
+
+      const getGroup = (t: typeof aTasks) => {
+        if (t.length === 0) return 0;                     // empty
+        const completedCount = t.filter((task) => task.completed).length;
+        if (completedCount === 0) return 1;                // not started
+        if (completedCount < t.length) return 2;           // in progress
+        return 3;                                          // all completed
+      };
+
+      return getGroup(aTasks) - getGroup(bTasks);
     });
   }, [quests, tasksByQuest]);
 
@@ -479,6 +584,8 @@ export default function QuestsClient() {
               <motion.div
                 key={quest.id}
                 variants={itemVariants}
+                initial="hidden"
+                animate="visible"
                 layout
                 className={cn(
                   "rounded-xl",
@@ -592,12 +699,18 @@ export default function QuestsClient() {
 
                     <div className="flex items-start gap-3">
                       <div className="text-right flex-shrink-0">
-                        <div className="text-lg font-mono font-semibold text-[var(--text-primary)]">
-                          {completed}/{total}
-                        </div>
-                        <div className="text-xs text-[var(--text-muted)]">
-                          +{earnedXp}/{totalXp} XP
-                        </div>
+                        {total === 0 ? (
+                          <div className="text-sm text-[var(--text-muted)]">No tasks</div>
+                        ) : (
+                          <>
+                            <div className="text-lg font-mono font-semibold text-[var(--text-primary)]">
+                              {completed}/{total}
+                            </div>
+                            <div className="text-xs text-[var(--text-muted)]">
+                              +{earnedXp}/{totalXp} XP
+                            </div>
+                          </>
+                        )}
                       </div>
                       <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -649,8 +762,8 @@ export default function QuestsClient() {
                           <ul className="mt-3 space-y-2">
                             <AnimatePresence>
                               {questTasks.map((task, index) => (
+                                <SwipeableTask key={task.id} task={task} onConvert={handleConvertToThought}>
                                 <motion.li
-                                  key={task.id}
                                   initial={{ opacity: 0, x: -8 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={{ opacity: 0, x: 8, scale: 0.95 }}
@@ -751,6 +864,18 @@ export default function QuestsClient() {
                                             <Pencil size={16} className="text-[var(--text-muted)]" />
                                             <span>Edit</span>
                                           </button>
+                                          {!task.completed && (
+                                            <button
+                                              onClick={() => {
+                                                handleConvertToThought(task);
+                                                setOpenTaskMenu(null);
+                                              }}
+                                              className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-[var(--bg-hover)] transition-colors"
+                                            >
+                                              <Brain size={16} className="text-[var(--text-muted)]" />
+                                              <span>Convert to Thought</span>
+                                            </button>
+                                          )}
                                           <button
                                             onClick={() => {
                                               setDeletingTaskId(task.id);
@@ -766,6 +891,7 @@ export default function QuestsClient() {
                                     </AnimatePresence>
                                   </div>
                                 </motion.li>
+                                </SwipeableTask>
                               ))}
                             </AnimatePresence>
                           </ul>
