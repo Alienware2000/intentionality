@@ -1,5 +1,5 @@
 # Intentionality 
-
+.
 **Stop procrastinating. Start progressing.**
  
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
